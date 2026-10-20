@@ -9,6 +9,7 @@
 //   TabbyTerminal  macOS: PTY, sessions, SwiftTerm-backed terminal engine, terminal tabs.
 //   TabbySSH       macOS: SSH sessions over the system OpenSSH client with native prompts.
 //   TabbyApp       macOS: AppKit window, tab bar, split panes, SwiftUI settings and modals.
+//   TabbyIPC       Unix-socket messages shared by the app and the askpass helper.
 //   tabby-askpass  Tiny helper that OpenSSH runs as SSH_ASKPASS; forwards prompts to the app.
 //
 // The .app bundle itself is produced by the Xcode project generated from project.yml.
@@ -47,8 +48,12 @@ let package = Package(
             ]
         ),
         .target(
+            name: "TabbyIPC",
+            dependencies: []
+        ),
+        .target(
             name: "TabbySSH",
-            dependencies: ["TabbyCore", "TabbyTerminal"]
+            dependencies: ["TabbyCore", "TabbyTerminal", "TabbyIPC"]
         ),
         .target(
             name: "TabbyApp",
@@ -56,7 +61,11 @@ let package = Package(
         ),
         .executableTarget(
             name: "TabbyAskpass",
-            dependencies: []
+            dependencies: ["TabbyIPC"]
+        ),
+        .testTarget(
+            name: "TabbyTerminalTests",
+            dependencies: ["TabbyCore", "TabbyTerminal", "TabbySSH", "TabbyIPC"]
         ),
         .testTarget(
             name: "TabbyCoreTests",
