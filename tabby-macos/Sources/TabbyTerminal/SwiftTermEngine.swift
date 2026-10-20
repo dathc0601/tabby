@@ -233,6 +233,11 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
         pasteFromClipboard()
     }
 
+    /// Edit > Copy: leave the clipboard alone when nothing is selected.
+    public override func copy(_ sender: Any) {
+        _ = copySelection()
+    }
+
     public func pasteFromClipboard() {
         guard let text = NSPasteboard.general.string(forType: .string), !text.isEmpty else { return }
         engineDelegate?.engine(self, paste: text)

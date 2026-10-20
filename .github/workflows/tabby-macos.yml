@@ -37,5 +37,5 @@ jobs:
           brew install xcodegen
           xcodegen generate
           xcodebuild -project TabbyMac.xcodeproj -scheme TabbyMac -configuration Debug \
-            -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+            -derivedDataPath build -skipPackagePluginValidation CODE_SIGNING_ALLOWED=NO build
           test -x build/Build/Products/Debug/TabbyMac.app/Contents/MacOS/tabby-askpass

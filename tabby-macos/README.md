@@ -20,7 +20,10 @@ cd tabby-macos
 ./scripts/bootstrap-mac.sh        # generates TabbyMac.xcodeproj and opens it
 ```
 
-In Xcode choose the **TabbyMac** scheme and **My Mac**, then press ⌘R.
+In Xcode choose the **TabbyMac** scheme and **My Mac**, then press ⌘R. On the first build
+Xcode asks you to trust SwiftTerm's build plugin (`SwiftTermBuildInfoPlugin`); choose
+**Trust & Enable**. From the command line, pass `-skipPackagePluginValidation` to
+`xcodebuild`.
 
 Without the Xcode project, for quick iteration:
 
