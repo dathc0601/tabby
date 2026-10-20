@@ -83,6 +83,9 @@ public enum ShellDetector {
         return "/bin/zsh"
     }
 
+    /// The login shell path (used to prefill new profiles).
+    public static func loginShellName() -> String { loginShell() }
+
     /// `local:default` ("OS default") plus one entry per `/etc/shells` line.
     public static func detectShells() -> [Shell] {
         let login = loginShell()

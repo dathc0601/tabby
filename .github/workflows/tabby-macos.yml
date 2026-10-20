@@ -1,0 +1,41 @@
+name: TabbyMac (Swift)
+on:
+  push:
+    paths: ['tabby-macos/**', '.github/workflows/tabby-macos.yml']
+  pull_request:
+    paths: ['tabby-macos/**', '.github/workflows/tabby-macos.yml']
+  workflow_dispatch:
+
+jobs:
+  linux-core:
+    name: Core tests (Linux)
+    runs-on: ubuntu-24.04
+    container: swift:6.1-noble
+    defaults:
+      run:
+        working-directory: tabby-macos
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test
+
+  macos:
+    name: Build and test (macOS)
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: tabby-macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app || true; xcodebuild -version
+      - name: Swift package build (all targets, including the AppKit app layer)
+        run: swift build
+      - name: Unit tests
+        run: swift test
+      - name: Xcode app bundle
+        run: |
+          brew install xcodegen
+          xcodegen generate
+          xcodebuild -project TabbyMac.xcodeproj -scheme TabbyMac -configuration Debug \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+          test -x build/Build/Products/Debug/TabbyMac.app/Contents/MacOS/tabby-askpass

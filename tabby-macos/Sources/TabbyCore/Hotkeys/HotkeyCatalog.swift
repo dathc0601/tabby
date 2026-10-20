@@ -3,7 +3,7 @@ import Foundation
 /// Human-readable names for hotkey ids, used by the Hotkeys settings page and the command
 /// palette. Ids and wording follow Tabby's `HotkeyProvider`s.
 public enum HotkeyCatalog {
-    public struct Entry: Hashable, Sendable {
+    public struct Entry: Hashable, Sendable, Identifiable {
         public let id: String
         public let name: String
         public let group: String

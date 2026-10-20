@@ -8,7 +8,10 @@
 // authentication succeeded.
 
 import Foundation
+#if !ASKPASS_STANDALONE
+// In the Xcode tool target the TabbyIPC sources are compiled into this module directly.
 import TabbyIPC
+#endif
 
 let env = ProcessInfo.processInfo.environment
 guard let socketPath = env[AskpassEnvironment.socketKey],

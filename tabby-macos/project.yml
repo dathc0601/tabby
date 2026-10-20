@@ -1,0 +1,70 @@
+# XcodeGen spec for the TabbyMac app bundle.
+#   brew install xcodegen && xcodegen generate && open TabbyMac.xcodeproj
+# The generated TabbyMac.xcodeproj is not committed.
+name: TabbyMac
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    ENABLE_HARDENED_RUNTIME: YES
+    CODE_SIGN_STYLE: Automatic
+    # Ad-hoc signing for local builds; set a team for distribution.
+    CODE_SIGN_IDENTITY: "-"
+    DEAD_CODE_STRIPPING: YES
+packages:
+  TabbyMacPackage:
+    path: .
+targets:
+  TabbyMac:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+        excludes:
+          - "Info.plist"
+          - "*.entitlements"
+    dependencies:
+      - package: TabbyMacPackage
+        product: TabbyApp
+      - target: tabby-askpass
+        embed: true
+        link: false
+        copy:
+          destination: executables
+    settings:
+      base:
+        PRODUCT_NAME: TabbyMac
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.tabbymac
+        INFOPLIST_FILE: App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/TabbyMac.entitlements
+  # The SSH_ASKPASS helper, compiled from the package sources and copied to
+  # TabbyMac.app/Contents/MacOS/tabby-askpass.
+  tabby-askpass:
+    type: tool
+    platform: macOS
+    sources:
+      - path: Sources/TabbyAskpass
+      - path: Sources/TabbyIPC
+    settings:
+      base:
+        PRODUCT_NAME: tabby-askpass
+        ENABLE_HARDENED_RUNTIME: YES
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) ASKPASS_STANDALONE"
+        SKIP_INSTALL: YES
+schemes:
+  TabbyMac:
+    build:
+      targets:
+        TabbyMac: all
+        tabby-askpass: all
+    run:
+      config: Debug
+    test:
+      config: Debug

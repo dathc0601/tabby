@@ -1,0 +1,322 @@
+#if canImport(AppKit)
+import AppKit
+import SwiftUI
+import UserNotifications
+import TabbyCore
+import TabbyTerminal
+
+/// The terminal window: frameless title bar with the tab bar in it, tab bodies, start page.
+/// Port of Tabby's `AppRootComponent` plus the Electron window setup in `app/lib/window.ts`.
+@MainActor
+final class TerminalWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+}
+
+@MainActor
+final class MainWindowController: NSWindowController, NSWindowDelegate, WindowModelUI {
+    let model = WindowModel()
+    private let root = WindowRootView()
+    private var tabBarHost: NSHostingView<TabBarView>!
+    private var startPageHost: NSHostingView<StartPageView>!
+    private var tabViews: [UUID: SplitTreeView] = [:]
+    private var loops: [ObservationLoop] = []
+    private var effectView: NSVisualEffectView?
+    var onClose: ((MainWindowController) -> Void)?
+
+    private var services: AppServices { .shared }
+
+    init() {
+        let window = TerminalWindow(
+            contentRect: CGRect(x: 0, y: 0, width: 960, height: 620),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            backing: .buffered, defer: false)
+        window.minSize = CGSize(width: 400, height: 300)
+        window.tabbingMode = .disallowed
+        window.isReleasedWhenClosed = false
+        window.setFrameAutosaveName("TabbyMacMainWindow")
+        super.init(window: window)
+        window.delegate = self
+        model.ui = self
+        model.onRecoveryStateChanged = { RecoveryCoordinator.shared.scheduleSave() }
+
+        let actions = TabBarActions(
+            select: { [weak self] in self?.model.select($0.id) },
+            close: { [weak self] in self?.requestCloseTab($0) },
+            newTab: { [weak self] in _ = self?.runCommand("new-tab") },
+            showProfiles: { [weak self] in _ = self?.runCommand("profile-selector") },
+            showSettings: { SettingsWindowController.show() },
+            command: { [weak self] id, tab in
+                guard let self else { return }
+                if let tab { self.model.select(tab.id) }
+                _ = self.runCommand(id)
+            },
+            move: { [weak self] id, index in self?.model.moveTab(id, to: index) },
+            setColor: { tab, color in
+                tab.color = color
+                RecoveryCoordinator.shared.scheduleSave()
+            }
+        )
+        tabBarHost = NSHostingView(rootView: TabBarView(model: model, actions: actions, placement: .top, leadingInset: 78))
+        startPageHost = NSHostingView(rootView: StartPageView(
+            newTab: { [weak self] in _ = self?.runCommand("new-tab") },
+            showProfiles: { [weak self] in _ = self?.runCommand("profile-selector") },
+            showSettings: { SettingsWindowController.show() },
+            openProfile: { [weak self] p in _ = self?.model.openTab(profile: p) }
+        ))
+        root.tabBar = tabBarHost
+        root.startPage = startPageHost
+        window.contentView = root
+        root.addSubview(tabBarHost)
+        root.addSubview(startPageHost)
+
+        loops.append(ObservationLoop(track: { [weak self] in
+            guard let self else { return }
+            _ = self.model.tabs.map(\.id)
+            _ = self.model.activeTabID
+        }, apply: { [weak self] in self?.syncTabViews() }))
+        loops.append(ObservationLoop(track: { [weak self] in
+            _ = AppServices.shared.theme.revision
+            _ = AppServices.shared.configRevision
+            _ = self?.model.activeTab?.title
+        }, apply: { [weak self] in self?.applyAppearance() }))
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    // MARK: Appearance
+
+    private var placement: TabBarPlacement {
+        switch services.config.string("appearance.tabsLocation") {
+        case "bottom": return .bottom
+        case "left": return .left
+        case "right": return .right
+        default: return .top
+        }
+    }
+
+    private func applyAppearance() {
+        guard let window else { return }
+        let theme = services.theme
+        let config = services.config
+        let frame = config.string("appearance.frame") ?? "thin"
+        let fullscreen = window.styleMask.contains(.fullScreen)
+        if frame == "native" {
+            window.styleMask.remove(.fullSizeContentView)
+            window.titlebarAppearsTransparent = false
+            window.titleVisibility = .visible
+        } else {
+            window.styleMask.insert(.fullSizeContentView)
+            window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
+        }
+        window.title = model.activeTab?.title ?? "TabbyMac"
+        window.backgroundColor = theme.vibrancy ? .clear : theme.chrome.windowBackground.nsColor
+        window.isOpaque = !theme.vibrancy
+        window.alphaValue = CGFloat(config.double("appearance.opacity") ?? 1)
+        if theme.vibrancy {
+            if effectView == nil {
+                let v = NSVisualEffectView()
+                v.material = .fullScreenUI
+                v.blendingMode = .behindWindow
+                v.state = .active
+                root.addSubview(v, positioned: .below, relativeTo: nil)
+                effectView = v
+            }
+        } else {
+            effectView?.removeFromSuperview()
+            effectView = nil
+        }
+        root.effectView = effectView
+        let inset: CGFloat = (frame != "native" && !fullscreen && (placement == .top || placement == .left)) ? 78 : 0
+        let place = placement
+        let verticalInset: CGFloat = place.isVertical && frame != "native" && !fullscreen ? 30 : 0
+        tabBarHost.rootView = TabBarView(model: model, actions: tabBarHost.rootView.actions, placement: place,
+                                         leadingInset: place.isVertical ? verticalInset : inset)
+        root.placement = place
+        root.tabBarHeight = 38 * theme.spaciness
+        root.hidesTabBar = fullscreen && !(config.value("appearance.tabsInFullscreen")?.boolValue ?? false)
+        root.needsLayout = true
+        layoutTrafficLights()
+    }
+
+    /// Centres the traffic lights in the tab bar (Tabby: `macOSWindowButtonsInsetX/Y`).
+    private func layoutTrafficLights() {
+        guard let window, window.titlebarAppearsTransparent, !window.styleMask.contains(.fullScreen),
+              let close = window.standardWindowButton(.closeButton), let container = close.superview?.superview else { return }
+        let barHeight = placement == .top ? root.tabBarHeight : 30
+        var f = container.frame
+        f.size.height = barHeight
+        f.origin.y = window.frame.height - barHeight
+        container.frame = f
+        for (i, type) in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton].enumerated() {
+            guard let b = window.standardWindowButton(type) else { continue }
+            b.setFrameOrigin(CGPoint(x: 14 + CGFloat(i) * 20, y: (barHeight - b.frame.height) / 2))
+        }
+    }
+
+    // MARK: Tabs ↔ views
+
+    private func syncTabViews() {
+        for tab in model.tabs where tabViews[tab.id] == nil {
+            let v = SplitTreeView(tab: tab, controller: self)
+            root.addSubview(v, positioned: .below, relativeTo: tabBarHost)
+            tabViews[tab.id] = v
+        }
+        let live = Set(model.tabs.map(\.id))
+        for (id, v) in tabViews where !live.contains(id) {
+            v.removeFromSuperview()
+            tabViews[id] = nil
+        }
+        let active = model.activeTab?.id
+        for (id, v) in tabViews { v.isHidden = id != active }
+        root.tabViews = tabViews
+        root.activeTabID = active
+        startPageHost.isHidden = !model.tabs.isEmpty
+        root.needsLayout = true
+        window?.title = model.activeTab?.title ?? "TabbyMac"
+        if let pane = model.activePane { focusEngine(of: pane) }
+    }
+
+    func paneView(for pane: TerminalPane) -> PaneContainerView? {
+        for v in tabViews.values {
+            if let p = v.paneView(for: pane.id) { return p }
+        }
+        return nil
+    }
+
+    private func focusEngine(of pane: TerminalPane) {
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, let view = self.paneView(for: pane), !view.isSearchVisible else { return }
+                self.window?.makeFirstResponder(view.engine)
+            }
+        }
+    }
+
+    // MARK: WindowModelUI
+
+    func confirmMultilinePaste(_ text: String, completion: @escaping (Bool) -> Void) {
+        Prompts.confirmPaste(in: window, text: text, completion: completion)
+    }
+
+    func paneDidRequestFocus(_ pane: TerminalPane) {
+        focusEngine(of: pane)
+    }
+
+    func notifyProcessEnded(_ pane: TerminalPane, code: Int32?) {
+        guard !NSApp.isActive, Bundle.main.bundleIdentifier != nil else { return }
+        let content = UNMutableNotificationContent()
+        content.title = pane.title
+        content.body = code.map { "Process exited with code \($0)" } ?? "Session ended"
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    func modelDidBecomeEmpty() {
+        if services.config.bool("appearance.lastTabClosesWindow") {
+            window?.close()
+        }
+    }
+
+    // MARK: Closing
+
+    func requestCloseTab(_ tab: TabModel) {
+        let busy = tab.orderedPanes.compactMap(\.activeProcessName)
+        if busy.isEmpty {
+            model.closeTab(tab.id)
+            return
+        }
+        Prompts.confirm(in: window, title: "Close this tab?", message: "\(busy.joined(separator: ", ")) is still running.",
+                        confirm: "Close", destructive: true) { [weak self] ok in
+            if ok { self?.model.closeTab(tab.id) }
+        }
+    }
+
+    func requestClosePane(_ pane: TerminalPane) {
+        guard let name = pane.activeProcessName else {
+            model.closePane(pane.id)
+            return
+        }
+        Prompts.confirm(in: window, title: "Close this pane?", message: "\(name) is still running.", confirm: "Close",
+                        destructive: true) { [weak self] ok in
+            if ok { self?.model.closePane(pane.id) }
+        }
+    }
+
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        let busy = model.tabs.flatMap(\.orderedPanes).compactMap(\.activeProcessName)
+        if busy.isEmpty { return true }
+        Prompts.confirm(in: window, title: "Close this window?", message: "\(busy.joined(separator: ", ")) still running.",
+                        confirm: "Close", destructive: true) { [weak self] ok in
+            guard ok, let self else { return }
+            self.closeAllTabsAndWindow()
+        }
+        return false
+    }
+
+    private func closeAllTabsAndWindow() {
+        RecoveryCoordinator.shared.saveNow()
+        for tab in model.tabs { model.closeTab(tab.id) }
+        window?.close()
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        RecoveryCoordinator.shared.saveNow()
+        for tab in model.tabs {
+            for pane in tab.orderedPanes { pane.close() }
+        }
+        onClose?(self)
+    }
+
+    func windowDidResize(_ notification: Notification) { layoutTrafficLights() }
+    func windowDidExitFullScreen(_ notification: Notification) { applyAppearance() }
+    func windowDidEnterFullScreen(_ notification: Notification) { applyAppearance() }
+    func windowDidBecomeKey(_ notification: Notification) {
+        layoutTrafficLights()
+        WindowManager.shared.lastActive = self
+    }
+}
+
+/// Root content view: lays out the tab bar, tab bodies and start page.
+@MainActor
+final class WindowRootView: NSView {
+    weak var tabBar: NSView?
+    weak var startPage: NSView?
+    weak var effectView: NSVisualEffectView?
+    var tabViews: [UUID: SplitTreeView] = [:]
+    var activeTabID: UUID?
+    var placement: TabBarPlacement = .top
+    var tabBarHeight: CGFloat = 38
+    var hidesTabBar = false
+
+    override var isFlipped: Bool { true }
+
+    override func layout() {
+        super.layout()
+        effectView?.frame = bounds
+        var content = bounds
+        if let tabBar {
+            tabBar.isHidden = hidesTabBar
+            if !hidesTabBar {
+                switch placement {
+                case .top:
+                    tabBar.frame = CGRect(x: 0, y: 0, width: bounds.width, height: tabBarHeight)
+                    content = CGRect(x: 0, y: tabBarHeight, width: bounds.width, height: max(0, bounds.height - tabBarHeight))
+                case .bottom:
+                    tabBar.frame = CGRect(x: 0, y: bounds.height - tabBarHeight, width: bounds.width, height: tabBarHeight)
+                    content = CGRect(x: 0, y: 0, width: bounds.width, height: max(0, bounds.height - tabBarHeight))
+                case .left:
+                    tabBar.frame = CGRect(x: 0, y: 0, width: 200, height: bounds.height)
+                    content = CGRect(x: 200, y: 0, width: max(0, bounds.width - 200), height: bounds.height)
+                case .right:
+                    tabBar.frame = CGRect(x: bounds.width - 200, y: 0, width: 200, height: bounds.height)
+                    content = CGRect(x: 0, y: 0, width: max(0, bounds.width - 200), height: bounds.height)
+                }
+            }
+        }
+        startPage?.frame = content
+        for v in tabViews.values { v.frame = content }
+    }
+}
+#endif

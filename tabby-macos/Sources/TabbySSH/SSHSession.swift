@@ -298,7 +298,8 @@ public final class SSHSessionFactory: SessionFactory {
     public let profileType = "ssh"
     public var environment: SSHSession.Environment
     public weak var promptHandler: SSHPromptHandler?
-    private let resolveProfile: (String) -> Profile?
+    /// Resolves a `jumpHost` profile id to the (defaults-applied) profile.
+    public var resolveProfile: (String) -> Profile?
 
     public init(environment: SSHSession.Environment, resolveProfile: @escaping (String) -> Profile?) {
         self.environment = environment
@@ -306,8 +307,9 @@ public final class SSHSessionFactory: SessionFactory {
     }
 
     public func makeSession(profile: Profile, context: SessionContext) throws -> TerminalSession {
-        let s = SSHSession(profile: profile, context: context, environment: environment) { [resolveProfile] id in
-            resolveProfile(id).map { SSHOptions($0.options) }
+        let resolve = resolveProfile
+        let s = SSHSession(profile: profile, context: context, environment: environment) { id in
+            resolve(id).map { SSHOptions($0.options) }
         }
         s.promptHandler = promptHandler
         return s

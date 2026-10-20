@@ -24,6 +24,7 @@ let package = Package(
         .library(name: "TabbyCore", targets: ["TabbyCore"]),
         .library(name: "TabbyApp", targets: ["TabbyApp"]),
         .executable(name: "tabby-askpass", targets: ["TabbyAskpass"]),
+        .executable(name: "TabbyMacDev", targets: ["TabbyMacDev"]),
     ],
     dependencies: [
         // Pinned to the last 1.x release that builds with Xcode 16 (swift-tools 6.0).
@@ -58,6 +59,11 @@ let package = Package(
         .target(
             name: "TabbyApp",
             dependencies: ["TabbyCore", "TabbyTerminal", "TabbySSH"]
+        ),
+        // `swift run TabbyMacDev` starts the app without an .app bundle (handy for development).
+        .executableTarget(
+            name: "TabbyMacDev",
+            dependencies: ["TabbyApp", "TabbyAskpass"]
         ),
         .executableTarget(
             name: "TabbyAskpass",

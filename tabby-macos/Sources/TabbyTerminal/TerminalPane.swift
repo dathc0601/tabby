@@ -59,6 +59,8 @@ public final class TerminalPane: TerminalEngineDelegate {
     /// Fired when the session ends while the pane is not focused ("notify when done").
     @ObservationIgnored public var onProcessEnded: ((TerminalPane, Int32?) -> Void)?
     @ObservationIgnored public var onRecoveryStateChanged: (() -> Void)?
+    /// Sees keyboard input before it is sent (used for broadcasting to other panes).
+    @ObservationIgnored public var onUserInput: ((TerminalPane, Data) -> Void)?
 
     public init(id: UUID = UUID(), profile: Profile, factory: SessionFactory, context: SessionContext,
                 settings: TerminalSettings, scheme: ColorScheme, restore: PaneRecovery? = nil) {
@@ -127,6 +129,14 @@ public final class TerminalPane: TerminalEngineDelegate {
             engine?.feed(Data("\r\n\u{1b}[31m\(error.localizedDescription)\u{1b}[0m\r\n".utf8))
         }
     }
+
+    /// Starts the session once the view has laid out (no-op if already started).
+    public func startIfNeeded() {
+        guard !started, state == .idle else { return }
+        start()
+    }
+
+    public var hasStarted: Bool { started }
 
     public func restart() {
         session?.onClosed = nil
@@ -321,6 +331,7 @@ public final class TerminalPane: TerminalEngineDelegate {
     // MARK: TerminalEngineDelegate
 
     public func engine(_ engine: TerminalEngine, send data: Data) {
+        onUserInput?(self, data)
         send(data)
     }
 
