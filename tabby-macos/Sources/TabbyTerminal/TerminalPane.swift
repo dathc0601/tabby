@@ -163,7 +163,7 @@ public final class TerminalPane: TerminalEngineDelegate {
 
     private func handleOutput(_ data: Data) {
         engine?.feed(data)
-        if !isFocused { hasActivity = true }
+        if !isFocused && !hasActivity { hasActivity = true }
         let needsText = settings.detectProgress || loginScripts?.isDone == false
         guard needsText else { return }
         let text = String(decoding: data, as: UTF8.self)
@@ -316,11 +316,19 @@ public final class TerminalPane: TerminalEngineDelegate {
             type: PaneRecovery.type(forProfileType: profile.type),
             profile: p,
             cwd: cwd,
-            savedState: includeBuffer ? engine?.snapshotText(maxLines: 1000) : nil,
+            savedState: snapshot(fresh: includeBuffer),
             title: dynamicTitle,
             customTitle: customTitle,
             disableDynamicTitle: profile.disableDynamicTitle
         )
+    }
+
+    @ObservationIgnored private var lastSnapshot: String?
+
+    /// A fresh buffer snapshot, or the last one taken (snapshots are relatively costly).
+    private func snapshot(fresh: Bool) -> String? {
+        if fresh, let engine { lastSnapshot = engine.snapshotText(maxLines: 1000) }
+        return lastSnapshot ?? restoreState
     }
 
     /// Current directory for new panes/tabs opened from this one.

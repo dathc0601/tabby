@@ -52,9 +52,17 @@ final class SelectorPanel: NSPanel {
 
     override var canBecomeKey: Bool { true }
 
+    private var isClosing = false
+
     override func resignKey() {
         super.resignKey()
-        close()
+        if !isClosing { close() }
+    }
+
+    override func close() {
+        guard !isClosing else { return }
+        isClosing = true
+        super.close()
     }
 
     override func cancelOperation(_ sender: Any?) {

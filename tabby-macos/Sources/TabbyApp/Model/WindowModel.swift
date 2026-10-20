@@ -294,8 +294,8 @@ public final class WindowModel {
 
     // MARK: Recovery
 
-    public func recoveryTokens() -> [RecoveryToken] {
-        tabs.compactMap { $0.recoveryToken() }
+    public func recoveryTokens(includeBuffers: Bool = true) -> [RecoveryToken] {
+        tabs.compactMap { $0.recoveryToken(includeBuffer: includeBuffers) }
     }
 
     public func restore(_ token: RecoveryToken, includeBuffer: Bool = true) {

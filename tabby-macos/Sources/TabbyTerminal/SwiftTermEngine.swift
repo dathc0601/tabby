@@ -88,7 +88,7 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
         switch settings.bell {
         case .off: bellStyle = .none
         case .visual: bellStyle = .visual
-        case .audible: bellStyle = .soundAndVisual
+        case .audible: bellStyle = .sound
         }
         if settings.scrollbackLines != appliedScrollback {
             changeScrollback(settings.scrollbackLines)

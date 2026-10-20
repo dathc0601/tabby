@@ -10,6 +10,7 @@ import TabbyTerminal
 final class SplitTreeView: NSView {
     let tab: TabModel
     private weak var controller: MainWindowController?
+    /// Pane views currently placed in this tab (owned by the window controller's cache).
     private var paneViews: [UUID: PaneContainerView] = [:]
     private var dividerViews: [DividerView] = []
     private var loop: ObservationLoop?
@@ -29,6 +30,7 @@ final class SplitTreeView: NSView {
             _ = self.tab.focusedPaneID
             _ = AppServices.shared.theme.revision
         }, apply: { [weak self] in
+            self?.syncPaneViews()
             self?.needsLayout = true
         })
     }
@@ -37,7 +39,10 @@ final class SplitTreeView: NSView {
 
     override var isFlipped: Bool { true }
 
-    func paneView(for id: UUID) -> PaneContainerView? { paneViews[id] }
+    func paneView(for id: UUID) -> PaneContainerView? {
+        syncPaneViews()
+        return paneViews[id]
+    }
 
     override func layout() {
         super.layout()
@@ -62,17 +67,25 @@ final class SplitTreeView: NSView {
         layer?.backgroundColor = AppServices.shared.theme.chrome.border.nsColor.cgColor
     }
 
-    private func syncPaneViews() {
+    func syncPaneViews() {
         guard let controller else { return }
-        for (id, pane) in tab.panes where paneViews[id] == nil {
-            let v = PaneContainerView(pane: pane, controller: controller)
-            addSubview(v)
+        for (id, pane) in tab.panes where paneViews[id] == nil || paneViews[id]?.superview !== self {
+            // Re-use the pane's existing view (and terminal buffer) when it moved here from another tab.
+            let v = controller.paneContainer(for: pane)
+            if let first = dividerViews.first {
+                addSubview(v, positioned: .below, relativeTo: first)
+            } else {
+                addSubview(v)
+            }
             paneViews[id] = v
         }
+        var removed = false
         for (id, v) in paneViews where tab.panes[id] == nil {
-            v.removeFromSuperview()
+            if v.superview === self { v.removeFromSuperview() }
             paneViews[id] = nil
+            removed = true
         }
+        if removed { controller.prunePaneViews() }
     }
 
     private func layoutDividers(enabled: Bool) {

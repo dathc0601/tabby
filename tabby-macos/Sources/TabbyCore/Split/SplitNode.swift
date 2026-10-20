@@ -305,9 +305,11 @@ public struct SplitLayout: Hashable, Sendable {
             case .bottom: return f.minY >= r.maxY - 0.5
             }
         }
+        // Ties go to the pane that comes first in layout order, like Tabby's strict `<` scan.
+        let order = Dictionary(uniqueKeysWithValues: panes.enumerated().map { ($1, $0) })
         let best = candidates.min { a, b in
             func d(_ f: CGRect) -> CGFloat { abs(r.midX - f.midX) + abs(r.midY - f.midY) }
-            return d(a.value) != d(b.value) ? d(a.value) < d(b.value) : a.key.uuidString < b.key.uuidString
+            return d(a.value) != d(b.value) ? d(a.value) < d(b.value) : (order[a.key] ?? 0) < (order[b.key] ?? 0)
         }
         return best?.key ?? from
     }

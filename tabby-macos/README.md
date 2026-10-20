@@ -17,7 +17,7 @@ format, so profiles, hotkeys and colour schemes carry over.
 
 ```sh
 cd tabby-macos
-./scripts/bootstrap-mac.sh        # generates TabbyMac.xcodeproj and opens it
+./scripts/bootstrap-mac.sh        # generates Xcode/TabbyMac.xcodeproj and opens it
 ```
 
 In Xcode choose the **TabbyMac** scheme and **My Mac**, then press ⌘R. On the first build
@@ -33,6 +33,10 @@ swift test                        # unit tests (also run on Linux)
 ```
 
 `swift run` works for everything except notifications, which need a bundle.
+
+The global show/hide hotkey defaults to Ctrl-Space, as in Tabby. macOS also uses Ctrl-Space
+to switch input sources, and while TabbyMac runs the key doesn't reach the terminal. Rebind
+"Show/hide window (global)" in **Settings → Hotkeys** if that gets in your way.
 
 The first launch starts with defaults. To bring over your Electron Tabby setup, open
 **Settings → Application → Import Tabby's config.yaml**. Your Electron Tabby files are only
@@ -82,7 +86,7 @@ macOS runner once GitHub Actions is enabled for the repository.
 ## Renaming
 
 Change `ConfigPaths.appDirectoryName` (TabbyCore), `PRODUCT_NAME` and
-`PRODUCT_BUNDLE_IDENTIFIER` in `project.yml`, and the display strings in `App/Info.plist`.
+`PRODUCT_BUNDLE_IDENTIFIER` in `Xcode/project.yml`, and the display strings in `App/Info.plist`.
 
 ## Redesign
 

@@ -27,8 +27,14 @@ final class SearchModel {
         TerminalSearchOptions(caseSensitive: caseSensitive, regex: regex, wholeWord: wholeWord)
     }
 
+    /// Re-runs the search from the top as the query changes (find-as-you-type).
+    func restart() {
+        engine?.clearSearch()
+        find()
+    }
+
     func find(backwards: Bool = false) {
-        guard let engine, !query.isEmpty else { total = 0; index = 0; return }
+        guard let engine, !query.isEmpty else { engine?.clearSearch(); total = 0; index = 0; return }
         _ = engine.find(query, options: options, backwards: backwards)
         let summary = engine.searchSummary(query, options: options)
         index = summary.index
@@ -38,7 +44,7 @@ final class SearchModel {
     func optionsChanged() {
         let config = AppServices.shared.config
         config.set("terminal.searchOptions", ["caseSensitive": .bool(caseSensitive), "regex": .bool(regex), "wholeWord": .bool(wholeWord)])
-        find()
+        restart()
     }
 }
 
@@ -56,7 +62,7 @@ struct SearchBarView: View {
                 .frame(width: 180)
                 .focused($focused)
                 .onSubmit { model.find() }
-                .onChange(of: model.query) { model.find() }
+                .onChange(of: model.query) { model.restart() }
                 .onKeyPress(.upArrow) { model.find(backwards: true); return .handled }
                 .onKeyPress(.downArrow) { model.find(); return .handled }
                 .onExitCommand { onClose() }

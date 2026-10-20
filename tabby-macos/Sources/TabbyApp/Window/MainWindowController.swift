@@ -20,6 +20,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
     private var tabBarHost: NSHostingView<TabBarView>!
     private var startPageHost: NSHostingView<StartPageView>!
     private var tabViews: [UUID: SplitTreeView] = [:]
+    /// One view per pane for its whole life, so moving a pane between tabs keeps its buffer.
+    private var paneContainers: [UUID: PaneContainerView] = [:]
     private var loops: [ObservationLoop] = []
     private var effectView: NSVisualEffectView?
     var onClose: ((MainWindowController) -> Void)?
@@ -75,11 +77,16 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
             _ = self.model.tabs.map(\.id)
             _ = self.model.activeTabID
         }, apply: { [weak self] in self?.syncTabViews() }))
-        loops.append(ObservationLoop(track: { [weak self] in
+        loops.append(ObservationLoop(track: {
             _ = AppServices.shared.theme.revision
             _ = AppServices.shared.configRevision
-            _ = self?.model.activeTab?.title
         }, apply: { [weak self] in self?.applyAppearance() }))
+        loops.append(ObservationLoop(track: { [weak self] in
+            _ = self?.model.activeTab?.title
+        }, apply: { [weak self] in
+            self?.window?.title = self?.model.activeTab?.title ?? "TabbyMac"
+            self?.layoutTrafficLights()
+        }))
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -136,6 +143,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
         root.placement = place
         root.tabBarHeight = 38 * theme.spaciness
         root.hidesTabBar = fullscreen && !(config.value("appearance.tabsInFullscreen")?.boolValue ?? false)
+        // With the tab bar elsewhere, keep the terminal clear of the transparent title bar.
+        root.contentTopInset = (frame != "native" && !fullscreen && (place == .bottom || place == .right)) ? 28 : 0
         root.needsLayout = true
         layoutTrafficLights()
     }
@@ -175,20 +184,41 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
         startPageHost.isHidden = !model.tabs.isEmpty
         root.needsLayout = true
         window?.title = model.activeTab?.title ?? "TabbyMac"
+        layoutTrafficLights()
+        prunePaneViews()
         if let pane = model.activePane { focusEngine(of: pane) }
     }
 
-    func paneView(for pane: TerminalPane) -> PaneContainerView? {
-        for v in tabViews.values {
-            if let p = v.paneView(for: pane.id) { return p }
+    func paneContainer(for pane: TerminalPane) -> PaneContainerView {
+        if let v = paneContainers[pane.id] { return v }
+        let v = PaneContainerView(pane: pane, controller: self)
+        paneContainers[pane.id] = v
+        return v
+    }
+
+    /// Drops views of panes that are no longer in any tab.
+    func prunePaneViews() {
+        let live = Set(model.tabs.flatMap { $0.panes.keys })
+        for id in paneContainers.keys where !live.contains(id) {
+            paneContainers[id]?.removeFromSuperview()
+            paneContainers[id] = nil
         }
-        return nil
+    }
+
+    func paneView(for pane: TerminalPane) -> PaneContainerView? {
+        if let tab = model.tabs.first(where: { $0.panes[pane.id] != nil }) {
+            tabViews[tab.id]?.syncPaneViews()
+        }
+        return paneContainers[pane.id]
     }
 
     private func focusEngine(of pane: TerminalPane) {
         DispatchQueue.main.async { [weak self] in
             MainActor.assumeIsolated {
-                guard let self, let view = self.paneView(for: pane), !view.isSearchVisible else { return }
+                guard let self else { return }
+                // Make sure a just-created pane view is in the hierarchy before focusing it.
+                self.window?.contentView?.layoutSubtreeIfNeeded()
+                guard let view = self.paneView(for: pane), view.window != nil, !view.isSearchVisible else { return }
                 self.window?.makeFirstResponder(view.engine)
             }
         }
@@ -289,6 +319,7 @@ final class WindowRootView: NSView {
     var placement: TabBarPlacement = .top
     var tabBarHeight: CGFloat = 38
     var hidesTabBar = false
+    var contentTopInset: CGFloat = 0
 
     override var isFlipped: Bool { true }
 
@@ -314,6 +345,10 @@ final class WindowRootView: NSView {
                     content = CGRect(x: 0, y: 0, width: max(0, bounds.width - 200), height: bounds.height)
                 }
             }
+        }
+        if contentTopInset > 0 {
+            content = CGRect(x: content.minX, y: content.minY + contentTopInset, width: content.width,
+                             height: max(0, content.height - contentTopInset))
         }
         startPage?.frame = content
         for v in tabViews.values { v.frame = content }

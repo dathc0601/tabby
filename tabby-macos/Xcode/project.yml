@@ -1,5 +1,6 @@
-# XcodeGen spec for the TabbyMac app bundle.
-#   brew install xcodegen && xcodegen generate && open TabbyMac.xcodeproj
+# XcodeGen spec for the TabbyMac app bundle. Lives in its own folder so the generated
+# project isn't in the Swift package's root.
+#   cd Xcode && xcodegen generate && open TabbyMac.xcodeproj   (or ../scripts/bootstrap-mac.sh)
 # The generated TabbyMac.xcodeproj is not committed.
 name: TabbyMac
 options:
@@ -20,13 +21,13 @@ settings:
     DEAD_CODE_STRIPPING: YES
 packages:
   TabbyMacPackage:
-    path: .
+    path: ..
 targets:
   TabbyMac:
     type: application
     platform: macOS
     sources:
-      - path: App
+      - path: ../App
         excludes:
           - "Info.plist"
           - "*.entitlements"
@@ -42,16 +43,16 @@ targets:
       base:
         PRODUCT_NAME: TabbyMac
         PRODUCT_BUNDLE_IDENTIFIER: com.example.tabbymac
-        INFOPLIST_FILE: App/Info.plist
-        CODE_SIGN_ENTITLEMENTS: App/TabbyMac.entitlements
+        INFOPLIST_FILE: ../App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: ../App/TabbyMac.entitlements
   # The SSH_ASKPASS helper, compiled from the package sources and copied to
   # TabbyMac.app/Contents/MacOS/tabby-askpass.
   tabby-askpass:
     type: tool
     platform: macOS
     sources:
-      - path: Sources/TabbyAskpass
-      - path: Sources/TabbyIPC
+      - path: ../Sources/TabbyAskpass
+      - path: ../Sources/TabbyIPC
     settings:
       base:
         PRODUCT_NAME: tabby-askpass

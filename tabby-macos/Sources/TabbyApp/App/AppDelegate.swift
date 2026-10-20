@@ -77,6 +77,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        let busy = WindowManager.shared.controllers.flatMap { $0.model.tabs.flatMap(\.orderedPanes) }.compactMap(\.activeProcessName)
+        guard !busy.isEmpty else { return .terminateNow }
+        let alert = NSAlert()
+        alert.messageText = "Quit TabbyMac?"
+        alert.informativeText = "\(busy.joined(separator: ", ")) still running."
+        alert.addButton(withTitle: "Quit").hasDestructiveAction = true
+        alert.addButton(withTitle: "Cancel")
+        return alert.runModal() == .alertFirstButtonReturn ? .terminateNow : .terminateCancel
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         RecoveryCoordinator.shared.saveNow()
         AppServices.shared.stop()
@@ -143,18 +154,20 @@ final class RecoveryCoordinator {
 
     func start() {
         timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in
-            MainActor.assumeIsolated { RecoveryCoordinator.shared.saveNow() }
+            MainActor.assumeIsolated { RecoveryCoordinator.shared.saveNow(includeBuffers: true) }
         }
     }
 
     func scheduleSave() {
         pending?.cancel()
-        let work = DispatchWorkItem { MainActor.assumeIsolated { RecoveryCoordinator.shared.saveNow() } }
+        let work = DispatchWorkItem { MainActor.assumeIsolated { RecoveryCoordinator.shared.saveNow(includeBuffers: false) } }
         pending = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
     }
 
-    func saveNow() {
+    /// Buffer snapshots serialise whole scrollbacks, so the debounced saves after small
+    /// changes skip them; the 30-second timer and quitting include them.
+    func saveNow(includeBuffers: Bool = true) {
         pending?.cancel()
         pending = nil
         let services = AppServices.shared
@@ -162,7 +175,7 @@ final class RecoveryCoordinator {
             try? services.recovery.save([])
             return
         }
-        let tokens = WindowManager.shared.controllers.flatMap { $0.model.recoveryTokens() }
+        let tokens = WindowManager.shared.controllers.flatMap { $0.model.recoveryTokens(includeBuffers: includeBuffers) }
         try? services.recovery.save(tokens)
     }
 

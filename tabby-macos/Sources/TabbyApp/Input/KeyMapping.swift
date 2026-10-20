@@ -86,8 +86,8 @@ enum KeyMapping {
     /// Carbon key code + modifiers for the global hotkey.
     static func carbonHotKey(for stroke: Keystroke) -> (UInt32, UInt32)? {
         guard let key = stroke.key else { return nil }
-        var code: Int?
-        if let c = specialKeys.first(where: { $0.value == key })?.key { code = c }
+        var code: Int? = key == "Enter" ? kVK_Return : nil
+        if code == nil, let c = specialKeys.first(where: { $0.value == key })?.key { code = c }
         if code == nil, let c = codeKeys.first(where: { $0.value == key })?.key { code = c }
         if code == nil, key.count == 1, let letter = letterCodes[key.uppercased()] { code = letter }
         guard let code else { return nil }

@@ -58,6 +58,9 @@ final class PTYTests: XCTestCase {
         }
         p.onExit = { _ in exited.fulfill() }
         try p.start(cols: 80, rows: 24)
+        // The child chdirs right after fork; give it a moment.
+        let deadline = Date().addingTimeInterval(3)
+        while p.currentWorkingDirectory() != dir && Date() < deadline { RunLoop.main.run(until: Date().addingTimeInterval(0.02)) }
         XCTAssertEqual(p.currentWorkingDirectory(), dir)
         p.resize(cols: 120, rows: 40)
         p.write(Data("stty size\n".utf8))

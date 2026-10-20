@@ -2,6 +2,7 @@
 import AppKit
 import SwiftUI
 import TabbyCore
+import TabbyTerminal
 
 /// Profiles & connections (Tabby's `ProfilesSettingsTabComponent` + `EditProfileModal`).
 struct ProfilesSettingsView: View {

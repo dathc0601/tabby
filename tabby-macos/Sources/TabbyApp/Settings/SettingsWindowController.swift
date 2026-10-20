@@ -59,8 +59,8 @@ final class SettingsWindowController: NSWindowController {
                               backing: .buffered, defer: false)
         window.title = "Settings"
         window.isReleasedWhenClosed = false
-        window.setFrameAutosaveName("TabbyMacSettingsWindow")
         window.center()
+        window.setFrameAutosaveName("TabbyMacSettingsWindow")
         super.init(window: window)
         window.contentViewController = NSHostingController(rootView: SettingsRootView(navigation: navigation))
     }

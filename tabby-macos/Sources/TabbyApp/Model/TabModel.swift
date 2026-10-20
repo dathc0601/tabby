@@ -94,9 +94,9 @@ public final class TabModel: Identifiable {
 
     // MARK: Recovery
 
-    public func recoveryToken() -> RecoveryToken? {
+    public func recoveryToken(includeBuffer: Bool = true) -> RecoveryToken? {
         RecoveryToken.from(layout: layout, pinned: isPinned, customTitle: customTitle, color: color) { id in
-            panes[id]?.recoveryState()
+            panes[id]?.recoveryState(includeBuffer: includeBuffer)
         }
     }
 }

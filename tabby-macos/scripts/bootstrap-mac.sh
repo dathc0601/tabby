@@ -1,7 +1,7 @@
 #!/bin/sh
 # Generates TabbyMac.xcodeproj from project.yml and opens it.
 set -e
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../Xcode"
 if ! command -v xcodegen >/dev/null 2>&1; then
   if command -v brew >/dev/null 2>&1; then
     brew install xcodegen

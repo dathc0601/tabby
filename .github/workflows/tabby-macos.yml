@@ -35,6 +35,7 @@ jobs:
       - name: Xcode app bundle
         run: |
           brew install xcodegen
+          cd Xcode
           xcodegen generate
           xcodebuild -project TabbyMac.xcodeproj -scheme TabbyMac -configuration Debug \
             -derivedDataPath build -skipPackagePluginValidation CODE_SIGNING_ALLOWED=NO build
