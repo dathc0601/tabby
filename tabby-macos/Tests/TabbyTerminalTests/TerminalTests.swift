@@ -70,10 +70,14 @@ final class PTYTests: XCTestCase {
         }
         p.onExit = { _ in exited.fulfill() }
         try p.start(cols: 80, rows: 24)
-        // The child chdirs right after fork; give it a moment.
+        // The child chdirs right after fork. Until it has exec'd, the requested directory
+        // is reported; afterwards the kernel's answer must agree with it.
+        XCTAssertEqual(p.currentWorkingDirectory(), dir, "requested cwd before exec")
         let deadline = Date().addingTimeInterval(3)
-        while p.currentWorkingDirectory() != dir && Date() < deadline { RunLoop.main.run(until: Date().addingTimeInterval(0.02)) }
-        XCTAssertEqual(p.currentWorkingDirectory(), dir)
+        while !p.hasExeced && Date() < deadline { RunLoop.main.run(until: Date().addingTimeInterval(0.02)) }
+        XCTAssertTrue(p.hasExeced)
+        XCTAssertNil(p.launchFailureErrno)
+        XCTAssertEqual(p.currentWorkingDirectory(), dir, "live cwd after exec")
         p.resize(cols: 120, rows: 40)
         p.write(Data("stty size\n".utf8))
         wait(for: [gotSize], timeout: 10)

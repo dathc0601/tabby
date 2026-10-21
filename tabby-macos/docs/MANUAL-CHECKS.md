@@ -1,0 +1,122 @@
+# Manual checks
+
+What to try by hand after a build, and what should happen. Unit tests cover the models;
+this list covers what only shows up on screen or needs a real shell, keychain or sshd.
+Run it from the `.app` built by Xcode, not `swift run`, because notifications and the
+bundle identifier only exist there. For a clean run set `TABBYMAC_CONFIG_DIRECTORY` to an
+empty folder first.
+
+Mark items `[x]` when they pass. Anything that fails gets a line under **Open findings** at
+the bottom with the commit that fixed it.
+
+## M0 Build and launch
+
+- [ ] `swift build` and `swift test` finish without errors or warnings in our code.
+- [ ] `cd Xcode && xcodegen generate` then `xcodebuild … -skipPackagePluginValidation build`
+      succeeds; `TabbyMac.app/Contents/MacOS/tabby-askpass` exists and is executable.
+- [ ] The app shows Tabby's icon in Finder, the Dock and the ⌘-Tab switcher.
+- [ ] First launch on an empty config directory: one window, one tab with the login shell,
+      `config.yaml` is created and contains only a version key.
+- [ ] Close the last tab: the start page appears with the profile selector and recents.
+- [ ] Quit and relaunch: the previously open tab comes back (recovery on by default).
+
+## M1 Local terminal
+
+- [ ] The shell starts in the home directory with `TERM=xterm-256color`, `COLORTERM=truecolor`.
+- [ ] `ls --color`, `vim`, `htop` or `top` render correctly; resizing the window reflows.
+- [ ] `printf '\e]0;Hello\a'` sets the tab title; `cd /tmp` then ⌘T opens the new tab in `/tmp`
+      (OSC 7 from zsh, or the foreground process cwd).
+- [ ] ⌘F opens the search bar: typing finds matches, the counter updates, ↩ / ⇧↩ step,
+      case / regex / whole-word toggles work, Esc closes.
+- [ ] ⌘+ / ⌘- / ⌘0 zoom the font; the zoom survives a split but not a new tab.
+- [ ] Select text: copy on select (if enabled) puts it on the clipboard; ⌘C copies, ⌘V pastes,
+      middle-click pastes, right-click follows the configured action (menu / paste / select).
+- [ ] Paste two lines: the "Paste multiple lines?" sheet shows the trimmed preview; Paste sends
+      them as `\r`-separated input; Cancel sends nothing.
+- [ ] In `cat`, paste with bracketed paste enabled: input is wrapped in `ESC[200~ … ESC[201~`.
+- [ ] `printf '\a'`: bell behaves as configured (off / visual flash / audible).
+- [ ] `printf 'Downloading 37%%\n'`: the tab shows a 37 % progress bar, which clears later.
+- [ ] `exit`: the tab closes (default) or, with "keep open", shows the exit code and any
+      key restarts the shell.
+
+## M2 Tabs and splits
+
+- [ ] ⌘T new tab, ⌘W close, ⌘⇧T reopen the closed tab with its profile and cwd.
+- [ ] Right-click a tab: Rename, Duplicate, Pin, Colour, Close others / left / right work.
+- [ ] Drag a tab to reorder; the active tab keeps its content.
+- [ ] Settings → Window → tab bar position top / bottom / left / right: the strip moves and the
+      terminal stays below / beside it without overlap.
+- [ ] ⌘1…⌘9 switch by index; the configured MRU shortcut cycles most-recently-used.
+- [ ] Split right / bottom / left / top (⌘D, ⌘⇧D and the others): the new pane gets focus and
+      starts in the current directory.
+- [ ] Drag a divider: both panes resize and the shells see the new size (`stty size`).
+- [ ] Pane navigation shortcuts move focus in all four directions; previous / next cycle.
+- [ ] Maximise pane toggles a single pane filling the tab; the others come back untouched.
+- [ ] "Focus all panes" (broadcast): typing in one pane echoes in every pane of the tab.
+- [ ] Explode tab: each pane becomes a tab. Combine tabs: all tabs become panes of one.
+- [ ] Close a pane or tab whose shell has a running child (`sleep 100`): a confirmation
+      sheet appears; cancelling keeps it.
+- [ ] Save layout as profile: the new profile appears in the selector and reopens the layout.
+
+## M3 Hotkeys, selector and menus
+
+- [ ] Settings → Hotkeys lists every command with its macOS default; filtering works.
+- [ ] Capture a new binding (e.g. ⌃⇧X for "New tab"): the sheet shows the chord as pressed,
+      Save stores it, the menu item's shortcut updates, and `config.yaml` contains the diff.
+- [ ] A two-key chord (e.g. ⌃A then C) works and shows a pending indicator.
+- [ ] Reset returns the default and removes the key from `config.yaml`.
+- [ ] ⌘E opens the profile selector: Recent, groups, Built-in, "Manage profiles" and
+      quick connect `user@host:port`; fuzzy search, ↑↓, ↩ opens, Esc closes.
+- [ ] ⌘⇧P opens the command palette; running "Toggle fullscreen" from it works.
+- [ ] Ctrl-Space (global) shows / hides the window while another app is frontmost.
+      Rebinding it in Settings → Hotkeys takes effect without a restart.
+- [ ] Every menu item in Shell, Edit, View and Window does what its title says.
+
+## M4 SSH
+
+Needs a reachable sshd (a local one via System Settings → Sharing → Remote Login is fine).
+
+- [ ] Quick connect `user@localhost`: unknown host key sheet shows host, key type and SHA256
+      fingerprint. Accept writes the key to the app's `known_hosts`; Reject closes the tab.
+- [ ] Password prompt appears as a native sheet; with "Remember in Keychain" a login keychain
+      item `ssh@localhost:22` for that user exists after a successful login. The next
+      connection does not prompt.
+- [ ] Wrong password: the prompt comes back; the remembered one is not overwritten by a
+      failed attempt.
+- [ ] Key auth with a passphrase-protected key: the passphrase prompt appears once.
+- [ ] Agent auth (`ssh-add -l` lists a key): connects without a prompt.
+- [ ] Keyboard-interactive: each server prompt shows as a sheet in order.
+- [ ] Jump host: a profile with a jump host connects through it (`who am i` on the target
+      shows the jump host's address).
+- [ ] Settings → Profiles → Import from `~/.ssh/config`: hosts appear as SSH profiles with
+      user, port, identity file and ProxyJump carried over.
+- [ ] Local port forward `8080 → localhost:22` in the profile: `nc -z localhost 8080` succeeds
+      while connected and fails after disconnect.
+- [ ] Disconnect (close the remote shell): the tab shows the disconnected state; Reconnect
+      works. Closing the tab while connected asks when "warn on close" is on.
+- [ ] Opening a second tab to the same host reuses the connection (no second prompt).
+
+## M5 Settings and persistence
+
+- [ ] Settings → Color scheme: picking a scheme recolours the terminal and the chrome (tab
+      bar, start page, selector) live; the preview swatches show all 16 colours.
+- [ ] Mode System / Dark / Light: switching macOS appearance swaps between the chosen dark
+      and light schemes.
+- [ ] Appearance: font family and size, cursor shape and blink, bold-as-bright apply live.
+- [ ] Window: opacity and vibrancy apply live; title bar style changes after a window reopen.
+- [ ] Docking: each side (top, bottom, left, right) positions the first window at the
+      configured size; always-on-top keeps it above other windows; the global hotkey toggles it.
+- [ ] Application → Import Tabby's `config.yaml`: profiles, hotkeys and scheme appear; the
+      Electron files in `~/Library/Application Support/tabby/` are not modified
+      (compare timestamps).
+- [ ] `config.yaml` after changing one setting contains only that key and `version`
+      (diff-only save); unknown keys from an imported file survive a save.
+- [ ] Config file page: editing YAML and ⌘S applies it; invalid YAML is rejected with a message.
+- [ ] Open three tabs with splits, custom titles and some output, quit, relaunch: tabs,
+      split layout, titles and the last screen of each buffer are restored.
+- [ ] Run `sleep 3; exit` in a tab, switch to another app before it finishes: a "process
+      completed" notification appears (needs the `.app` and notification permission).
+
+## Open findings
+
+(none yet)

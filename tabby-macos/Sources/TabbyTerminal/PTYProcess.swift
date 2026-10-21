@@ -37,6 +37,25 @@ public final class PTYProcess {
     private let readerDone = DispatchSemaphore(value: 0)
     private var exitDelivered = false
 
+    /// Set once the child has called `execve` (or failed to), see `start`. Guarded by
+    /// `execLock` because the waiter thread sets it and callers read it from the main queue.
+    private let execLock = NSLock()
+    private var execDone = false
+    private var execErrno: Int32?
+
+    /// True once the child process has replaced itself with the requested executable.
+    /// Until then its cwd and name still describe the parent, so callers must not trust them.
+    public var hasExeced: Bool {
+        execLock.lock(); defer { execLock.unlock() }
+        return execDone
+    }
+
+    /// `errno` from a failed `execve`, if the child could not start the executable.
+    public var launchFailureErrno: Int32? {
+        execLock.lock(); defer { execLock.unlock() }
+        return execErrno
+    }
+
     /// - Parameters:
     ///   - executable: absolute path, or a name resolved through `PATH`.
     ///   - arguments: argv[1...].
@@ -79,9 +98,19 @@ public final class PTYProcess {
             if let cCwd { cFree(cCwd) }
         }
 
+        // Exec-detection pipe (the classic close-on-exec trick): the write end disappears
+        // when the child execs, so the parent reads EOF; if execve fails the child writes
+        // errno first. Until then proc_pidinfo on the child still reports the parent's cwd.
+        var execPipe: [Int32] = [-1, -1]
+        guard pipe(&execPipe) == 0 else {
+            throw LaunchError(message: "pipe failed: \(String(cString: strerror(errno)))")
+        }
+        _ = fcntl(execPipe[1], F_SETFD, FD_CLOEXEC)
+
         var master: Int32 = -1
         let child = forkpty(&master, nil, nil, &size)
         if child < 0 {
+            close(execPipe[0]); close(execPipe[1])
             throw LaunchError(message: "forkpty failed: \(String(cString: strerror(errno)))")
         }
         if child == 0 {
@@ -92,16 +121,20 @@ public final class PTYProcess {
             signal(SIGQUIT, SIG_DFL)
             signal(SIGTERM, SIG_DFL)
             signal(SIGCHLD, SIG_DFL)
+            close(execPipe[0])
             if let cCwd { _ = chdir(cCwd) }
             execve(cPath, cArgv, cEnvp)
+            var err = errno
+            _ = cWrite(execPipe[1], &err, MemoryLayout<Int32>.size)
             _exit(127)
         }
 
+        close(execPipe[1])
         pid = child
         masterFD = master
         isRunning = true
         startReader()
-        startWaiter()
+        startWaiter(execReadFD: execPipe[0])
     }
 
     /// Resolves a bare command name through `PATH`, like `execvp` would.
@@ -147,9 +180,22 @@ public final class PTYProcess {
         thread.start()
     }
 
-    private func startWaiter() {
+    private func startWaiter(execReadFD: Int32) {
         let child = pid
         let thread = Thread { [weak self] in
+            // Block until the child execs (EOF) or reports an execve failure (errno).
+            // exec happens within microseconds, so this doesn't delay the waitpid below.
+            var err: Int32 = 0
+            var n: Int
+            repeat { n = read(execReadFD, &err, MemoryLayout<Int32>.size) } while n < 0 && errno == EINTR
+            close(execReadFD)
+            if let self {
+                self.execLock.lock()
+                self.execDone = true
+                if n == MemoryLayout<Int32>.size { self.execErrno = err }
+                self.execLock.unlock()
+            }
+
             var status: Int32 = 0
             var r: pid_t
             repeat { r = waitpid(child, &status, 0) } while r < 0 && errno == EINTR
@@ -227,8 +273,11 @@ public final class PTYProcess {
         return fg != pid
     }
 
-    /// Working directory of the foreground process (falls back to the shell).
+    /// Working directory of the foreground process (falls back to the shell). Before the
+    /// child has exec'd, the kernel still reports the parent's cwd for it, so answer with
+    /// the directory the child was asked to start in instead.
     public func currentWorkingDirectory() -> String? {
+        guard hasExeced else { return workingDirectory }
         let target = foregroundProcessID ?? pid
         return Self.workingDirectory(of: target) ?? Self.workingDirectory(of: pid)
     }
