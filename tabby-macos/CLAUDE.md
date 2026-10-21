@@ -1,0 +1,52 @@
+# TabbyMac — notes for Claude Code
+
+A native macOS clone of Tabby (the Electron app in the parent directory), written in Swift.
+The Electron source in `../` is the reference for behaviour; this folder is the new app.
+Read `README.md` and `docs/ARCHITECTURE.md` before larger changes.
+
+## Status
+
+- Phase 1 (local shell + SSH, tabs, splits, hotkeys, settings, recovery) is written.
+- `TabbyCore`, `TabbyTerminal`, `TabbyIPC`, `TabbySSH` and `TabbyAskpass` were compiled and
+  tested on Linux (62 tests pass, including SSH end to end).
+- `TabbyApp` (AppKit/SwiftUI) and `SwiftTermEngine.swift` were written without a Mac and have
+  **never been compiled**. Expect compile errors on the first Xcode build; fix them before
+  anything else.
+- Roadmap: phase 2 redesign (Claude Design, `docs/claude-design-prompt.md`), phase 3 SSH
+  library backend + SFTP, phase 4 serial/telnet, phase 5 vault, sync, URL/CLI, localization.
+
+## Commands
+
+```sh
+swift build                       # all targets
+swift test                        # unit tests
+swift run TabbyMacDev             # run the app without a bundle
+./scripts/bootstrap-mac.sh        # xcodegen -> Xcode/TabbyMac.xcodeproj, then opens it
+xcodebuild -project Xcode/TabbyMac.xcodeproj -scheme TabbyMac -configuration Debug \
+  -skipPackagePluginValidation build
+```
+
+The `.xcodeproj` is generated from `Xcode/project.yml` and gitignored. Edit `project.yml`,
+never the project file, and re-run xcodegen after adding files to `App/`.
+
+## Constraints
+
+- macOS 14+, Xcode 16+. Swift 5 language mode (`swift-tools-version 5.9`).
+- SwiftTerm is pinned to exactly 1.20.0. 1.99+/2.x need Xcode 26; don't bump it unless asked.
+  Check SwiftTerm API names against the 1.20.0 sources in `.build/checkouts/SwiftTerm`.
+- `TabbyCore` must stay Foundation + Yams only so it builds and tests on Linux. Put AppKit
+  code in `TabbyTerminal` (behind `#if canImport(AppKit)`), `TabbySSH` or `TabbyApp`.
+- App sandbox is off (needed for PTYs and sockets); hardened runtime on; ad-hoc signing.
+- Config lives in `~/Library/Application Support/TabbyMac/`. Never write to Electron Tabby's
+  `~/Library/Application Support/tabby/`; it is only read for import.
+- Config semantics follow Tabby's `ConfigProxy`: save only diffs from `defaults.yaml`,
+  `__nonStructural` maps and arrays replace wholesale, unknown keys round-trip.
+- Keychain names follow Tabby's keytar: service `ssh@host:port`, account = user.
+- Models are `@Observable @MainActor`; AppKit views follow them with `ObservationLoop`.
+- `runCommand(_:)` is deliberately not called `perform` (clashes with `NSObject.perform`).
+
+## Working style
+
+- Run `swift build` and `swift test` before committing.
+- When porting a feature, find the Tabby implementation in `../tabby-*/src` first and keep the
+  same config keys, hotkey ids and recovery token types so Tabby configs keep working.
