@@ -80,8 +80,11 @@ TABBYMAC_SSH_TEST_PORT=22 TABBYMAC_SSH_TEST_USER=$USER TABBYMAC_SSH_TEST_PASSWOR
 TABBYMAC_ASKPASS=$PWD/.build/debug/tabby-askpass swift test --filter SSHSessionTests
 ```
 
-CI is in `.github/workflows/tabby-macos.yml`. It builds the package and the Xcode app on a
-macOS runner once GitHub Actions is enabled for the repository.
+CI is in `.github/workflows/tabby-macos.yml`. It runs the core tests on Linux and builds the
+package, the tests and the Xcode app on a macOS runner.
+
+Behaviour that unit tests can't cover is checked by hand against
+[docs/MANUAL-CHECKS.md](docs/MANUAL-CHECKS.md).
 
 ## Renaming
 

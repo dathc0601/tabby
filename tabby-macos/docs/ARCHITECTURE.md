@@ -79,6 +79,7 @@ through `MainWindowController.runCommand(_:)` using Tabby's hotkey ids.
 ## Roadmap
 
 1. **Phase 1 (this code).** Local shell, SSH, tabs, splits, hotkeys, settings, recovery.
+   Verified by hand against [MANUAL-CHECKS.md](MANUAL-CHECKS.md) (milestones M0–M5).
 2. **Redesign.** Apply the Claude Design output (`docs/claude-design-prompt.md`) to
    `Views/` and `Settings/`, and add an app icon.
 3. **SSH library backend.** libssh2 or russh behind `TerminalSession`. Adds the SFTP panel,

@@ -6,14 +6,15 @@ Read `README.md` and `docs/ARCHITECTURE.md` before larger changes.
 
 ## Status
 
-- Phase 1 (local shell + SSH, tabs, splits, hotkeys, settings, recovery) is written.
-- `TabbyCore`, `TabbyTerminal`, `TabbyIPC`, `TabbySSH` and `TabbyAskpass` were compiled and
-  tested on Linux (62 tests pass, including SSH end to end).
-- `TabbyApp` (AppKit/SwiftUI) and `SwiftTermEngine.swift` were written without a Mac and have
-  **never been compiled**. Expect compile errors on the first Xcode build; fix them before
-  anything else.
+- Phase 1 (local shell + SSH, tabs, splits, hotkeys, settings, recovery) is written, builds
+  on macOS (Xcode 27) and Linux, and `swift test` passes on both.
+- Phase 1b (in progress): manual verification against `docs/MANUAL-CHECKS.md`, app icon,
+  green CI (`.github/workflows/tabby-macos.yml`, macos-15 + Xcode 16.4).
 - Roadmap: phase 2 redesign (Claude Design, `docs/claude-design-prompt.md`), phase 3 SSH
   library backend + SFTP, phase 4 serial/telnet, phase 5 vault, sync, URL/CLI, localization.
+- Tooling quirk: shells spawned by the Xcode coding assistant cannot allocate PTYs
+  (`forkpty: Operation not permitted`), so PTY-backed tests fail there. Run them from
+  Terminal or through Xcode's test runner.
 
 ## Commands
 
