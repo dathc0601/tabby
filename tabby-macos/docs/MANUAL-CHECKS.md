@@ -11,14 +11,16 @@ the bottom with the commit that fixed it.
 
 ## M0 Build and launch
 
-- [ ] `swift build` and `swift test` finish without errors or warnings in our code.
-- [ ] `cd Xcode && xcodegen generate` then `xcodebuild … -skipPackagePluginValidation build`
+- [x] `swift build` and `swift test` finish without errors or warnings in our code.
+- [x] `cd Xcode && xcodegen generate` then `xcodebuild … -skipPackagePluginValidation build`
       succeeds; `TabbyMac.app/Contents/MacOS/tabby-askpass` exists and is executable.
-- [ ] The app shows Tabby's icon in Finder, the Dock and the ⌘-Tab switcher.
-- [ ] First launch on an empty config directory: one window, one tab with the login shell,
+- [x] The app shows Tabby's icon in Finder, the Dock and the ⌘-Tab switcher.
+- [x] First launch on an empty config directory: one window, one tab with the login shell,
       `config.yaml` is created and contains only a version key.
-- [ ] Close the last tab: the start page appears with the profile selector and recents.
-- [ ] Quit and relaunch: the previously open tab comes back (recovery on by default).
+- [x] Close the last tab: the start page appears with the profile selector and recents.
+- [x] Quit and relaunch: the previously open tab comes back (recovery on by default).
+
+M0 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1).
 
 ## M1 Local terminal
 
@@ -117,6 +119,12 @@ Needs a reachable sshd (a local one via System Settings → Sharing → Remote L
 - [ ] Run `sleep 3; exit` in a tab, switch to another app before it finishes: a "process
       completed" notification appears (needs the `.app` and notification permission).
 
-## Open findings
+## Findings
 
-(none yet)
+| Date | Milestone | Finding | Fix |
+|---|---|---|---|
+| 2026-10-21 | M0 | Closing a tab (seen with SSH tabs) crashed in `_dispatch_semaphore_dispose` from `PTYProcess.deinit`: output blocks queued on the main queue signalled the back-pressure semaphore through a weak reference, so the signals were lost after dealloc. Same trap killed the CI test run. | `acf887f7` |
+| 2026-10-21 | M0 | `recoveryState()` right after a tab opened recorded the app's own cwd: `proc_pidinfo` on a forked child reports the parent's directory until the child has exec'd. | `424ed008` |
+| 2026-10-22 | M0 | No `config.yaml` after the first launch; it was only written after the first settings change. | `50f2fa90` |
+
+Open: none.
