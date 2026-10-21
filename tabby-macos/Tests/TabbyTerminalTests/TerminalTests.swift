@@ -103,13 +103,15 @@ final class PTYTests: XCTestCase {
         var chunks = 0
         p?.onData = { _ in chunks += 1 }
         try p?.start(cols: 80, rows: 24)
-        // Let the reader fill the back-pressure window (four chunks) without draining it.
-        Thread.sleep(forTimeInterval: 0.2)
+        // Let output flow for a moment: `yes` fills the back-pressure window faster than the
+        // main queue drains it, so blocks are queued when the process is released below.
+        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+        XCTAssertGreaterThan(chunks, 0, "output reached the main queue while the process was alive")
         p?.terminate(signal: SIGKILL)
         p = nil
         // Drain the main queue: the queued blocks run (and signal) after the process is gone.
+        // Before the fix this run loop pass trapped in _dispatch_semaphore_dispose.
         RunLoop.main.run(until: Date().addingTimeInterval(0.5))
-        XCTAssertGreaterThan(chunks, 0)
     }
 
     func testMissingExecutable() {
