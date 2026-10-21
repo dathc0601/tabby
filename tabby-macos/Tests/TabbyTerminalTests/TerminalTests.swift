@@ -96,6 +96,22 @@ final class PTYTests: XCTestCase {
         XCTAssertNil(code, "killed by a signal")
     }
 
+    /// Closing a tab releases the PTYProcess while output chunks are still queued on the main
+    /// queue. The in-flight semaphore must end up balanced or DispatchSemaphore's dispose traps.
+    func testReleasingProcessWithQueuedOutputDoesNotCrash() throws {
+        var p: PTYProcess? = PTYProcess(executable: "/usr/bin/yes", arguments: [], environment: SessionEnvironment.make())
+        var chunks = 0
+        p?.onData = { _ in chunks += 1 }
+        try p?.start(cols: 80, rows: 24)
+        // Let the reader fill the back-pressure window (four chunks) without draining it.
+        Thread.sleep(forTimeInterval: 0.2)
+        p?.terminate(signal: SIGKILL)
+        p = nil
+        // Drain the main queue: the queued blocks run (and signal) after the process is gone.
+        RunLoop.main.run(until: Date().addingTimeInterval(0.5))
+        XCTAssertGreaterThan(chunks, 0)
+    }
+
     func testMissingExecutable() {
         let p = PTYProcess(executable: "definitely-not-a-command-xyz", arguments: [], environment: [:])
         XCTAssertThrowsError(try p.start(cols: 80, rows: 24))

@@ -154,6 +154,12 @@ public final class PTYProcess {
 
     private func startReader() {
         let fd = masterFD
+        // The semaphores are captured on their own, not through `self`: every `wait` must be
+        // matched by a `signal` even when the process object is released while chunks are
+        // still queued on the main queue. Disposing a DispatchSemaphore whose value is below
+        // its initial value traps (this was the crash when closing a tab with output pending).
+        let inFlight = self.inFlight
+        let readerDone = self.readerDone
         let thread = Thread { [weak self] in
             let bufferSize = 64 * 1024
             let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
@@ -162,11 +168,11 @@ public final class PTYProcess {
                 let n = read(fd, buffer, bufferSize)
                 if n > 0 {
                     let chunk = Data(bytes: buffer, count: n)
-                    guard let self else { return }
-                    self.inFlight.wait()
+                    guard self != nil else { break }
+                    inFlight.wait()
                     DispatchQueue.main.async { [weak self] in
                         self?.onData?(chunk)
-                        self?.inFlight.signal()
+                        inFlight.signal()
                     }
                 } else if n < 0 && (errno == EINTR || errno == EAGAIN) {
                     continue
@@ -174,7 +180,7 @@ public final class PTYProcess {
                     break // EOF or EIO: the slave side is closed.
                 }
             }
-            self?.readerDone.signal()
+            readerDone.signal()
         }
         thread.name = "TabbyMac.pty.read"
         thread.start()
