@@ -74,6 +74,10 @@ let package = Package(
             dependencies: ["TabbyCore", "TabbyTerminal", "TabbySSH", "TabbyIPC"]
         ),
         .testTarget(
+            name: "TabbyAppTests",
+            dependencies: ["TabbyApp"]
+        ),
+        .testTarget(
             name: "TabbyCoreTests",
             dependencies: ["TabbyCore"],
             resources: [.copy("Fixtures")]

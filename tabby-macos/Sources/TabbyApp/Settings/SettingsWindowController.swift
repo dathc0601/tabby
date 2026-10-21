@@ -59,10 +59,15 @@ final class SettingsWindowController: NSWindowController {
                               backing: .buffered, defer: false)
         window.title = "Settings"
         window.isReleasedWhenClosed = false
+        window.contentMinSize = CGSize(width: 720, height: 460)
         window.center()
-        window.setFrameAutosaveName("TabbyMacSettingsWindow")
         super.init(window: window)
-        window.contentViewController = NSHostingController(rootView: SettingsRootView(navigation: navigation))
+        let hosting = NSHostingController(rootView: SettingsRootView(navigation: navigation))
+        // By default the controller pushes SwiftUI's ideal size onto the window, which shrinks
+        // it to a few rows. The user's frame (autosaved below) should win instead.
+        hosting.sizingOptions = []
+        window.contentViewController = hosting
+        window.setFrameAutosaveName("TabbyMacSettingsWindow")
     }
 
     required init?(coder: NSCoder) { fatalError() }

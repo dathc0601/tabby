@@ -66,6 +66,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
             showSettings: { SettingsWindowController.show() },
             openProfile: { [weak self] p in _ = self?.model.openTab(profile: p) }
         ))
+        // The hosts sit under the transparent title bar of a full-size-content window. Without
+        // this, SwiftUI insets their content by the title bar's safe area, so the tab bar grows
+        // past `tabBarHeight` and paints over the terminal's first row.
+        tabBarHost.safeAreaRegions = []
+        startPageHost.safeAreaRegions = []
         root.tabBar = tabBarHost
         root.startPage = startPageHost
         window.contentView = root
