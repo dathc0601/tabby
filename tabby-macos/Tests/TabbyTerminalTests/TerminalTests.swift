@@ -27,6 +27,16 @@ final class FakeEngine: TerminalEngine {
     func clearSearch() {}
 }
 
+/// The temporary directory with every symlink resolved, as the kernel reports it for a
+/// process cwd. On macOS `URL.resolvingSymlinksInPath()` keeps `/var/...` while
+/// `proc_pidinfo` returns `/private/var/...`, so use `realpath(3)` instead.
+func canonicalTemporaryDirectory() -> String {
+    let path = FileManager.default.temporaryDirectory.path
+    guard let resolved = realpath(path, nil) else { return path }
+    defer { free(resolved) }
+    return String(cString: resolved)
+}
+
 final class PTYTests: XCTestCase {
     func testSpawnEchoAndExitCode() throws {
         let env = SessionEnvironment.make(overrides: ["FOO": "bar"])
@@ -47,14 +57,16 @@ final class PTYTests: XCTestCase {
     }
 
     func testWriteResizeAndCwd() throws {
-        let dir = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().path
+        let dir = canonicalTemporaryDirectory()
         let p = PTYProcess(executable: "/bin/sh", arguments: [], environment: SessionEnvironment.make(overrides: ["PS1": "$ "]), workingDirectory: dir)
         var out = ""
+        var sawSize = false
         let gotSize = expectation(description: "size")
         let exited = expectation(description: "exit")
         p.onData = { d in
             out += String(decoding: d, as: UTF8.self)
-            if out.contains("40 120") { gotSize.fulfill() }
+            // Output arrives in several chunks; only fulfil once.
+            if !sawSize, out.contains("40 120") { sawSize = true; gotSize.fulfill() }
         }
         p.onExit = { _ in exited.fulfill() }
         try p.start(cols: 80, rows: 24)
@@ -160,7 +172,7 @@ final class PaneTests: XCTestCase {
     }
 
     func testRecoveryStateCarriesCwd() throws {
-        let dir = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().path
+        let dir = canonicalTemporaryDirectory()
         let profile = Profile(id: "local:x", type: "local", name: "x", options: LocalOptions(command: "/bin/sh", args: []).configValue)
         let pane = TerminalPane(profile: profile, factory: LocalSessionFactory(), context: SessionContext(workingDirectory: dir),
                                 settings: try settings(), scheme: .tabbyDefault,

@@ -12,6 +12,16 @@ final class SSHSessionTests: XCTestCase, SSHPromptHandler {
     var prompts: [AskpassPrompt] = []
     var replies: [(AskpassPrompt) -> SSHPromptReply] = []
 
+    /// Skip the whole class (not just `makeSession`) when the sshd environment is missing, so
+    /// tests that unwrap the variables up front skip instead of failing.
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        guard env["TABBYMAC_SSH_TEST_PORT"].flatMap(Int.init) != nil, env["TABBYMAC_SSH_TEST_USER"] != nil,
+              env["TABBYMAC_SSH_TEST_PASSWORD"] != nil, env["TABBYMAC_ASKPASS"] != nil else {
+            throw XCTSkip("SSH integration environment not configured")
+        }
+    }
+
     func sshSession(_ session: SSHSession, needs prompt: AskpassPrompt, reply: @escaping (SSHPromptReply) -> Void) {
         prompts.append(prompt)
         let responder = replies.isEmpty ? { _ in .cancel } : replies.removeFirst()
