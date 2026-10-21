@@ -1,4 +1,9 @@
 import Foundation
+#if canImport(CoreGraphics)
+// Newer Apple SDKs no longer re-export CoreGraphics from Foundation; CGRect's
+// Equatable conformance and `init(x:y:width:height:)` live in the CoreGraphics overlay.
+import CoreGraphics
+#endif
 
 /// Which way a container lays out its children. Same letters as Tabby:
 /// `h` = side by side (left to right), `v` = stacked (top to bottom).

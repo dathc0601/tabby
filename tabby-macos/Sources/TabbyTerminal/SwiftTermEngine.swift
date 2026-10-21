@@ -77,7 +77,7 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
         nativeForegroundColor = Self.nsColor(scheme.foregroundRGB)
         nativeBackgroundColor = transparentBackground ? Self.nsColor(scheme.backgroundRGB).withAlphaComponent(0) : Self.nsColor(scheme.backgroundRGB)
         caretColor = Self.nsColor(scheme.cursorRGB)
-        if let sel = scheme.selection.flatMap(RGBColor.init(hex:)) {
+        if let sel = scheme.selection.flatMap(TabbyCore.RGBColor.init(hex:)) {
             selectedTextBackgroundColor = Self.nsColor(sel)
         } else {
             selectedTextBackgroundColor = Self.nsColor(scheme.foregroundRGB).withAlphaComponent(0.3)
@@ -100,11 +100,11 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
         needsDisplay = true
     }
 
-    static func terminalColor(_ c: RGBColor) -> SwiftTerm.Color {
+    static func terminalColor(_ c: TabbyCore.RGBColor) -> SwiftTerm.Color {
         SwiftTerm.Color(red8: UInt16((c.r * 255).rounded()), green8: UInt16((c.g * 255).rounded()), blue8: UInt16((c.b * 255).rounded()))
     }
 
-    static func nsColor(_ c: RGBColor) -> NSColor {
+    static func nsColor(_ c: TabbyCore.RGBColor) -> NSColor {
         NSColor(srgbRed: CGFloat(c.r), green: CGFloat(c.g), blue: CGFloat(c.b), alpha: CGFloat(c.a))
     }
 

@@ -9,7 +9,7 @@ import TabbyCore
 @MainActor
 @Observable
 public final class ThemeManager {
-    public private(set) var scheme: ColorScheme = .tabbyDefault
+    public private(set) var scheme: TabbyCore.ColorScheme = .tabbyDefault
     public private(set) var chrome: ChromeTheme = ChromeTheme(scheme: .tabbyDefault)
     public private(set) var vibrancy = false
     public private(set) var spaciness: Double = 1
@@ -60,12 +60,12 @@ public final class ThemeManager {
     }
 
     /// The scheme for a pane, honouring a per-profile override.
-    public func scheme(for profile: Profile) -> ColorScheme {
+    public func scheme(for profile: Profile) -> TabbyCore.ColorScheme {
         ColorScheme(config: profile.terminalColorScheme) ?? scheme
     }
 }
 
-extension RGBColor {
+extension TabbyCore.RGBColor {
     var nsColor: NSColor { NSColor(srgbRed: CGFloat(r), green: CGFloat(g), blue: CGFloat(b), alpha: CGFloat(a)) }
     var color: SwiftUI.Color { SwiftUI.Color(nsColor: nsColor) }
 }
