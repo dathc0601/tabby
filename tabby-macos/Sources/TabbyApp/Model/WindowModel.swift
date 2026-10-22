@@ -251,6 +251,22 @@ public final class WindowModel {
         restore(token, includeBuffer: false, at: i + 1)
     }
 
+    /// Drops tab `id` on pane `paneID` of another tab: the pane splits on `side` and the tab's
+    /// panes move in with their sessions. Returns false when the drop makes no sense.
+    @discardableResult
+    public func dropTab(_ id: UUID, onto paneID: UUID, side: SplitDirection) -> Bool {
+        guard let source = tabs.first(where: { $0.id == id }), source.content == nil, !source.panes.isEmpty,
+              let target = tabs.first(where: { $0.panes[paneID] != nil }), target !== source else { return false }
+        target.absorb(source, relativeTo: paneID, side: side)
+        tabs.removeAll { $0 === source }
+        mru.removeAll { $0 == id }
+        if activeTabID == id { activeTabID = nil }
+        select(target.id)
+        if let focused = target.focusedPaneID { focus(paneID: focused) }
+        onRecoveryStateChanged?()
+        return true
+    }
+
     // MARK: Panes
 
     public func focus(paneID: UUID) {

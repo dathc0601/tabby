@@ -122,3 +122,27 @@ final class SplitTests: XCTestCase {
         XCTAssertEqual(l.root.ratios, [0.5, 0.5])
     }
 }
+
+/// Where a tab dropped on a pane lands: the side whose edge the pointer is nearest to,
+/// measured relative to the pane's size (the design's four drop zones).
+final class DropSideTests: XCTestCase {
+    let pane = CGRect(x: 100, y: 50, width: 400, height: 200)
+
+    func testNearestEdgeWins() {
+        XCTAssertEqual(SplitDirection.dropSide(at: CGPoint(x: 110, y: 150), in: pane), .left)
+        XCTAssertEqual(SplitDirection.dropSide(at: CGPoint(x: 490, y: 150), in: pane), .right)
+        XCTAssertEqual(SplitDirection.dropSide(at: CGPoint(x: 300, y: 55), in: pane), .top)
+        XCTAssertEqual(SplitDirection.dropSide(at: CGPoint(x: 300, y: 245), in: pane), .bottom)
+    }
+
+    func testDistancesAreRelativeToThePaneSize() {
+        // 60 pt from the left of a 400 pt wide pane (15%) is farther than 20 pt from the top of
+        // a 200 pt tall one (10%).
+        XCTAssertEqual(SplitDirection.dropSide(at: CGPoint(x: 160, y: 70), in: pane), .top)
+    }
+
+    func testTheHalfOfThePaneThatTheNewPaneTakes() {
+        XCTAssertEqual(SplitDirection.right.previewFrame(in: pane), CGRect(x: 300, y: 50, width: 200, height: 200))
+        XCTAssertEqual(SplitDirection.top.previewFrame(in: pane), CGRect(x: 100, y: 50, width: 400, height: 100))
+    }
+}

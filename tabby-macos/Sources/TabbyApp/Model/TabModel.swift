@@ -98,6 +98,20 @@ public final class TabModel: Identifiable {
         focusedPaneID = pane.id
     }
 
+    /// Moves another tab's panes in beside `relativeTo`, keeping their layout.
+    func absorb(_ other: TabModel, relativeTo: UUID, side: SplitDirection) {
+        let moved = other.layout.panes.compactMap { id in other.panes[id].map { (id, $0) } }
+        guard !moved.isEmpty else { return }
+        let subtree: SplitNode = moved.count == 1 ? .leaf(moved[0].0) : .container(other.layout.root)
+        for (id, pane) in moved {
+            other.panes[id] = nil
+            panes[id] = pane
+        }
+        layout.insert(subtree, relativeTo: relativeTo, side: side)
+        maximizedPaneID = nil
+        focusedPaneID = other.focusedPaneID.flatMap { panes[$0] != nil ? $0 : nil } ?? moved[0].0
+    }
+
     /// Removes a pane and returns it. The tab is empty afterwards when it was the last one.
     @discardableResult
     public func remove(_ paneID: UUID) -> TerminalPane? {

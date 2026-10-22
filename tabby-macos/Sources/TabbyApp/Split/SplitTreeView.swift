@@ -14,6 +14,8 @@ final class SplitTreeView: NSView {
     private var paneViews: [UUID: PaneContainerView] = [:]
     private var dividerViews: [DividerView] = []
     private var loop: ObservationLoop?
+    private let dropOverlay = DropZoneOverlay()
+    private var maximizedHost: NSHostingView<MaximizedChip>?
     static let spacing: CGFloat = 1
 
     init(tab: TabModel, controller: MainWindowController) {
@@ -21,6 +23,11 @@ final class SplitTreeView: NSView {
         self.controller = controller
         super.init(frame: .zero)
         wantsLayer = true
+        dropOverlay.isHidden = true
+        addSubview(dropOverlay)
+        // Tab headers drag their id as text (SwiftUI `.draggable`); dropping one on a pane
+        // splits it.
+        registerForDraggedTypes([.string])
         loop = ObservationLoop(track: { [weak self] in
             guard let self else { return }
             // Read what the layout depends on so changes trigger a relayout.
@@ -60,13 +67,78 @@ final class SplitTreeView: NSView {
                 view.isHidden = false
                 view.frame = f
                 // Every pane looks focused while input goes to all of them, as in Tabby.
-                view.showsFocusRing = multiple && (tab.broadcastInput || tab.focusedPaneID == id)
+                let focused = tab.broadcastInput || tab.focusedPaneID == id
+                view.showsFocusRing = multiple && focused && tab.maximizedPaneID == nil
+                view.isDimmed = multiple && !focused && tab.maximizedPaneID == nil
             } else {
                 view.isHidden = true
             }
         }
         layoutDividers(enabled: tab.maximizedPaneID == nil)
-        layer?.backgroundColor = AppServices.shared.theme.chrome.border.nsColor.cgColor
+        layer?.backgroundColor = AppServices.shared.theme.chrome.separator.nsColor.cgColor
+        layoutMaximizedChip()
+        addSubview(dropOverlay, positioned: .above, relativeTo: nil)
+    }
+
+    private func layoutMaximizedChip() {
+        if tab.maximizedPaneID != nil {
+            if maximizedHost == nil {
+                let host = NSHostingView(rootView: MaximizedChip(tab: tab) { [weak self] in
+                    guard let self else { return }
+                    self.tab.maximizedPaneID = nil
+                    self.needsLayout = true
+                })
+                host.safeAreaRegions = []
+                addSubview(host)
+                maximizedHost = host
+            }
+            if let host = maximizedHost {
+                addSubview(host, positioned: .above, relativeTo: nil)
+                let size = host.fittingSize
+                host.frame = CGRect(x: (bounds.width - size.width) / 2, y: bounds.height - size.height - 6, width: size.width, height: size.height)
+            }
+        } else {
+            maximizedHost?.removeFromSuperview()
+            maximizedHost = nil
+        }
+    }
+
+    // MARK: Dropping a tab on a pane
+
+    private func draggedTab(_ info: NSDraggingInfo) -> UUID? {
+        guard let text = info.draggingPasteboard.string(forType: .string), let id = UUID(uuidString: text),
+              id != tab.id, tab.content == nil,
+              let source = controller?.model.tabs.first(where: { $0.id == id }), source.content == nil else { return nil }
+        return id
+    }
+
+    private func dropTarget(_ info: NSDraggingInfo) -> (pane: UUID, frame: CGRect, side: SplitDirection)? {
+        guard draggedTab(info) != nil else { return nil }
+        let point = convert(info.draggingLocation, from: nil)
+        guard let (id, view) = paneViews.first(where: { !$0.value.isHidden && $0.value.frame.contains(point) }) else { return nil }
+        return (id, view.frame, SplitDirection.dropSide(at: point, in: view.frame))
+    }
+
+    private func updateDrop(_ info: NSDraggingInfo) -> NSDragOperation {
+        guard let target = dropTarget(info) else {
+            dropOverlay.isHidden = true
+            return []
+        }
+        dropOverlay.frame = target.frame
+        dropOverlay.side = target.side
+        dropOverlay.isHidden = false
+        return .move
+    }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation { updateDrop(sender) }
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation { updateDrop(sender) }
+    override func draggingExited(_ sender: NSDraggingInfo?) { dropOverlay.isHidden = true }
+    override func concludeDragOperation(_ sender: NSDraggingInfo?) { dropOverlay.isHidden = true }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        dropOverlay.isHidden = true
+        guard let id = draggedTab(sender), let target = dropTarget(sender) else { return false }
+        return controller?.model.dropTab(id, onto: target.pane, side: target.side) ?? false
     }
 
     func syncPaneViews() {
@@ -115,13 +187,32 @@ final class SplitTreeView: NSView {
     }
 }
 
-/// Invisible hit area over the gap between two panes.
+/// Hit area over the 1 pt gap between two panes (6 pt wide); shows an accent grip on hover.
 @MainActor
 final class DividerView: NSView {
     var divider: SplitLayout.Divider?
     var onDrag: ((SplitLayout.Divider, CGPoint) -> Void)?
+    private var hovering = false { didSet { needsDisplay = true } }
 
     override var isFlipped: Bool { true }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect], owner: self))
+    }
+
+    override func mouseEntered(with event: NSEvent) { hovering = true }
+    override func mouseExited(with event: NSEvent) { hovering = false }
+
+    override func draw(_ dirtyRect: NSRect) {
+        guard hovering, let divider else { return }
+        AppServices.shared.theme.chrome.accent.nsColor.setFill()
+        let grip: CGRect = divider.orientation == .horizontal
+            ? CGRect(x: bounds.midX - 1.5, y: bounds.midY - 14, width: 3, height: 28)
+            : CGRect(x: bounds.midX - 14, y: bounds.midY - 1.5, width: 28, height: 3)
+        NSBezierPath(roundedRect: grip, xRadius: 1.5, yRadius: 1.5).fill()
+    }
 
     override func resetCursorRects() {
         guard let divider else { return }
@@ -141,6 +232,11 @@ final class DividerView: NSView {
     }
 }
 
+/// A view that never takes the mouse (the dim layer over unfocused panes).
+final class PassThroughView: NSView {
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+}
+
 /// A pane: the terminal view plus its overlays (focus ring, search bar).
 @MainActor
 final class PaneContainerView: NSView {
@@ -153,6 +249,9 @@ final class PaneContainerView: NSView {
     private var appearanceLoop: ObservationLoop?
     private var chipLoop: ObservationLoop?
     var showsFocusRing = false { didSet { if oldValue != showsFocusRing { updateRing() } } }
+    /// Unfocused panes of a split dim by 25% (the design).
+    var isDimmed = false { didSet { if oldValue != isDimmed { updateRing() } } }
+    private let dimView = PassThroughView()
 
     init(pane: TerminalPane, controller: MainWindowController) {
         self.pane = pane
@@ -202,6 +301,7 @@ final class PaneContainerView: NSView {
     override func layout() {
         super.layout()
         engine.frame = bounds
+        dimView.frame = bounds
         if let chipHost {
             let size = chipHost.fittingSize
             chipHost.frame = CGRect(x: 4, y: 4, width: max(size.width, 1), height: max(size.height, 1))
@@ -237,8 +337,15 @@ final class PaneContainerView: NSView {
     }
 
     private func updateRing() {
-        layer?.borderWidth = showsFocusRing ? 1 : 0
-        layer?.borderColor = AppServices.shared.theme.chrome.accent.nsColor.withAlphaComponent(0.8).cgColor
+        let chrome = AppServices.shared.theme.chrome
+        layer?.borderWidth = showsFocusRing ? 1.5 : 0
+        layer?.borderColor = chrome.accent.nsColor.cgColor
+        if dimView.superview == nil {
+            dimView.wantsLayer = true
+            addSubview(dimView, positioned: .above, relativeTo: engine)
+        }
+        dimView.layer?.backgroundColor = chrome.surface.withAlpha(0.25).nsColor.cgColor
+        dimView.isHidden = !isDimmed
     }
 
     // MARK: Search

@@ -1,5 +1,6 @@
 #if canImport(AppKit)
 import AppKit
+import QuartzCore
 import UserNotifications
 import TabbyCore
 import TabbySSH
@@ -145,13 +146,14 @@ final class WindowManager {
     /// Quake-style show/hide (`toggle-window`).
     func toggleAllWindows() {
         if NSApp.isActive && NSApp.windows.contains(where: { $0.isVisible && $0.windowController is MainWindowController }) {
-            NSApp.hide(nil)
+            DockController.shared.slide(in: false) { NSApp.hide(nil) }
         } else {
             NSApp.unhide(nil)
             NSApp.activate(ignoringOtherApps: true)
             if controllers.isEmpty { newWindow() }
             DockController.shared.apply(followMouse: true)
             activeController?.window?.makeKeyAndOrderFront(nil)
+            DockController.shared.slide(in: true)
         }
     }
 }
@@ -260,6 +262,34 @@ final class DockController {
         }
         window.setFrame(frame, display: true, animate: false)
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+    }
+
+    /// The design's slide: a docked window comes in from its screen edge and leaves the same
+    /// way. Without docking (or with animations off) it just calls `completion`.
+    func slide(in show: Bool, completion: @escaping () -> Void = {}) {
+        let config = AppServices.shared.config
+        let side = config.string("appearance.dock") ?? "off"
+        guard side != "off", config.value("accessibility.animations")?.boolValue ?? true,
+              let window = WindowManager.shared.controllers.first?.window else { return completion() }
+        let docked = window.frame
+        var away = docked
+        switch side {
+        case "top": away.origin.y += docked.height
+        case "bottom": away.origin.y -= docked.height
+        case "left": away.origin.x -= docked.width
+        default: away.origin.x += docked.width
+        }
+        if show { window.setFrame(away, display: false) }
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.18
+            context.timingFunction = CAMediaTimingFunction(name: show ? .easeOut : .easeIn)
+            window.animator().setFrame(show ? docked : away, display: true)
+        }, completionHandler: {
+            MainActor.assumeIsolated {
+                completion()
+                if !show { window.setFrame(docked, display: false) }
+            }
+        })
     }
 }
 #endif

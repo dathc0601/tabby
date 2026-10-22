@@ -68,5 +68,33 @@ final class DockingTests: XCTestCase {
         let id = try XCTUnwrap(last.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)
         XCTAssertEqual(DockController.screen(for: .int(id.intValue), near: .zero), last, "a display picked by id")
     }
+
+    /// A docked window has no traffic lights (the design's Quake panel); the tab strip starts at
+    /// the edge instead of after them.
+    func testDockedWindowHidesTheTrafficLights() throws {
+        let window = try dockedWindow()
+        dock("top")
+        TestApp.pump(until: { window.standardWindowButton(.closeButton)?.isHidden == true })
+        XCTAssertEqual(window.standardWindowButton(.closeButton)?.isHidden, true)
+        dock("off")
+        TestApp.pump(until: { window.standardWindowButton(.closeButton)?.isHidden == false })
+        XCTAssertEqual(window.standardWindowButton(.closeButton)?.isHidden, false)
+    }
+
+    /// Dragging the free edge of a docked window changes `appearance.dockFill`, so the next
+    /// dock keeps the new size.
+    func testResizingADockedWindowKeepsTheNewSize() throws {
+        let window = try dockedWindow()
+        dock("top")
+        let controller = try XCTUnwrap(window.windowController as? MainWindowController)
+        let area = try XCTUnwrap(window.screen?.visibleFrame)
+        var frame = window.frame
+        frame.size.height = area.height * 0.4
+        frame.origin.y = area.maxY - frame.height
+        window.setFrame(frame, display: false)
+        controller.windowDidEndLiveResize(Notification(name: NSWindow.didEndLiveResizeNotification, object: window))
+        XCTAssertEqual(config.double("appearance.dockFill") ?? 0, 0.4, accuracy: 0.011)
+        config.set("appearance.dockFill", nil)
+    }
 }
 #endif

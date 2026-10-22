@@ -150,9 +150,15 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
             effectView = nil
         }
         root.effectView = effectView
-        let inset: CGFloat = (frame != "native" && !fullscreen && (placement == .top || placement == .left)) ? 78 : 0
+        // A docked window is the design's Quake panel: no traffic lights.
+        let docked = (config.string("appearance.dock") ?? "off") != "off"
+        for button in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {
+            window.standardWindowButton(button)?.isHidden = docked
+        }
+        let lights = frame != "native" && !fullscreen && !docked
+        let inset: CGFloat = lights && (placement == .top || placement == .left) ? 78 : (docked ? 8 : 0)
         let place = placement
-        let verticalInset: CGFloat = place.isVertical && frame != "native" && !fullscreen ? 30 : 0
+        let verticalInset: CGFloat = place.isVertical && lights ? 30 : 0
         tabBarHost.rootView = TabBarView(model: model, actions: tabBarHost.rootView.actions, placement: place,
                                          leadingInset: place.isVertical ? verticalInset : inset)
         root.placement = place
@@ -374,6 +380,15 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
     }
 
     func windowDidResize(_ notification: Notification) { layoutTrafficLights() }
+
+    /// Dragging the free edge of a docked window sets its size for the next dock.
+    func windowDidEndLiveResize(_ notification: Notification) {
+        let config = services.config
+        let side = config.string("appearance.dock") ?? "off"
+        guard side != "off", let window, let area = window.screen?.visibleFrame, area.width > 0, area.height > 0 else { return }
+        let fraction = side == "top" || side == "bottom" ? window.frame.height / area.height : window.frame.width / area.width
+        config.set("appearance.dockFill", .double((min(max(Double(fraction), 0.2), 1) * 100).rounded() / 100))
+    }
     func windowDidExitFullScreen(_ notification: Notification) { applyAppearance() }
     func windowDidEnterFullScreen(_ notification: Notification) { applyAppearance() }
     func windowDidBecomeKey(_ notification: Notification) {

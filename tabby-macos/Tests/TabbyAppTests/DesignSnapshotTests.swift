@@ -89,6 +89,19 @@ final class DesignSnapshotTests: XCTestCase {
         try save(try XCTUnwrap(c.window?.contentView), "main-left")
     }
 
+    func testSplits() throws {
+        let c = window()
+        defer { TestApp.dispose(c) }
+        c.model.openTab(profile: TestApp.profile("zsh", "printf 'swift test --filter TabBar\\n'; sleep 30"))
+        c.model.split(.right, profile: TestApp.profile("logs", "printf 'tail -f access.log\\n'; sleep 30"))
+        c.model.split(.bottom, profile: TestApp.profile("deploy", "printf 'uptime\\n'; sleep 30"))
+        TestApp.pump(1.2)
+        try save(try XCTUnwrap(c.window?.contentView), "split")
+        c.model.toggleMaximize()
+        TestApp.pump(0.6)
+        try save(try XCTUnwrap(c.window?.contentView), "split-maximized")
+    }
+
     func testStartPage() throws {
         AppServices.shared.profiles.recents.push(TestApp.profile("staging-db", "sleep 30"))
         AppServices.shared.profiles.recents.push(TestApp.profile("prod-web-01", "sleep 30"))

@@ -19,6 +19,27 @@ public enum SplitDirection: String, CaseIterable, Codable, Sendable {
     var orientation: SplitOrientation { self == .left || self == .right ? .horizontal : .vertical }
     /// Whether the new pane goes before (top/left) the reference pane.
     var insertsBefore: Bool { self == .left || self == .top }
+
+    /// The drop zone under `point` when a tab is dragged over `rect` (a pane, y down): the
+    /// edge nearest the pointer, relative to the pane's width and height.
+    public static func dropSide(at point: CGPoint, in rect: CGRect) -> SplitDirection {
+        let w = max(rect.width, 1), h = max(rect.height, 1)
+        let distances: [(SplitDirection, CGFloat)] = [
+            (.left, (point.x - rect.minX) / w), (.right, (rect.maxX - point.x) / w),
+            (.top, (point.y - rect.minY) / h), (.bottom, (rect.maxY - point.y) / h),
+        ]
+        return distances.min { $0.1 < $1.1 }!.0
+    }
+
+    /// The half of `rect` (y down) the new pane takes when dropped on this side.
+    public func previewFrame(in rect: CGRect) -> CGRect {
+        switch self {
+        case .left: return CGRect(x: rect.minX, y: rect.minY, width: rect.width / 2, height: rect.height)
+        case .right: return CGRect(x: rect.midX, y: rect.minY, width: rect.width / 2, height: rect.height)
+        case .top: return CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: rect.height / 2)
+        case .bottom: return CGRect(x: rect.minX, y: rect.midY, width: rect.width, height: rect.height / 2)
+        }
+    }
 }
 
 /// A split layout tree. Port of `SplitContainer` (`tabby-core/src/components/splitTab.component.ts`).
