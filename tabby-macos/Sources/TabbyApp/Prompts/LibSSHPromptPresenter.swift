@@ -22,13 +22,16 @@ final class LibSSHPromptPresenter: SSHSessionUI {
     }
 
     func verifyHostKey(_ request: HostKeyRequest, for session: LibSSHSession) async -> HostKeyDecision {
-        let window = window(for: session)
+        await verifyHostKey(request, in: window(for: session))
+    }
+
+    func verifyHostKey(_ request: HostKeyRequest, in window: NSWindow?) async -> HostKeyDecision {
         let host = request.port == 22 ? request.host : "\(request.host):\(request.port)"
         return await withCheckedContinuation { continuation in
             ChromeSheet.present(in: window) { dismiss in
-                HostKeyPromptCard(host: host, keyType: request.keyType, fingerprint: request.fingerprint) { accept in
+                HostKeyPromptCard(request: request, host: host) { decision in
                     dismiss()
-                    continuation.resume(returning: accept ? .acceptAndRemember : .reject)
+                    continuation.resume(returning: decision)
                 }
             }
         }

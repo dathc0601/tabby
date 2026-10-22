@@ -52,7 +52,7 @@ public struct HostKeyRequest: Equatable, Sendable {
     public var previousFingerprint: String?
 }
 
-public enum HostKeyDecision: Sendable {
+public enum HostKeyDecision: Sendable, Equatable {
     case reject, acceptOnce, acceptAndRemember
 }
 
