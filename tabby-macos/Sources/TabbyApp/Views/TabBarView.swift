@@ -115,6 +115,7 @@ struct TabHeaderView: View {
             HStack(spacing: 6) {
                 if !hideIndex {
                     Text("\(index + 1)").font(.caption.monospacedDigit()).foregroundStyle(chrome.textMuted.color)
+                        .fixedSize()
                 }
                 if showIcon, let icon = tab.icon {
                     Image(systemName: ProfileIcons.symbol(for: icon)).font(.caption)
@@ -124,7 +125,7 @@ struct TabHeaderView: View {
                 }
                 Text(tab.title)
                     .lineLimit(1)
-                    .truncationMode(.middle)
+                    .truncationMode(.tail)
                     .foregroundStyle(isActive ? chrome.text.color : chrome.textMuted.color)
                 Spacer(minLength: 0)
                 if tab.hasActivity && !isActive {
@@ -151,7 +152,7 @@ struct TabHeaderView: View {
                 Rectangle().fill(color.color).frame(height: 3)
             }
         }
-        .frame(maxWidth: vertical || flex ? .infinity : 200)
+        .frame(minWidth: 0, maxWidth: vertical || flex ? .infinity : 200)
         .background(isActive ? chrome.surface.color : (hovering ? chrome.surfaceRaised.color.opacity(0.5) : .clear))
         .overlay(alignment: vertical ? .leading : .top) {
             if isActive {
@@ -159,6 +160,8 @@ struct TabHeaderView: View {
                     .frame(width: vertical ? 2 : nil, height: vertical ? nil : 2)
             }
         }
+        // Narrow tabs cut their content off at the edge, as Tabby's `overflow: hidden`.
+        .clipped()
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .help(tab.title)
