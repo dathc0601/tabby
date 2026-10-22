@@ -146,8 +146,9 @@ struct TabHeaderView: View {
                 }
                 .frame(height: 2)
             }
+            // Tabby's `.colorbar` runs along the bottom; the top line marks the active tab.
             if let color = tab.color.flatMap(RGBColor.init(hex:)) {
-                Rectangle().fill(color.color).frame(height: 3).frame(maxHeight: .infinity, alignment: .top)
+                Rectangle().fill(color.color).frame(height: 3)
             }
         }
         .frame(maxWidth: vertical || flex ? .infinity : 200)
