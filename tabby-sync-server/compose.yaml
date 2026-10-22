@@ -4,7 +4,7 @@
 #   docker compose up -d --build
 #
 # The server listens on 127.0.0.1:8080 only; a reverse proxy on the host (Caddy, see
-# README.md) terminates TLS for sync.dcstyle.info and forwards to it.
+# README.md) terminates TLS for tabby-sync.dcstyle.info and forwards to it.
 
 services:
   server:

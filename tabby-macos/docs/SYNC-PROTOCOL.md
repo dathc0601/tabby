@@ -43,7 +43,7 @@ does not reveal who has an account.
 | `GET /devices`, `DELETE /devices/{id}` | removing a device revokes its token |
 
 Bearer tokens are 32 random bytes, stored hashed, one per device. Sign-up and sign-in are
-rate limited per address. The app talks to `https://sync.dcstyle.info` only; there is no
+rate limited per address. The app talks to `https://tabby-sync.dcstyle.info` only; there is no
 setting for the server (`TABBYMAC_SYNC_URL` exists for tests and development).
 
 ## Snapshot

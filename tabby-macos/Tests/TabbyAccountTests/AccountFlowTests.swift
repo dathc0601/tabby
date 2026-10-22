@@ -85,6 +85,6 @@ final class AccountFlowTests: XCTestCase {
         XCTAssertThrowsError(try SyncClient(baseURL: URL(string: "http://sync.example.com")!, transport: server))
         XCTAssertNoThrow(try SyncClient(baseURL: URL(string: "http://localhost:8080")!, transport: server))
         XCTAssertNoThrow(try SyncClient(baseURL: URL(string: "http://127.0.0.1:8080")!, transport: server))
-        XCTAssertEqual(SyncClient.defaultURL.absoluteString, "https://sync.dcstyle.info")
+        XCTAssertEqual(SyncClient.defaultURL.absoluteString, "https://tabby-sync.dcstyle.info")
     }
 }

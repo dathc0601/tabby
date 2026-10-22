@@ -25,7 +25,7 @@ Decisions taken in this conversation (the owner's):
 - **Settings opens as a tab**, as in the design and in Electron Tabby.
 - **2a includes new behaviour:** welcome tab, tab overflow + drag polish, in-app toasts,
   drop zones when dragging a tab into a pane.
-- **Server URL** is built in as `https://sync.dcstyle.info` (a constant the owner can
+- **Server URL** is built in as `https://tabby-sync.dcstyle.info` (a constant the owner can
   change in code); registration is open (rate-limited per IP); **no self-hosted / change
   server UI**: the "Sync server" and "Self-hosted URL" rows of A4 are dropped.
 - **Private keys that sync:** keys named in a profile's `privateKeys` **and** ssh's
@@ -339,7 +339,7 @@ root view; `ConfigBinding` is reused as is).
   enumeration from profiles, key files), `Account/KeyFileStore.swift` (`vault://`),
   config keys `account: {email, deviceId, auto: true, parts: {profiles, secrets,
   knownHosts, settings}, approvedKeyFiles: []}` in `defaults.yaml`; the server URL is
-  the constant `SyncServer.defaultURL = https://sync.dcstyle.info` in `AccountService`
+  the constant `SyncClient.defaultURL = https://tabby-sync.dcstyle.info` in `TabbyAccount/SyncClient.swift`
   (overridable only by the `TABBYMAC_SYNC_URL` environment variable, for tests).
 
 ### 2b milestones

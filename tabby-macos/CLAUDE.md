@@ -18,7 +18,7 @@ Read `README.md` and `docs/ARCHITECTURE.md` before larger changes.
   splits, docking); its on-screen checks are M6. 2b personal account + sync is in code
   (`TabbySyncProtocol`, `TabbyAccount`, `TabbyApp/Account`, `../tabby-sync-server`; see
   `docs/SYNC-PROTOCOL.md`); its on-screen checks are M7. The server still has to be deployed
-  at https://sync.dcstyle.info (see `../tabby-sync-server/README.md`).
+  at https://tabby-sync.dcstyle.info (see `../tabby-sync-server/README.md`).
 - Tests never touch the real Keychain, server or `~/.ssh`: `TestApp.boot` sets
   `TABBYMAC_SYNC_URL=memory:`, `TABBYMAC_KEYCHAIN=memory`, `TABBYMAC_SYNC_HOME`. Keep it so;
   a sync reads every saved SSH password.

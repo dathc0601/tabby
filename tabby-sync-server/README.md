@@ -90,14 +90,14 @@ docker compose logs -f server
 
 The server is published on `127.0.0.1:8080` only, for the reverse proxy on the same host.
 
-## Deploy behind Caddy at sync.dcstyle.info
+## Deploy behind Caddy at tabby-sync.dcstyle.info
 
-TabbyMac talks to `https://sync.dcstyle.info` (the constant `SyncServer.defaultURL` in the
+TabbyMac talks to `https://tabby-sync.dcstyle.info` (the constant `SyncClient.defaultURL` in the
 app). On the host that runs the compose stack, with a DNS `A`/`AAAA` record for
-`sync.dcstyle.info` pointing at it and ports 80 and 443 open, add to the Caddyfile:
+`tabby-sync.dcstyle.info` pointing at it and ports 80 and 443 open, add to the Caddyfile:
 
 ```caddyfile
-sync.dcstyle.info {
+tabby-sync.dcstyle.info {
 	request_body {
 		max_size 26MB
 	}

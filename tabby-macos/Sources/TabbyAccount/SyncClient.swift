@@ -58,7 +58,7 @@ public enum SyncClientError: Error, Equatable, LocalizedError {
 public final class SyncClient: @unchecked Sendable {
     /// The account server. `TABBYMAC_SYNC_URL` overrides it for tests and development only;
     /// there is no setting for it.
-    public static let defaultURL = URL(string: "https://sync.dcstyle.info")!
+    public static let defaultURL = URL(string: "https://tabby-sync.dcstyle.info")!
 
     public static var configuredURL: URL {
         ProcessInfo.processInfo.environment["TABBYMAC_SYNC_URL"].flatMap(URL.init(string:)) ?? defaultURL
