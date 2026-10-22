@@ -12,7 +12,9 @@ format, so profiles, hotkeys and colour schemes carry over.
 - macOS 14 Sonoma or later
 - Xcode 16 or later (SwiftTerm 1.20 uses swift-tools 6.0)
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) for the app bundle (`brew install xcodegen`)
-- libssh for the SSH client (`brew install libssh`); the app bundle carries its own copy
+- libssh for the SSH client (`brew install libssh`); the app bundle carries its own copy.
+  Homebrew builds it for the Mac it runs on, so the bundled app needs that macOS too (the
+  build raises `LSMinimumSystemVersion` and warns; e.g. 27.0 when built on macOS 27)
 
 ## Build and run
 

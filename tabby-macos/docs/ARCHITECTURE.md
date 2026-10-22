@@ -70,8 +70,9 @@ libssh (spec: `docs/superpowers/specs/2026-10-23-phase-3-ssh-backend-design.md`)
 - `LibSSHSession` is the `TerminalSession`. Its questions go to `LibSSHPromptPresenter`
   (cards, and the keyboard-interactive panel in the pane).
 - The app bundles libssh and libcrypto (`scripts/bundle-libssh.sh`, from Homebrew's
-  `libssh`), so the app needs at least the macOS those were built for. Building them from
-  source for macOS 14 is a follow-up.
+  `libssh`). They are built for the build Mac's macOS, so the script raises the app's
+  `LSMinimumSystemVersion` to theirs (with a build warning). Building them from source for
+  macOS 14 is a follow-up.
 - Tests run against a throwaway unprivileged `/usr/sbin/sshd` on a free port
   (`Tests/TabbySSHLibTests/TestSSHD.swift`); nothing touches `~/.ssh`.
 

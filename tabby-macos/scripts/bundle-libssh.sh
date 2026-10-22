@@ -4,8 +4,8 @@
 # signs them, so the app runs on a Mac without Homebrew.
 #
 # The dylibs are Homebrew's (`brew install libssh`), built for the macOS that Homebrew
-# targeted on the build Mac; the bundled app needs at least that macOS. See
-# docs/ARCHITECTURE.md ("SSH, phase 3").
+# targeted on the build Mac; the app's LSMinimumSystemVersion is raised to match (below).
+# See docs/ARCHITECTURE.md ("SSH, phase 3").
 set -eu
 
 prefix=$(/opt/homebrew/bin/brew --prefix libssh 2>/dev/null || echo /opt/homebrew/opt/libssh)
@@ -39,6 +39,22 @@ for binary in "$macos"/*; do
     install_name_tool -change "$linked" "@rpath/libssh.4.dylib" "$binary"
   done
 done
+
+# The bundled libraries' minimum macOS (Homebrew builds for the Mac it runs on) becomes the
+# app's, so an older Mac gets macOS's "needs a newer macOS" message instead of a crash.
+minos_of() { vtool -show-build "$1" 2>/dev/null | awk '/minos/ {print $2; exit}'; }
+newer() { awk -v a="$1" -v b="$2" 'BEGIN { split(a, x, "."); split(b, y, "."); for (i = 1; i <= 3; i++) { if ((x[i] + 0) != (y[i] + 0)) { print ((x[i] + 0) > (y[i] + 0)) ? a : b; exit } } print a }'; }
+need="${MACOSX_DEPLOYMENT_TARGET:-14.0}"
+for lib in "$frameworks/libssh.4.dylib" "$frameworks/$crypto_name"; do
+  minos=$(minos_of "$lib")
+  [ -n "$minos" ] && need=$(newer "$need" "$minos")
+done
+if [ "$need" != "${MACOSX_DEPLOYMENT_TARGET:-14.0}" ]; then
+  echo "warning: the bundled libssh/libcrypto need macOS $need (Homebrew's build); TabbyMac's minimum is raised to $need. Build libssh for macOS ${MACOSX_DEPLOYMENT_TARGET:-14.0} to support older Macs."
+  plist="$TARGET_BUILD_DIR/$INFOPLIST_PATH"
+  /usr/libexec/PlistBuddy -c "Set :LSMinimumSystemVersion $need" "$plist" 2>/dev/null \
+    || /usr/libexec/PlistBuddy -c "Add :LSMinimumSystemVersion string $need" "$plist"
+fi
 
 identity="${EXPANDED_CODE_SIGN_IDENTITY:--}"
 [ -n "$identity" ] || identity="-"
