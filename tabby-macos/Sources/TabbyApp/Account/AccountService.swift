@@ -33,7 +33,7 @@ final class AccountService {
     var isSignedIn: Bool { session != nil }
 
     @ObservationIgnored let local: LocalSyncData
-    @ObservationIgnored private let stateFile: URL
+    @ObservationIgnored let stateFile: URL
     @ObservationIgnored private let transport: HTTPTransport
     @ObservationIgnored private let baseURL: URL
     @ObservationIgnored private let persistentStore: SessionStore
@@ -132,6 +132,7 @@ final class AccountService {
 
     func signIn(email: String, password: String, keepSignedIn: Bool) async throws {
         let s = try await AccountFlows.signIn(client: try client(), email: email, password: password, device: Self.deviceInfo)
+        backUpConfigBeforeSignIn()
         try? FileManager.default.removeItem(at: stateFile)
         activate(s, keepSignedIn: keepSignedIn)
         isRestoring = true
@@ -143,11 +144,21 @@ final class AccountService {
         let key = try RecoveryKey(parsing: recoveryKey)
         let s = try await AccountFlows.recover(client: try client(), email: email, recoveryKey: key, newPassword: newPassword,
                                                device: Self.deviceInfo, kdf: kdf ?? .generate())
+        backUpConfigBeforeSignIn()
         try? FileManager.default.removeItem(at: stateFile)
         activate(s, keepSignedIn: keepSignedIn)
         isRestoring = true
         await syncNow()
         isRestoring = false
+    }
+
+    /// The first sync of a signed-in Mac takes the account's settings; keep what was here
+    /// (`config.yaml.before-sign-in`, replaced at each sign-in) so it can be restored by hand.
+    private func backUpConfigBeforeSignIn() {
+        guard let text = try? local.config.serializedUserConfig() else { return }
+        let url = stateFile.deletingLastPathComponent().appendingPathComponent("config.yaml.before-sign-in")
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? Data(text.utf8).write(to: url, options: .atomic)
     }
 
     /// Signs out here. With `removeSyncedData`, what came from the account is deleted from this

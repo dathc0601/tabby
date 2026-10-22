@@ -58,6 +58,25 @@ final class AccountServiceTests: XCTestCase {
         XCTAssertEqual(b.session?.recoveryKey, recovery.displayString, "the recovery key comes with the vault")
     }
 
+    /// Signing in replaces this Mac's settings with the account's; what was here before is
+    /// kept next to config.yaml.
+    func testSigningInKeepsACopyOfTheSettingsItReplaces() async throws {
+        let (a, aConfig, _) = try makeMac()
+        aConfig.set("terminal.fontSize", 18)
+        _ = try await a.register(email: "alex@example.com", password: "pw", keepSignedIn: true)
+        await a.finishRegistration()
+
+        let (b, bConfig, _) = try makeMac()
+        bConfig.set("terminal.fontSize", 11)
+        addProfile(bConfig, "only-on-b")
+        let backup = b.stateFile.deletingLastPathComponent().appendingPathComponent("config.yaml.before-sign-in")
+        try await b.signIn(email: "alex@example.com", password: "pw", keepSignedIn: false)
+        XCTAssertEqual(bConfig.value("terminal.fontSize")?.doubleValue, 18, "the account's settings won")
+        let text = try String(contentsOf: backup, encoding: .utf8)
+        XCTAssertTrue(text.contains("fontSize: 11"), text)
+        XCTAssertTrue(text.contains("only-on-b"), text)
+    }
+
     func testAChangeSyncsOnItsOwn() async throws {
         let (a, aConfig, _) = try makeMac()
         _ = try await a.register(email: "a@b.co", password: "pw", keepSignedIn: true)
