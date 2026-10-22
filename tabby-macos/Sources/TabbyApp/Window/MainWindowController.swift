@@ -129,7 +129,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
         if theme.vibrancy {
             if effectView == nil {
                 let v = NSVisualEffectView()
-                v.material = .fullScreenUI
+                v.material = .underWindowBackground
                 v.blendingMode = .behindWindow
                 v.state = .active
                 root.addSubview(v, positioned: .below, relativeTo: nil)
@@ -146,7 +146,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
         tabBarHost.rootView = TabBarView(model: model, actions: tabBarHost.rootView.actions, placement: place,
                                          leadingInset: place.isVertical ? verticalInset : inset)
         root.placement = place
-        root.tabBarHeight = 38 * theme.spaciness
+        root.tabBarHeight = CGFloat(theme.metrics.tabBar)
         root.hidesTabBar = fullscreen && !(config.value("appearance.tabsInFullscreen")?.boolValue ?? false)
         // With the tab bar anywhere but the top, keep the terminal clear of the transparent
         // title bar, which spans the whole window width even when the strip is on the left.

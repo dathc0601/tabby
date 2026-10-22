@@ -22,8 +22,9 @@ enum TabBarPlacement {
     var isVertical: Bool { self == .left || self == .right }
 }
 
-/// Tabby's tab strip (`appRoot.component.pug` + `tabHeader.component.pug`).
-/// Pure presentation over `WindowModel`; replace freely when redesigning.
+/// Tabby's tab strip (`appRoot.component.pug` + `tabHeader.component.pug`) in the phase 2
+/// design: 38 pt bar × spaciness in `surfaceChrome`, 28 pt rounded tabs, a "+N" overflow menu,
+/// and the toolbar on the trailing side (on the column footer when the bar is vertical).
 struct TabBarView: View {
     let model: WindowModel
     let actions: TabBarActions
@@ -32,66 +33,230 @@ struct TabBarView: View {
     let leadingInset: CGFloat
 
     var body: some View {
-        let services = AppServices.shared
-        let chrome = services.theme.chrome
-        let height = 38 * services.theme.spaciness
-        let flex = services.config.bool("appearance.flexTabs")
-        let _ = services.configRevision
         Group {
             if placement.isVertical {
-                VStack(spacing: 0) {
-                    Color.clear.frame(height: leadingInset)
-                    ScrollView(.vertical) {
-                        VStack(spacing: 2) { tabs(chrome: chrome, height: height, flex: true) }
-                    }
-                    Spacer(minLength: 0)
-                    HStack { buttons(chrome: chrome) }.padding(8)
-                }
-                .frame(width: 200)
+                VerticalTabBar(model: model, actions: actions, placement: placement, topInset: leadingInset)
             } else {
-                HStack(spacing: 0) {
-                    Color.clear.frame(width: leadingInset)
-                    // Tabs claim the width before the drag area and shrink when it runs out, as
-                    // Tabby's `.tabs { flex: 0 1 auto }` of 200 px headers with `min-width: 0`.
-                    HStack(spacing: 0) { tabs(chrome: chrome, height: height, flex: flex) }
-                        .layoutPriority(1)
-                    Button(action: actions.newTab) {
-                        Image(systemName: "plus").frame(width: 32, height: height)
-                    }
-                    .buttonStyle(.plain)
-                    .help("New tab")
-                    WindowDragArea().frame(minWidth: 24, maxWidth: .infinity)
-                    buttons(chrome: chrome).padding(.trailing, 8)
-                }
-                .frame(height: height)
+                HorizontalTabBar(model: model, actions: actions, leadingInset: leadingInset)
             }
         }
-        .foregroundStyle(chrome.text.color)
+        .chromeEnvironment()
+    }
+}
+
+private struct TabFramesKey: PreferenceKey {
+    static let defaultValue: [UUID: ClosedRange<Double>] = [:]
+    static func reduce(value: inout [UUID: ClosedRange<Double>], nextValue: () -> [UUID: ClosedRange<Double>]) {
+        value.merge(nextValue()) { $1 }
+    }
+}
+
+struct HorizontalTabBar: View {
+    let model: WindowModel
+    let actions: TabBarActions
+    let leadingInset: CGFloat
+    @Environment(\.chrome) private var chrome
+    @Environment(\.metrics) private var metrics
+    @State private var frames: [UUID: ClosedRange<Double>] = [:]
+    @State private var dropTarget: UUID?
+
+    /// The "+" button, the minimum drag area and the trailing toolbar.
+    static let newTabWidth: CGFloat = 32
+    static let dragMinimum: CGFloat = 24
+    static let toolbarWidth: CGFloat = 2 * 28 + 2 + 8
+
+    var body: some View {
+        let services = AppServices.shared
+        let _ = services.configRevision
+        let flex = services.config.bool("appearance.flexTabs")
+        let pinned = model.tabs.filter(\.isPinned).count
+        GeometryReader { geo in
+            let fixedParts = leadingInset + Self.newTabWidth + Self.dragMinimum + Self.toolbarWidth
+            let layout = TabStripLayout(available: Double(geo.size.width - fixedParts), pinned: pinned,
+                                        regular: model.tabs.count - pinned, flex: flex)
+            HStack(spacing: 0) {
+                Color.clear.frame(width: leadingInset)
+                strip(layout)
+                    .frame(width: CGFloat(layout.stripWidth))
+                if layout.overflows { overflowMenu(layout) }
+                IconButton(symbol: "plus", help: "New tab", action: actions.newTab)
+                    .frame(width: Self.newTabWidth)
+                WindowDragArea().frame(minWidth: Self.dragMinimum, maxWidth: .infinity)
+                HStack(spacing: 2) {
+                    IconButton(symbol: "rectangle.stack", help: "Profiles & connections", action: actions.showProfiles)
+                    IconButton(symbol: "gearshape", help: "Settings", action: actions.showSettings)
+                }
+                .padding(.trailing, 8)
+            }
+            .frame(height: geo.size.height)
+        }
+        .frame(height: CGFloat(metrics.tabBar))
         .background(chrome.chromeBackground.color)
+        .overlay(alignment: .bottom) { Rectangle().fill(chrome.separator.color).frame(height: 1) }
     }
 
-    @ViewBuilder
-    private func tabs(chrome: ChromeTheme, height: CGFloat, flex: Bool) -> some View {
-        ForEach(Array(model.tabs.enumerated()), id: \.element.id) { index, tab in
-            TabHeaderView(tab: tab, index: index, isActive: tab === model.activeTab,
-                          height: height, vertical: placement.isVertical, flex: flex, actions: actions)
-                .onTapGesture { actions.select(tab) }
-                .draggable(tab.id.uuidString)
-                .dropDestination(for: String.self) { items, _ in
-                    guard let first = items.first, let id = UUID(uuidString: first) else { return false }
-                    actions.move(id, index)
-                    return true
+    private func strip(_ layout: TabStripLayout) -> some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: CGFloat(TabStripLayout.gap)) {
+                    ForEach(Array(model.tabs.enumerated()), id: \.element.id) { index, tab in
+                        TabHeaderView(tab: tab, index: index, isActive: tab === model.activeTab,
+                                      width: CGFloat(tab.isPinned ? layout.pinnedWidth : layout.regularWidth),
+                                      vertical: false, actions: actions)
+                            .id(tab.id)
+                            .background(GeometryReader { g in
+                                let f = g.frame(in: .named("tab-strip"))
+                                Color.clear.preference(key: TabFramesKey.self, value: [tab.id: Double(f.minX)...Double(max(f.minX, f.maxX))])
+                            })
+                            .modifier(TabDragModifier(tab: tab, index: index, vertical: false, actions: actions, dropTarget: $dropTarget))
+                    }
                 }
-                .contextMenu { TabContextMenu(tab: tab, actions: actions) }
+                .frame(height: CGFloat(metrics.tabBar))
+            }
+            .scrollDisabled(!layout.overflows)
+            .coordinateSpace(name: "tab-strip")
+            .onPreferenceChange(TabFramesKey.self) { frames = $0 }
+            .onChange(of: model.activeTabID) { _, id in
+                guard let id, layout.overflows else { return }
+                withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo(id) }
+            }
         }
     }
 
-    @ViewBuilder
-    private func buttons(chrome: ChromeTheme) -> some View {
-        Button(action: actions.showProfiles) { Image(systemName: "rectangle.stack") }
-            .help("Profiles & connections")
-        Button(action: actions.showSettings) { Image(systemName: "gearshape") }
-            .help("Settings")
+    private func overflowMenu(_ layout: TabStripLayout) -> some View {
+        let ordered = model.tabs.map { frames[$0.id] ?? 0...0 }
+        let hidden = TabStripLayout.hiddenIndices(frames: ordered, viewport: 0...layout.stripWidth)
+            .filter { $0 < model.tabs.count }
+        return Menu {
+            ForEach(hidden, id: \.self) { i in
+                let tab = model.tabs[i]
+                Button("\(i + 1)  \(tab.title)") { actions.select(tab) }
+            }
+        } label: {
+            // One Text: a menu label with an Image puts the image first.
+            (Text("+\(hidden.count) ") + Text(Image(systemName: "chevron.down")).font(.system(size: 9, weight: .semibold)))
+                .font(ChromeFont.caption.monospacedDigit())
+                .foregroundStyle(chrome.textMuted.color)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .frame(width: CGFloat(TabStripLayout.overflowButton))
+        .opacity(hidden.isEmpty ? 0 : 1)
+        .help("Tabs out of view")
+    }
+}
+
+struct VerticalTabBar: View {
+    let model: WindowModel
+    let actions: TabBarActions
+    let placement: TabBarPlacement
+    let topInset: CGFloat
+    @Environment(\.chrome) private var chrome
+    @Environment(\.metrics) private var metrics
+    @State private var dropTarget: UUID?
+
+    var body: some View {
+        let _ = AppServices.shared.configRevision
+        VStack(spacing: 0) {
+            Color.clear.frame(height: topInset)
+            ScrollViewReader { proxy in
+                ScrollView(.vertical) {
+                    VStack(spacing: CGFloat(TabStripLayout.gap)) {
+                        ForEach(Array(model.tabs.enumerated()), id: \.element.id) { index, tab in
+                            TabHeaderView(tab: tab, index: index, isActive: tab === model.activeTab, width: nil,
+                                          vertical: true, actions: actions)
+                                .id(tab.id)
+                                .modifier(TabDragModifier(tab: tab, index: index, vertical: true, actions: actions, dropTarget: $dropTarget))
+                        }
+                        NewTabRow(action: actions.newTab)
+                    }
+                    .padding(6)
+                }
+                .onChange(of: model.activeTabID) { _, id in
+                    guard let id else { return }
+                    withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo(id) }
+                }
+            }
+            Rectangle().fill(chrome.separator.color).frame(height: 1)
+            HStack(spacing: 2) {
+                IconButton(symbol: "rectangle.stack", help: "Profiles & connections", action: actions.showProfiles)
+                IconButton(symbol: "gearshape", help: "Settings", action: actions.showSettings)
+                Spacer(minLength: 0)
+            }
+            .padding(6)
+        }
+        .frame(width: 200)
+        .background(chrome.chromeBackground.color)
+        .overlay(alignment: placement == .left ? .trailing : .leading) {
+            Rectangle().fill(chrome.separator.color).frame(width: 1)
+        }
+    }
+}
+
+/// "New tab ⌘T" row at the end of a vertical tab bar.
+private struct NewTabRow: View {
+    let action: () -> Void
+    @Environment(\.chrome) private var chrome
+    @Environment(\.metrics) private var metrics
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: "plus").font(.system(size: 12))
+                Text("New tab").font(ChromeFont.body)
+                Spacer(minLength: 0)
+                if let key = StartPageView.shortcut("new-tab") {
+                    Text(key).font(ChromeFont.caption).foregroundStyle(chrome.textFaint.color)
+                }
+            }
+            .foregroundStyle(chrome.textMuted.color)
+            .padding(.leading, 9).padding(.trailing, 8)
+            .frame(height: CGFloat(metrics.space(30)))
+            .background(RoundedRectangle(cornerRadius: 7).fill(hovering ? chrome.fill.color : .clear))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+    }
+}
+
+/// Drag to reorder: the tab under the pointer shows an accent slot on the side the dragged
+/// tab will land.
+private struct TabDragModifier: ViewModifier {
+    let tab: TabModel
+    let index: Int
+    let vertical: Bool
+    let actions: TabBarActions
+    @Binding var dropTarget: UUID?
+    @Environment(\.chrome) private var chrome
+
+    func body(content: Content) -> some View {
+        content
+            .onTapGesture { actions.select(tab) }
+            .draggable(tab.id.uuidString) {
+                Text(tab.title).font(ChromeFont.bodyEmphasised)
+                    .padding(.horizontal, 10).frame(height: 28)
+                    .background(RoundedRectangle(cornerRadius: 7).fill(chrome.surface.color))
+                    .foregroundStyle(chrome.text.color)
+            }
+            .dropDestination(for: String.self) { items, _ in
+                dropTarget = nil
+                guard let first = items.first, let id = UUID(uuidString: first) else { return false }
+                actions.move(id, index)
+                return true
+            } isTargeted: { targeted in
+                if targeted { dropTarget = tab.id } else if dropTarget == tab.id { dropTarget = nil }
+            }
+            .overlay(alignment: vertical ? .top : .leading) {
+                if dropTarget == tab.id {
+                    RoundedRectangle(cornerRadius: 1).fill(chrome.accent.color)
+                        .frame(width: vertical ? nil : 2, height: vertical ? 2 : nil)
+                        .offset(x: vertical ? 0 : -2, y: vertical ? -2 : 0)
+                }
+            }
+            .contextMenu { TabContextMenu(tab: tab, actions: actions) }
     }
 }
 
@@ -99,69 +264,94 @@ struct TabHeaderView: View {
     let tab: TabModel
     let index: Int
     let isActive: Bool
-    let height: CGFloat
+    /// Fixed width in a horizontal strip; nil fills the column of a vertical bar.
+    let width: CGFloat?
     let vertical: Bool
-    let flex: Bool
     let actions: TabBarActions
+    @Environment(\.chrome) private var chrome
+    @Environment(\.metrics) private var metrics
     @State private var hovering = false
 
     var body: some View {
         let services = AppServices.shared
-        let chrome = services.theme.chrome
         let hideIndex = services.config.bool("terminal.hideTabIndex")
         let hideClose = services.config.bool("terminal.hideCloseButton")
         let showIcon = services.config.bool("terminal.showTabProfileIcon")
-        ZStack(alignment: .bottomLeading) {
-            HStack(spacing: 6) {
-                if !hideIndex {
-                    Text("\(index + 1)").font(.caption.monospacedDigit()).foregroundStyle(chrome.textMuted.color)
-                        .fixedSize()
-                }
-                if showIcon, let icon = tab.icon {
-                    Image(systemName: ProfileIcons.symbol(for: icon)).font(.caption)
-                }
-                if tab.isPinned {
-                    Image(systemName: "pin.fill").font(.caption2).foregroundStyle(chrome.textMuted.color)
-                }
-                Text(tab.title)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .foregroundStyle(isActive ? chrome.text.color : chrome.textMuted.color)
-                Spacer(minLength: 0)
-                if tab.hasActivity && !isActive {
-                    Circle().fill(chrome.accent.color).frame(width: 6, height: 6)
-                }
-                if !hideClose && !tab.isPinned {
-                    Button { actions.close(tab) } label: { Image(systemName: "xmark").font(.caption2.weight(.semibold)) }
-                        .buttonStyle(.plain)
-                        .opacity(hovering || isActive ? 1 : 0)
-                        .help("Close tab")
-                }
+        let userColor = tab.color.flatMap(RGBColor.init(hex:))
+        let profileColor = tab.focusedPane?.profile.color.flatMap(RGBColor.init(hex:))
+        let compact = !vertical && tab.isPinned
+        HStack(spacing: 6) {
+            if !hideIndex {
+                Text("\(index + 1)").font(ChromeFont.tabIndex).foregroundStyle(chrome.textFaint.color).fixedSize()
             }
-            .padding(.horizontal, 12)
-            .frame(height: height)
-            if let p = tab.progress {
-                GeometryReader { g in
-                    Rectangle().fill(chrome.accent.color.opacity(0.35))
-                        .frame(width: g.size.width * CGFloat(p / 100), height: 2)
-                }
-                .frame(height: 2)
+            if showIcon, let icon = tab.icon {
+                Image(systemName: ProfileIcons.symbol(for: icon))
+                    .font(.system(size: 12))
+                    .foregroundStyle((profileColor ?? userColor ?? chrome.textMuted).color)
             }
-            // Tabby's `.colorbar` runs along the bottom; the top line marks the active tab.
-            if let color = tab.color.flatMap(RGBColor.init(hex:)) {
-                Rectangle().fill(color.color).frame(height: 3)
+            Text(tab.title)
+                .font(isActive ? ChromeFont.bodyEmphasised : ChromeFont.body)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .foregroundStyle((isActive || hovering ? chrome.text : chrome.textMuted).color)
+            Spacer(minLength: 0)
+            if let p = tab.progress, !compact {
+                Text("\(Int(p.rounded()))%").font(ChromeFont.tabIndex).foregroundStyle(chrome.accent.color).fixedSize()
+            }
+            if tab.hasActivity && !isActive {
+                StatusDot(color: chrome.accent)
+            }
+            if tab.isPinned {
+                Image(systemName: "pin.fill").font(.system(size: 10)).foregroundStyle(chrome.textMuted.color)
+                    .help("Pinned")
+            } else {
+                if hovering && !compact {
+                    Menu {
+                        TabContextMenu(tab: tab, actions: actions)
+                    } label: {
+                        Image(systemName: "ellipsis").font(.system(size: 11, weight: .semibold))
+                    }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .frame(width: 18, height: 18)
+                    .help("Tab options")
+                }
+                if !hideClose {
+                    Button { actions.close(tab) } label: {
+                        Image(systemName: "xmark").font(.system(size: 9, weight: .bold))
+                            .frame(width: 18, height: 18)
+                            .background(RoundedRectangle(cornerRadius: 5).fill(hovering ? chrome.fillStrong.color : .clear))
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(chrome.textMuted.color)
+                    .opacity(hovering || isActive ? 1 : 0)
+                    .help("Close tab")
+                }
             }
         }
-        .frame(minWidth: 0, maxWidth: vertical || flex ? .infinity : 200)
-        .background(isActive ? chrome.surface.color : (hovering ? chrome.surfaceRaised.color.opacity(0.5) : .clear))
-        .overlay(alignment: vertical ? .leading : .top) {
-            if isActive {
-                Rectangle().fill(chrome.accent.color)
+        .padding(.leading, 9)
+        .padding(.trailing, 6)
+        .frame(width: width, height: CGFloat(vertical ? metrics.space(30) : metrics.tab))
+        .frame(maxWidth: width == nil ? .infinity : nil)
+        .background {
+            // Progress fills the tab from the leading edge (the design's "fill + %").
+            if let p = tab.progress {
+                GeometryReader { g in
+                    Rectangle().fill(chrome.accentFill.color).frame(width: g.size.width * CGFloat(min(max(p, 0), 100) / 100))
+                }
+            }
+        }
+        .background(isActive ? chrome.activeTab.color : (hovering ? chrome.fill.color : .clear))
+        .overlay(alignment: vertical ? .leading : .bottom) {
+            if let userColor {
+                Rectangle().fill(userColor.color)
                     .frame(width: vertical ? 2 : nil, height: vertical ? nil : 2)
             }
         }
-        // Narrow tabs cut their content off at the edge, as Tabby's `overflow: hidden`.
-        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: 7))
+        .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(isActive ? chrome.border.color : .clear, lineWidth: 0.5))
+        .shadow(color: .black.opacity(isActive ? 0.16 : 0), radius: 1, y: 1)
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .help(tab.title)
