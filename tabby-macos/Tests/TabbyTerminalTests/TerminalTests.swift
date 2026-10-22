@@ -104,8 +104,11 @@ final class PTYTests: XCTestCase {
         p?.onData = { _ in chunks += 1 }
         try p?.start(cols: 80, rows: 24)
         // Let output flow for a moment: `yes` fills the back-pressure window faster than the
-        // main queue drains it, so blocks are queued when the process is released below.
-        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+        // main queue drains it, so blocks are queued when the process is released below. A
+        // slow CI runner can take longer than a fixed pause to start it, so wait for output.
+        let deadline = Date().addingTimeInterval(10)
+        while chunks == 0, Date() < deadline { RunLoop.main.run(until: Date().addingTimeInterval(0.05)) }
+        RunLoop.main.run(until: Date().addingTimeInterval(0.2))
         XCTAssertGreaterThan(chunks, 0, "output reached the main queue while the process was alive")
         p?.terminate(signal: SIGKILL)
         p = nil
