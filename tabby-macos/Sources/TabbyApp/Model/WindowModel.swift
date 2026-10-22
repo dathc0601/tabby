@@ -102,9 +102,9 @@ public final class WindowModel {
         return tab
     }
 
+    /// Adds and selects a tab, at `index` or after the last tab (Tabby's `addTabRaw`).
     public func insertTab(_ tab: TabModel, at index: Int? = nil) {
-        let i = index ?? (activeTab.flatMap { t in tabs.firstIndex { $0 === t } }.map { $0 + 1 } ?? tabs.count)
-        tabs.insert(tab, at: min(max(i, 0), tabs.count))
+        tabs.insert(tab, at: min(max(index ?? tabs.count, 0), tabs.count))
         select(tab.id)
         onRecoveryStateChanged?()
     }

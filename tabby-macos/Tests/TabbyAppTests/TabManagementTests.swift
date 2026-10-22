@@ -49,6 +49,17 @@ final class TabManagementTests: XCTestCase {
         XCTAssertTrue(model.activeTab === model.tabs[1])
     }
 
+    /// `AppService.openNewTab` appends, so a new tab never lands inside the pinned group.
+    func testNewTabOpensAtTheEnd() {
+        let (model, tabs) = makeModel("a", "b", "c")
+        model.togglePinned(tabs[0].id)
+        model.togglePinned(tabs[1].id)
+        model.select(tabs[0].id)
+        model.openTab(profile: TestApp.profile("d", "sleep 30"))
+        XCTAssertEqual(names(model), ["a", "b", "c", "d"])
+        XCTAssertTrue(model.activeTab === model.tabs[3], "the new tab is selected")
+    }
+
     func testRestoredTabsAppendInOrder() throws {
         let (model, tabs) = makeModel("a", "b")
         let token = try XCTUnwrap(tabs[1].recoveryToken())
