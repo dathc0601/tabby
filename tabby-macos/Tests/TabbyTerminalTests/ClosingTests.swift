@@ -33,20 +33,27 @@ final class FakeSessionFactory: SessionFactory {
     }
 }
 
+/// A pane over `FakeSession`s (shared by the closing and connection-state tests; Linux's
+/// XCTest has no `init()` to borrow another test case's helpers).
+func makeFakePane(type: String = "ssh", options: [String: ConfigValue] = [:],
+                  behavior: SessionEndBehavior = .auto) throws -> (TerminalPane, FakeEngine, FakeSessionFactory) {
+    var opts: [String: ConfigValue] = ["host": .string("example.org"), "user": .string("me")]
+    opts.merge(options) { _, new in new }
+    let profile = Profile(id: "\(type):test", type: type, name: "test", options: .object(opts),
+                          behaviorOnSessionEnd: behavior)
+    let factory = FakeSessionFactory(profileType: type)
+    let settings = TerminalSettings(config: ConfigStore(defaults: try ConfigStore.bundledDefaults()))
+    let pane = TerminalPane(profile: profile, factory: factory, context: SessionContext(),
+                            settings: settings, scheme: .tabbyDefault)
+    let engine = FakeEngine()
+    pane.attach(engine: engine)
+    return (pane, engine, factory)
+}
+
 final class ClosingTests: XCTestCase {
     func makePane(type: String = "ssh", options: [String: ConfigValue] = [:],
                   behavior: SessionEndBehavior = .auto) throws -> (TerminalPane, FakeEngine, FakeSessionFactory) {
-        var opts: [String: ConfigValue] = ["host": .string("example.org"), "user": .string("me")]
-        opts.merge(options) { _, new in new }
-        let profile = Profile(id: "\(type):test", type: type, name: "test", options: .object(opts),
-                              behaviorOnSessionEnd: behavior)
-        let factory = FakeSessionFactory(profileType: type)
-        let settings = TerminalSettings(config: ConfigStore(defaults: try ConfigStore.bundledDefaults()))
-        let pane = TerminalPane(profile: profile, factory: factory, context: SessionContext(),
-                                settings: settings, scheme: .tabbyDefault)
-        let engine = FakeEngine()
-        pane.attach(engine: engine)
-        return (pane, engine, factory)
+        try makeFakePane(type: type, options: options, behavior: behavior)
     }
 
     // MARK: warnOnClose (Tabby `SSHTabComponent.canClose`)

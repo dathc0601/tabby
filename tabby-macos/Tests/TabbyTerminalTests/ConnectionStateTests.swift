@@ -5,7 +5,6 @@ import XCTest
 /// The SSH status chip of the phase 2 design: Connecting…, Connected, Disconnected and
 /// Reconnecting n/5. Automatic reconnects stop after five failed attempts.
 final class ConnectionStateTests: XCTestCase {
-    private let helper = ClosingTests()
 
     private func pump(until condition: () -> Bool, timeout: Double = 5) {
         let deadline = Date().addingTimeInterval(timeout)
@@ -13,13 +12,13 @@ final class ConnectionStateTests: XCTestCase {
     }
 
     func testLocalPanesHaveNoConnectionState() throws {
-        let (pane, _, _) = try helper.makePane(type: "local")
+        let (pane, _, _) = try makeFakePane(type: "local")
         pane.start()
         XCTAssertNil(pane.connectionState)
     }
 
     func testStateFollowsTheSessionStatus() throws {
-        let (pane, _, factory) = try helper.makePane()
+        let (pane, _, factory) = try makeFakePane()
         pane.start()
         let session = try XCTUnwrap(factory.sessions.last)
         session.onStatus?(.connecting("example.org"))
@@ -32,7 +31,7 @@ final class ConnectionStateTests: XCTestCase {
     }
 
     func testAutomaticReconnectGivesUpAfterFiveAttempts() throws {
-        let (pane, engine, factory) = try helper.makePane(behavior: .reconnect)
+        let (pane, engine, factory) = try makeFakePane(behavior: .reconnect)
         pane.reconnectDelay = 0.05
         pane.start()
         factory.sessions.last?.onStatus?(.connected)
@@ -54,7 +53,7 @@ final class ConnectionStateTests: XCTestCase {
     }
 
     func testConnectingAgainResetsTheAttempts() throws {
-        let (pane, _, factory) = try helper.makePane(behavior: .reconnect)
+        let (pane, _, factory) = try makeFakePane(behavior: .reconnect)
         pane.reconnectDelay = 0.05
         pane.start()
         factory.sessions.last?.kill()
@@ -70,10 +69,9 @@ final class ConnectionStateTests: XCTestCase {
 
 /// What the "Process completed" toast reports.
 final class ProcessEndedTests: XCTestCase {
-    private let helper = ClosingTests()
 
     func testClosingAPaneByHandDoesNotReportTheProcessEnded() throws {
-        let (pane, _, _) = try helper.makePane(type: "local")
+        let (pane, _, _) = try makeFakePane(type: "local")
         var reported = false
         pane.onProcessEnded = { _, _ in reported = true }
         pane.start()
@@ -83,7 +81,7 @@ final class ProcessEndedTests: XCTestCase {
     }
 
     func testAProcessThatEndsOnItsOwnIsReportedWithItsRunningTime() throws {
-        let (pane, _, factory) = try helper.makePane(type: "local")
+        let (pane, _, factory) = try makeFakePane(type: "local")
         var reported = false
         pane.onProcessEnded = { _, _ in reported = true }
         pane.start()
