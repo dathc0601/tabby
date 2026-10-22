@@ -66,6 +66,16 @@ final class WindowSmokeTests: XCTestCase {
         XCTAssertLessThanOrEqual(six.width, 24.5, "six tabs need the whole strip, the drag area keeps its minimum: \(six)")
     }
 
+    /// `swift test` and `swift run` have no app bundle (the test host's main bundle is the
+    /// xctest tool, which has an identifier), and UNUserNotificationCenter raises without one.
+    func testProcessEndedNotificationNeedsAnAppBundle() throws {
+        let controller = WindowManager.shared.newWindow(openDefaultTab: false)
+        defer { TestApp.dispose(controller) }
+        let pane = try XCTUnwrap(controller.model.openTab(profile: TestApp.profile("note", "sleep 30"))?.focusedPane)
+        XCTAssertFalse(NSApp.isActive, "the banner path only runs while another app is frontmost")
+        controller.notifyProcessEnded(pane, code: 0)
+    }
+
     /// With the tab bar on a side edge, the transparent title bar still spans the whole width,
     /// so the terminal must start below it or its first row turns into a window drag area.
     func testSideTabBarKeepsTerminalBelowTitleBar() throws {

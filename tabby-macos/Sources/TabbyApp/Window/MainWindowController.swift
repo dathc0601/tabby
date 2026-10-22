@@ -241,9 +241,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
     }
 
     /// "Process completed" banner. Only while another app is frontmost: the pane keeps focus
-    /// across app switches, and banners for the active app are not shown anyway.
+    /// across app switches, and banners for the active app are not shown anyway. Needs an app
+    /// bundle: `swift run` has none and xctest's main bundle is a tool, where posting raises.
     func notifyProcessEnded(_ pane: TerminalPane, code: Int32?) {
-        guard !NSApp.isActive, Bundle.main.bundleIdentifier != nil else { return }
+        guard !NSApp.isActive, Bundle.main.bundleURL.pathExtension == "app" else { return }
         let content = UNMutableNotificationContent()
         content.title = pane.title
         content.body = code.map { "Process exited with code \($0)" } ?? "Session ended"
