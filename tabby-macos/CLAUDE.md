@@ -8,13 +8,14 @@ Read `README.md` and `docs/ARCHITECTURE.md` before larger changes.
 
 - Phase 1 (local shell + SSH, tabs, splits, hotkeys, settings, recovery) is written, builds
   on macOS (Xcode 27) and Linux, and `swift test` passes on both.
-- Phase 1b (in progress): manual verification against `docs/MANUAL-CHECKS.md`, app icon,
-  green CI (`.github/workflows/tabby-macos.yml`, macos-15 + Xcode 16.4).
+- Phase 1b done (app icon, green CI on `.github/workflows/tabby-macos.yml`, macos-15 +
+  Xcode 16.4, M0 of `docs/MANUAL-CHECKS.md` passed). Phase 1c (in progress): walk M1–M5 of
+  that list by hand; fixes found by reading the code beforehand are in its Findings table.
 - Roadmap: phase 2 redesign (Claude Design, `docs/claude-design-prompt.md`), phase 3 SSH
   library backend + SFTP, phase 4 serial/telnet, phase 5 vault, sync, URL/CLI, localization.
 - Tooling quirk: shells spawned by the Xcode coding assistant cannot allocate PTYs
   (`forkpty: Operation not permitted`), so PTY-backed tests fail there. Run them from
-  Terminal or through Xcode's test runner.
+  Terminal, the Claude Code CLI, or Xcode's test runner.
 
 ## Commands
 
