@@ -163,17 +163,22 @@ public final class SSHConnection: @unchecked Sendable {
     let prompter: SSHConnectionPrompter
     let passwords: PasswordStore
 
-    private var session: ssh_session?
-    private var event: ssh_event?
+    var session: ssh_session?
+    var event: ssh_event?
     /// libssh keeps a pointer to the session's callback table.
     private let sessionCallbacks = UnsafeMutablePointer<ssh_callbacks_struct>.allocate(capacity: 1)
     private var wakeRead: Int32 = -1
     private var wakeWrite: Int32 = -1
-    private let lock = NSLock()
+    let lock = NSLock()
     private var tasks: [() -> Void] = []
     private var isRunning = false
     private var stopRequested = false
     private var channels: [ChannelBox] = []
+    /// Forwards by id (connection thread) and their published list (any thread, under `lock`).
+    var forwardRuntimes: [UUID: ForwardRuntime] = [:]
+    var forwardList: [ForwardStatus] = []
+    /// Called on the connection's thread when forwards start or stop.
+    public var onForwardsChanged: (@Sendable ([ForwardStatus]) -> Void)?
     /// Called on the connection's thread when the loop ends (remote close, error, disconnect).
     public var onDisconnect: (@Sendable (SSHConnectionError?) -> Void)?
     /// The user name the login used (after `$NAME` and the prompt).
@@ -320,6 +325,7 @@ public final class SSHConnection: @unchecked Sendable {
         sessionCallbacks.pointee.userdata = Unmanaged.passUnretained(self).toOpaque()
         sessionCallbacks.pointee.channel_open_request_auth_agent_function = agentChannelRequested
         sessionCallbacks.pointee.channel_open_request_x11_function = x11ChannelRequested
+        sessionCallbacks.pointee.channel_open_request_forwarded_tcpip_function = forwardedChannelRequested
         ssh_set_callbacks(s, sessionCallbacks)
 
         guard let e = ssh_event_new() else { throw SSHConnectionError.connectFailed("libssh could not poll") }
@@ -633,7 +639,7 @@ public final class SSHConnection: @unchecked Sendable {
         channels.append(box)
     }
 
-    private func reapChannels() {
+    func reapChannels() {
         for bridge in bridges {
             bridge.pullBuffered()
             let wanted = bridge.wantedEvents
@@ -712,6 +718,7 @@ public final class SSHConnection: @unchecked Sendable {
     }
 
     private func teardown() {
+        closeForwards()
         for bridge in bridges {
             if bridge.registeredEvents != 0, let event { ssh_event_remove_fd(event, bridge.fd) }
             close(bridge.fd)
@@ -761,7 +768,7 @@ public final class SSHConnection: @unchecked Sendable {
         return acceptBridged(session, fd: fd)
     }
 
-    private func acceptBridged(_ session: ssh_session, fd: Int32) -> ssh_channel? {
+    func acceptBridged(_ session: ssh_session, fd: Int32) -> ssh_channel? {
         guard let channel = ssh_channel_new(session) else {
             close(fd)
             return nil

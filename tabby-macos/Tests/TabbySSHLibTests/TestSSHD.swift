@@ -65,9 +65,18 @@ final class TestSSHD {
     }
 
     func stop() {
-        if process.isRunning { process.terminate() }
-        process.waitUntilExit()
+        Self.end(process)
         try? FileManager.default.removeItem(at: directory)
+    }
+
+    /// Terminates and waits by polling: `waitUntilExit()` needs a run loop and can hang on a
+    /// Swift concurrency thread (async tearDown).
+    static func end(_ process: Process) {
+        guard process.isRunning else { return }
+        process.terminate()
+        let deadline = Date().addingTimeInterval(3)
+        while process.isRunning, Date() < deadline { usleep(10_000) }
+        if process.isRunning { kill(process.processIdentifier, SIGKILL) }
     }
 
     deinit { stop() }
@@ -90,7 +99,8 @@ final class TestSSHD {
         p.standardError = pipe
         try? p.run()
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        p.waitUntilExit()
+        let deadline = Date().addingTimeInterval(10)
+        while p.isRunning, Date() < deadline { usleep(5_000) }
         return String(decoding: data, as: UTF8.self)
     }
 
@@ -329,8 +339,7 @@ final class TestAgent {
     }
 
     func stop() {
-        if process.isRunning { process.terminate() }
-        process.waitUntilExit()
+        TestSSHD.end(process)
     }
 
     deinit { stop() }
