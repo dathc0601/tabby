@@ -152,6 +152,28 @@ final class SSHConnectionTests: XCTestCase {
         XCTAssertTrue(asked.isEmpty, "the saved passphrase is used")
     }
 
+    /// A direct-tcpip channel bridged to a local socket: what jump hosts and local forwards use.
+    func testABridgedChannelCarriesBytesBothWays() async throws {
+        let echo = try EchoServer()
+        defer { echo.stop() }
+        let connection = SSHConnection(options: options(keys: [sshd.keyPath]), prompter: ScriptedPrompter(), passwords: InMemoryPasswordStore())
+        try await connection.connect()
+        defer { connection.disconnect() }
+        let fd = try await connection.openBridgedSocket(to: "127.0.0.1", port: echo.port)
+        defer { close(fd) }
+        XCTAssertEqual(roundTrip(fd, "hello through ssh"), "hello through ssh")
+        let big = String(repeating: "0123456789abcdef", count: 16_384)
+        XCTAssertEqual(roundTrip(fd, big).count, big.count, "256 KiB, more than one channel window")
+    }
+
+    func testABridgeToAClosedPortFails() async throws {
+        let closedPort = try TestSSHD.freePort()
+        let connection = SSHConnection(options: options(keys: [sshd.keyPath]), prompter: ScriptedPrompter(), passwords: InMemoryPasswordStore())
+        try await connection.connect()
+        defer { connection.disconnect() }
+        await XCTAssertThrowsErrorAsync(_ = try await connection.openBridgedSocket(to: "127.0.0.1", port: closedPort))
+    }
+
     func testNoUsableKeyIsRejected() async throws {
         let stranger = sshd.directory.appendingPathComponent("stranger").path
         try TestSSHD.keygen(stranger, passphrase: "")

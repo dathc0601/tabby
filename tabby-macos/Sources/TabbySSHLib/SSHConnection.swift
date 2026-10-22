@@ -131,10 +131,14 @@ public struct SSHChannelHandlers: Sendable {
     public var data: @Sendable (Data) -> Void
     /// The channel closed; the remote command's exit status when it sent one.
     public var closed: @Sendable (Int32?) -> Void
+    /// The remote side will send nothing more.
+    public var eof: (@Sendable () -> Void)?
 
-    public init(data: @escaping @Sendable (Data) -> Void, closed: @escaping @Sendable (Int32?) -> Void) {
+    public init(data: @escaping @Sendable (Data) -> Void, closed: @escaping @Sendable (Int32?) -> Void,
+                eof: (@Sendable () -> Void)? = nil) {
         self.data = data
         self.closed = closed
+        self.eof = eof
     }
 }
 
@@ -598,14 +602,88 @@ public final class SSHConnection: @unchecked Sendable {
     }
 
     private func reapChannels() {
+        for bridge in bridges {
+            bridge.pullBuffered()
+            let wanted = bridge.wantedEvents
+            guard wanted != bridge.registeredEvents, let event else { continue }
+            // Never changed inside a poll callback; only here, between polls.
+            if bridge.registeredEvents != 0 { ssh_event_remove_fd(event, bridge.fd) }
+            if wanted != 0 {
+                ssh_event_add_fd(event, bridge.fd, wanted, bridgeEvent, Unmanaged.passUnretained(bridge).toOpaque())
+            }
+            bridge.registeredEvents = wanted
+        }
+        bridges.removeAll { bridge in
+            guard bridge.isFinished, bridge.registeredEvents == 0 else { return false }
+            close(bridge.fd)
+            bridge.box.isBridged = false
+            bridge.box.sink = nil
+            bridge.box.canWrite = nil
+            bridge.box.remoteEOF = nil
+            return true
+        }
         channels.removeAll { box in
-            guard box.isClosed else { return false }
+            guard box.isClosed, !box.isBridged else { return false }
             box.free()
             return true
         }
     }
 
+    // MARK: Bridges
+
+    private var bridges: [Bridge] = []
+
+    /// Joins `fd` and `channel` until either side ends; the connection owns and closes `fd`.
+    func bridge(_ box: ChannelBox, fd: Int32) {
+        var yes: Int32 = 1
+        setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout<Int32>.size))
+        _ = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK)
+        let bridge = Bridge(fd: fd, box: box)
+        bridges.append(bridge)
+        register(box)
+        reapChannels()
+    }
+
+    /// Opens a direct-tcpip channel to `host:port` (seen from the server) and returns a local
+    /// socket joined to it: jump hosts hand it to the next connection as its transport.
+    public func openBridgedSocket(to host: String, port: Int) async throws -> Int32 {
+        try await perform { [self] in
+            var fds: [Int32] = [-1, -1]
+            guard socketpair(AF_UNIX, SOCK_STREAM, 0, &fds) == 0 else { throw SSHConnectionError.channelFailed("no socket pair") }
+            let (mine, theirs) = (fds[0], fds[1])
+            do {
+                let box = try openDirectTCPIP(host: host, port: port, deliverTo: mine)
+                bridge(box, fd: mine)
+                var yes: Int32 = 1
+                setsockopt(theirs, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout<Int32>.size))
+                return theirs
+            } catch {
+                close(mine)
+                close(theirs)
+                throw error
+            }
+        }
+    }
+
+    /// A direct-tcpip channel whose output is written to `fd` (on the connection's thread).
+    func openDirectTCPIP(host: String, port: Int, deliverTo fd: Int32) throws -> ChannelBox {
+        guard let session, let channel = ssh_channel_new(session) else { throw SSHConnectionError.channelFailed(lastError()) }
+        // The bridge installs its sink and EOF handling once the channel is open.
+        let box = ChannelBox(channel: channel, handlers: SSHChannelHandlers(data: { _ in }, closed: { _ in }))
+        guard ssh_channel_open_forward(channel, host, Int32(port), "127.0.0.1", 0) == SSH_OK else {
+            let message = lastError()
+            box.free()
+            throw SSHConnectionError.channelFailed("Could not open a channel to \(host):\(port): \(message)")
+        }
+        return box
+    }
+
     private func teardown() {
+        for bridge in bridges {
+            if bridge.registeredEvents != 0, let event { ssh_event_remove_fd(event, bridge.fd) }
+            close(bridge.fd)
+        }
+        bridges.removeAll()
         for box in channels {
             box.finish(status: nil)
             box.free()
@@ -685,6 +763,15 @@ public final class SSHShellChannel: @unchecked Sendable {
 final class ChannelBox {
     let channel: ssh_channel
     let handlers: SSHChannelHandlers
+    /// Takes the data instead of `handlers.data` and says how much it took; the rest stays in
+    /// libssh's buffer and the server's window stops growing (flow control for bridges).
+    var sink: ((UnsafeRawBufferPointer) -> Int)?
+    /// The remote window opened again after `write` would have blocked.
+    var canWrite: (() -> Void)?
+    /// The remote side sent EOF (for bridges, besides `handlers.eof`).
+    var remoteEOF: (() -> Void)?
+    /// A bridge still uses the channel; it is freed only after the bridge is gone.
+    var isBridged = false
     private let callbacks: UnsafeMutablePointer<ssh_channel_callbacks_struct>
     private(set) var isClosed = false
     private var finished = false
@@ -700,6 +787,8 @@ final class ChannelBox {
         callbacks.pointee.userdata = Unmanaged.passUnretained(self).toOpaque()
         callbacks.pointee.channel_data_function = channelData
         callbacks.pointee.channel_close_function = channelClose
+        callbacks.pointee.channel_eof_function = channelEOF
+        callbacks.pointee.channel_write_wontblock_function = channelWontBlock
         callbacks.pointee.channel_exit_status_function = channelExitStatus
         ssh_set_channel_callbacks(channel, callbacks)
     }
@@ -752,16 +841,135 @@ private func box(_ userdata: UnsafeMutableRawPointer?) -> ChannelBox {
 
 private let channelData: ssh_channel_data_callback = { _, _, data, length, _, userdata in
     guard let data, length > 0 else { return 0 }
-    box(userdata).handlers.data(Data(bytes: data, count: Int(length)))
+    let channel = box(userdata)
+    if let sink = channel.sink {
+        return Int32(sink(UnsafeRawBufferPointer(start: data, count: Int(length))))
+    }
+    channel.handlers.data(Data(bytes: data, count: Int(length)))
     return Int32(length)
+}
+
+private let channelWontBlock: ssh_channel_write_wontblock_callback = { _, _, _, userdata in
+    box(userdata).canWrite?()
+    return 0
 }
 
 private let channelClose: ssh_channel_close_callback = { _, _, userdata in
     box(userdata).markClosed()
 }
 
+private let channelEOF: ssh_channel_eof_callback = { _, _, userdata in
+    let channel = box(userdata)
+    channel.handlers.eof?()
+    channel.remoteEOF?()
+}
+
 private let channelExitStatus: ssh_channel_exit_status_callback = { _, _, status, userdata in
     box(userdata).exitStatus = status
+}
+
+/// A local socket joined to a channel, with flow control both ways: data for the socket
+/// waits in `pending` (up to `limit`, beyond which libssh keeps it and the server's window
+/// stops growing), and the socket is not read while the channel's window is closed.
+final class Bridge {
+    static let limit = 1 << 20
+    let fd: Int32
+    let box: ChannelBox
+    var registeredEvents: Int16 = 0
+    private var pending = Data()
+    private var localEOF = false
+    private var remoteEOF = false
+    private var windowOpen = true
+
+    init(fd: Int32, box: ChannelBox) {
+        self.fd = fd
+        self.box = box
+        box.isBridged = true
+        box.sink = { [unowned self] bytes in take(bytes) }
+        box.canWrite = { [unowned self] in windowOpen = true }
+        box.remoteEOF = { [unowned self] in remoteFinished() }
+    }
+
+    var isFinished: Bool { box.isClosed && pending.isEmpty || (box.isClosed && localEOF) }
+
+    var wantedEvents: Int16 {
+        if box.isClosed && pending.isEmpty { return 0 }
+        var events: Int16 = 0
+        if !localEOF && !box.isClosed && windowOpen { events |= Int16(POLLIN) }
+        if !pending.isEmpty { events |= Int16(POLLOUT) }
+        return events
+    }
+
+    /// Channel → socket: write what fits now, keep the rest, refuse beyond the limit.
+    func take(_ bytes: UnsafeRawBufferPointer) -> Int {
+        guard pending.count < Self.limit else { return 0 }
+        let room = min(bytes.count, Self.limit - pending.count)
+        var offset = 0
+        if pending.isEmpty {
+            while offset < room {
+                let n = write(fd, bytes.baseAddress! + offset, room - offset)
+                if n > 0 { offset += n } else { break }
+            }
+        }
+        if offset < room { pending.append(contentsOf: UnsafeRawBufferPointer(rebasing: bytes[offset..<room])) }
+        return room
+    }
+
+    /// Data libssh kept while `pending` was full.
+    func pullBuffered() {
+        guard !box.isClosed else { return }
+        if !windowOpen, ssh_channel_window_size(box.channel) > 0 { windowOpen = true }
+        guard !box.isClosed, pending.count < Self.limit / 2, ssh_channel_poll(box.channel, 0) > 0 else {
+            if !remoteEOF, !box.isClosed, ssh_channel_is_eof(box.channel) != 0, pending.isEmpty {
+                remoteEOF = true
+                shutdown(fd, SHUT_WR)
+            }
+            return
+        }
+        var buffer = [UInt8](repeating: 0, count: 65_536)
+        let n = ssh_channel_read_nonblocking(box.channel, &buffer, UInt32(min(buffer.count, Self.limit - pending.count)), 0)
+        if n > 0 { _ = buffer.withUnsafeBytes { take(UnsafeRawBufferPointer(rebasing: $0[0..<Int(n)])) } }
+    }
+
+    func handle(_ revents: Int32) {
+        if revents & Int32(POLLOUT) != 0, !pending.isEmpty {
+            let written = pending.withUnsafeBytes { write(fd, $0.baseAddress!, $0.count) }
+            if written > 0 { pending.removeFirst(written) }
+            if pending.isEmpty, remoteEOF { shutdown(fd, SHUT_WR) }
+        }
+        if revents & Int32(POLLIN | POLLHUP | POLLERR) != 0 { readable() }
+    }
+
+    /// Socket → channel, no more than the channel's window takes without blocking.
+    private func readable() {
+        guard !localEOF, !box.isClosed else { return }
+        let window = Int(ssh_channel_window_size(box.channel))
+        guard window > 0 else {
+            windowOpen = false
+            return
+        }
+        var buffer = [UInt8](repeating: 0, count: min(32_768, window))
+        let n = read(fd, &buffer, buffer.count)
+        if n > 0 {
+            box.write(Data(buffer[0..<n]))
+        } else if n == 0 || (errno != EAGAIN && errno != EINTR) {
+            // The local side is done sending.
+            localEOF = true
+            ssh_channel_send_eof(box.channel)
+            if n < 0 { box.close() }
+        }
+    }
+
+    /// The channel said EOF: once `pending` is written, the socket's write side shuts.
+    func remoteFinished() {
+        remoteEOF = true
+        if pending.isEmpty { shutdown(fd, SHUT_WR) }
+    }
+}
+
+private let bridgeEvent: ssh_event_callback = { _, revents, userdata in
+    Unmanaged<Bridge>.fromOpaque(userdata!).takeUnretainedValue().handle(revents)
+    return 0
 }
 
 private let wakeCallback: ssh_event_callback = { _, _, userdata in
