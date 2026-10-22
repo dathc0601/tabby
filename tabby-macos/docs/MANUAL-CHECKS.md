@@ -80,18 +80,25 @@ M2 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1).
 
 ## M3 Hotkeys, selector and menus
 
-- [ ] Settings → Hotkeys lists every command with its macOS default; filtering works.
-- [ ] Capture a new binding (e.g. ⌃⇧X for "New tab"): the sheet shows the chord as pressed,
-      Save stores it, the menu item's shortcut updates, and `config.yaml` contains the diff.
-- [ ] A two-key chord (e.g. ⌃A then C) works: the first stroke is swallowed and the second,
+- [x] Settings → Hotkeys lists every command with its macOS default; filtering works.
+- [x] Capture a new binding (e.g. ⌃⇧X for "New tab"): the sheet shows the chord as pressed,
+      Save adds it next to the existing ones and `config.yaml` contains the diff. Menus show a
+      command's first binding, so the menu item changes once ⌘T is removed.
+- [x] A two-key chord (e.g. ⌃A then C) works: the first stroke is swallowed and the second,
       within 2 s, runs the command. There is no on-screen indicator (Tabby has none).
-- [ ] Reset returns the default and removes the key from `config.yaml`.
-- [ ] ⌘E opens the profile selector: Recent, groups, Built-in, "Manage profiles" and
-      quick connect `user@host:port`; fuzzy search, ↑↓, ↩ opens, Esc closes.
-- [ ] ⌘⇧P opens the command palette; running "Toggle fullscreen" from it works.
-- [ ] Ctrl-Space (global) shows / hides the window while another app is frontmost.
-      Rebinding it in Settings → Hotkeys takes effect without a restart.
-- [ ] Every menu item in Shell, Edit, View and Window does what its title says.
+- [x] Reset returns the default and removes the key from `config.yaml`.
+- [x] ⌘E opens the profile selector: Recent, groups, Built-in (the `~/.ssh/config` hosts are
+      listed there, as in Tabby), "Manage profiles" and quick connect `user@host:port`; fuzzy
+      search, ↑↓, ↩ opens, Esc closes.
+- [x] ⌘⇧P opens the command palette; running "Toggle fullscreen" from it works.
+- [x] The global show/hide hotkey shows / hides the window while another app is frontmost, and
+      rebinding it in Settings → Hotkeys takes effect without a restart. Its default ⌃Space is
+      also macOS's "Select the previous input source" shortcut (as with Tabby's default), so
+      where that is on, test with another binding.
+- [x] Every menu item in Shell, Edit, View and Window does what its title says, and macOS adds
+      no window-tab items or second "Enter Full Screen" of its own.
+
+M3 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1).
 
 ## M4 SSH
 
@@ -164,5 +171,6 @@ Needs a reachable sshd (a local one via System Settings → Sharing → Remote L
 | 2026-10-22 | M2 | The tab strip clipped every tab past the second: the tab scroll view and the window drag area split the free width. | `be59569c` |
 | 2026-10-22 | M2 | Under `swift test` the "process completed" banner raised (`bundleProxyForCurrentProcess is nil`): xctest's main bundle has an identifier but is no app. | `97ef7449` |
 | 2026-10-22 | M2 | The tab colour was drawn along the top, where it looked like the active-tab marker; Tabby draws it along the bottom. | `f4104929` |
+| 2026-10-22 | M3 | macOS added greyed window-tab items (Show Tab Bar, Merge All Windows, …) next to TabbyMac's own tab commands, and a second "Enter Full Screen", to the menus. | `1d4d0152` |
 
 Open: none.
