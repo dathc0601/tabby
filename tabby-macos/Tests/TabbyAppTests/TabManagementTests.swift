@@ -123,6 +123,45 @@ final class TabManagementTests: XCTestCase {
         XCTAssertEqual(names(model), ["pinned", "keep"])
     }
 
+    // MARK: Explode and combine (`AppService.explodeTab` / `combineTabsInto`)
+
+    func paneID(_ tab: TabModel) -> UUID { tab.layout.panes[0] }
+
+    func testExplodedPanesOpenAtTheEnd() {
+        let (model, tabs) = makeModel("x", "t", "y")
+        model.select(tabs[1].id)
+        model.split(.right)
+        model.split(.bottom)
+        let extra = Array(tabs[1].layout.panes.dropFirst())
+        model.explodeActiveTab()
+        XCTAssertEqual(model.tabs.count, 5)
+        XCTAssertTrue(model.tabs[0] === tabs[0] && model.tabs[1] === tabs[1] && model.tabs[2] === tabs[2])
+        XCTAssertEqual(model.tabs[3...].map(\.layout.panes), extra.map { [$0] }, "each pane becomes a tab at the end")
+        XCTAssertTrue(model.activeTab === model.tabs[4])
+    }
+
+    func testCombineLaysThePanesOutInAGrid() {
+        let (model, tabs) = makeModel("a", "b", "c", "d")
+        let (a, b, c, d) = (paneID(tabs[0]), paneID(tabs[1]), paneID(tabs[2]), paneID(tabs[3]))
+        model.select(tabs[0].id)
+        model.combineTabs()
+        XCTAssertEqual(model.tabs.count, 1)
+        let row1 = SplitContainer(orientation: .horizontal, children: [.leaf(a), .leaf(b)])
+        let row2 = SplitContainer(orientation: .horizontal, children: [.leaf(c), .leaf(d)])
+        XCTAssertEqual(tabs[0].layout.root, SplitContainer(orientation: .vertical, children: [.container(row1), .container(row2)]),
+                       "2×2 grid with equal sizes")
+    }
+
+    func testCombineForgetsTheRemovedTabs() throws {
+        let (model, tabs) = makeModel("a", "b", "c")
+        model.select(tabs[0].id)
+        model.combineTabs()
+        let new = try XCTUnwrap(model.openTab(profile: TestApp.profile("n", "sleep 30")))
+        model.selectMRU(-1)
+        XCTAssertTrue(model.activeTab === tabs[0], "previous-mru-tab reaches the combined tab, not a removed one")
+        XCTAssertFalse(model.activeTab === new)
+    }
+
     // MARK: Broadcast (`pane-focus-all`)
 
     /// Tabby marks every pane focused while broadcasting (`_allFocusMode || child === focusedTab`).

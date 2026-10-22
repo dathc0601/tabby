@@ -292,25 +292,39 @@ public final class WindowModel {
         onRecoveryStateChanged?()
     }
 
-    /// Turns every pane of the active tab into its own tab (`explode-tab`).
+    /// Turns every pane of the active tab but the first into its own tab, added at the end
+    /// (`explode-tab`).
     public func explodeActiveTab() {
-        guard let tab = activeTab, tab.panes.count > 1 else { return }
+        if let tab = activeTab { explode(tab) }
+    }
+
+    private func explode(_ tab: TabModel) {
         for id in tab.layout.panes.dropFirst() {
             if let pane = tab.remove(id) {
-                insertTab(TabModel(pane: pane))
+                insertTab(TabModel(pane: pane), at: tabs.count)
             }
         }
     }
 
-    /// Moves the panes of all other tabs into the active tab (`combine-tabs`).
+    /// Moves the panes of all other tabs into the active tab, laid out in a grid
+    /// (`combine-tabs`, Tabby's `combineTabsInto`).
     public func combineTabs() {
         guard let target = activeTab else { return }
-        for tab in tabs where tab !== target {
-            for id in tab.layout.panes {
-                if let pane = tab.remove(id) { target.insert(pane, relativeTo: nil, side: .right) }
-            }
+        explode(target)
+        let panes = tabs.filter { $0 !== target }.flatMap { tab in tab.layout.panes.compactMap { tab.remove($0) } }
+        // Fill rows of `stride` panes: each pane goes right of the previous one, and every
+        // `stride`-th starts a new row at the bottom.
+        let stride = Int(Double(panes.count + 1).squareRoot().rounded(.up))
+        var column = 1
+        var previous: UUID?
+        for pane in panes {
+            target.insert(pane, relativeTo: column == 0 ? nil : previous, side: column == 0 ? .bottom : .right)
+            previous = pane.id
+            column = (column + 1) % stride
         }
+        target.equalize()
         tabs.removeAll { $0 !== target && $0.isEmpty }
+        mru.removeAll { id in !tabs.contains { $0.id == id } }
         select(target.id)
         onRecoveryStateChanged?()
     }
