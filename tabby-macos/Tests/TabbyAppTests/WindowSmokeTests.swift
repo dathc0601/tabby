@@ -25,7 +25,10 @@ final class WindowSmokeTests: XCTestCase {
         let profile = Profile(id: "local:smoke", type: "local", name: "smoke",
                               options: LocalOptions(command: "/bin/sh", args: ["-c", "printf 'HELLO-FROM-SHELL\\r\\n'; sleep 3"]).configValue)
         _ = controller.model.openTab(profile: profile)
-        pump(1.5)
+        TestApp.pump(until: {
+            controller.model.activePane.flatMap { controller.paneView(for: $0) }?
+                .engine.snapshotText(maxLines: 5).contains("HELLO-FROM-SHELL") ?? false
+        })
         let content = try XCTUnwrap(controller.window?.contentView)
         content.layoutSubtreeIfNeeded()
 

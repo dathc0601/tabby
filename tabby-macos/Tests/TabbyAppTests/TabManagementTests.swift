@@ -119,6 +119,7 @@ final class TabManagementTests: XCTestCase {
         model.togglePinned(pinned.id)
         let keep = try XCTUnwrap(model.openTab(profile: TestApp.profile("keep", "sleep 30")))
         for tab in model.tabs { model.select(tab.id); pump(0.6) }
+        TestApp.pump(until: { busy.focusedPane?.activeProcessName != nil })
         XCTAssertNotNil(busy.focusedPane?.activeProcessName, "precondition: the busy tab has a foreground child")
 
         model.select(keep.id)
@@ -205,12 +206,14 @@ final class TabManagementTests: XCTestCase {
         defer { TestApp.dispose(controller) }
         let tab = try XCTUnwrap(controller.model.openTab(profile: TestApp.profile("paste", "exec cat")))
         controller.model.split(.right)
-        pump(1.5)
+        TestApp.pump(until: { tab.orderedPanes.count == 2 && tab.orderedPanes.allSatisfy { $0.state == .running } })
+        pump(0.3)
         controller.runCommand("pane-focus-all")
         try XCTUnwrap(tab.focusedPane).paste("PASTED-EVERYWHERE")
-        pump(0.8)
+        func text(_ pane: TerminalPane) -> String { controller.paneView(for: pane)?.engine.snapshotText(maxLines: 5) ?? "" }
+        TestApp.pump(until: { tab.orderedPanes.allSatisfy { text($0).contains("PASTED-EVERYWHERE") } })
         for pane in tab.orderedPanes {
-            let text = try XCTUnwrap(controller.paneView(for: pane)).engine.snapshotText(maxLines: 5)
+            let text = text(pane)
             XCTAssertTrue(text.contains("PASTED-EVERYWHERE"), "pane shows \(text.debugDescription)")
         }
     }

@@ -21,6 +21,15 @@ enum TestApp {
 
     static func pump(_ seconds: Double) { RunLoop.main.run(until: Date().addingTimeInterval(seconds)) }
 
+    /// Runs the main loop until `condition` holds or `timeout` passes, and returns it. A fixed
+    /// pause can be too short for a shell to start on a slow CI runner.
+    @discardableResult
+    static func pump(until condition: () -> Bool, timeout: Double = 10) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !condition(), Date() < deadline { pump(0.05) }
+        return condition()
+    }
+
     /// A local profile that runs `script` with `/bin/sh -c`.
     static func profile(_ name: String, _ script: String) -> Profile {
         Profile(id: "local:\(name)", type: "local", name: name,
