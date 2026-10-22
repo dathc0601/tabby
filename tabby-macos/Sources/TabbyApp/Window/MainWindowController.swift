@@ -148,8 +148,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
         root.placement = place
         root.tabBarHeight = 38 * theme.spaciness
         root.hidesTabBar = fullscreen && !(config.value("appearance.tabsInFullscreen")?.boolValue ?? false)
-        // With the tab bar elsewhere, keep the terminal clear of the transparent title bar.
-        root.contentTopInset = (frame != "native" && !fullscreen && (place == .bottom || place == .right)) ? 28 : 0
+        // With the tab bar anywhere but the top, keep the terminal clear of the transparent
+        // title bar, which spans the whole window width even when the strip is on the left.
+        root.contentTopInset = (frame != "native" && !fullscreen && place != .top) ? 28 : 0
         root.needsLayout = true
         layoutTrafficLights()
     }

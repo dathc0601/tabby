@@ -52,6 +52,27 @@ final class WindowSmokeTests: XCTestCase {
         XCTAssertTrue(view.engine.snapshotText(maxLines: 5).contains("HELLO-FROM-SHELL"))
     }
 
+    /// With the tab bar on a side edge, the transparent title bar still spans the whole width,
+    /// so the terminal must start below it or its first row turns into a window drag area.
+    func testSideTabBarKeepsTerminalBelowTitleBar() throws {
+        for side in ["left", "right"] {
+            AppServices.shared.config.set("appearance.tabsLocation", .string(side))
+            defer { AppServices.shared.config.set("appearance.tabsLocation", nil) }
+            let controller = WindowManager.shared.newWindow(openDefaultTab: false)
+            defer { controller.window?.orderOut(nil) }
+            let profile = Profile(id: "local:side", type: "local", name: "side",
+                                  options: LocalOptions(command: "/bin/sh", args: ["-c", "sleep 3"]).configValue)
+            _ = controller.model.openTab(profile: profile)
+            pump(0.5)
+            let content = try XCTUnwrap(controller.window?.contentView)
+            content.layoutSubtreeIfNeeded()
+            let pane = try XCTUnwrap(controller.model.activePane)
+            let view = try XCTUnwrap(controller.paneView(for: pane))
+            let paneFrame = view.convert(view.bounds, to: content)
+            XCTAssertGreaterThanOrEqual(paneFrame.minY, 28, "\(side): terminal \(paneFrame) overlaps the title bar")
+        }
+    }
+
     func testSettingsWindowKeepsItsSize() {
         SettingsWindowController.show()
         pump(0.5)
