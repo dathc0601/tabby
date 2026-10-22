@@ -371,3 +371,67 @@ final class PortListenerHog {
     func stop() { close(fd) }
 }
 #endif
+
+#if os(macOS)
+/// A TCP server that sends `size` bytes to each client and closes (a forward's target).
+final class FloodServer: @unchecked Sendable {
+    let port: Int
+    let payload: Data
+    private let listener: Int32
+
+    init(size: Int) throws {
+        payload = Data((0..<size).map { UInt8($0 % 251) })
+        let fd = socket(AF_INET, SOCK_STREAM, 0)
+        listener = fd
+        var address = sockaddr_in()
+        address.sin_family = sa_family_t(AF_INET)
+        address.sin_addr.s_addr = inet_addr("127.0.0.1")
+        var length = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let ok = withUnsafeMutablePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { bind(fd, $0, length) == 0 && getsockname(fd, $0, &length) == 0 }
+        }
+        guard ok, listen(fd, 8) == 0 else { throw NSError(domain: "FloodServer", code: 1) }
+        port = Int(UInt16(bigEndian: address.sin_port))
+        let data = payload
+        Thread {
+            while true {
+                let client = accept(fd, nil, nil)
+                guard client >= 0 else { return }
+                var yes: Int32 = 1
+                setsockopt(client, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout<Int32>.size))
+                Thread {
+                    data.withUnsafeBytes { raw in
+                        var offset = 0
+                        while offset < raw.count {
+                            let n = write(client, raw.baseAddress! + offset, raw.count - offset)
+                            if n <= 0 { break }
+                            offset += n
+                        }
+                    }
+                    close(client)
+                }.start()
+            }
+        }.start()
+    }
+
+    func stop() {
+        shutdown(listener, SHUT_RDWR)
+        close(listener)
+    }
+}
+
+/// Reads until EOF (or `timeout`).
+func readAll(_ fd: Int32, timeout: TimeInterval = 20) -> Data {
+    var received = Data()
+    var buffer = [UInt8](repeating: 0, count: 65_536)
+    let deadline = Date().addingTimeInterval(timeout)
+    while Date() < deadline {
+        var pfd = pollfd(fd: fd, events: Int16(POLLIN), revents: 0)
+        guard poll(&pfd, 1, 100) > 0 else { continue }
+        let n = read(fd, &buffer, buffer.count)
+        if n <= 0 { break }
+        received.append(contentsOf: buffer[0..<n])
+    }
+    return received
+}
+#endif

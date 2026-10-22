@@ -61,6 +61,41 @@ final class PortForwardTests: XCTestCase {
         close(fd)
     }
 
+    /// Review I1: a slow reader still gets the whole stream after the server closed.
+    func testASlowReaderGetsTheWholeStream() async throws {
+        let flood = try FloodServer(size: 3_000_000)
+        defer { flood.stop() }
+        let port = try TestSSHD.freePort()
+        _ = try await connection.addForward(ForwardedPort(type: .local, port: port, targetAddress: "127.0.0.1", targetPort: flood.port))
+        let fd = try connectTCP(port)
+        defer { close(fd) }
+        try await Task.sleep(nanoseconds: 1_500_000_000)   // the bridge fills, the server finishes and closes
+        let received = readAll(fd)
+        XCTAssertEqual(received.count, flood.payload.count)
+        XCTAssertTrue(received == flood.payload)
+    }
+
+    /// Review C4: a client that goes away while data is queued for it ends its bridge
+    /// (no busy loop, no leaked socket or channel).
+    func testAClientThatLeavesWithDataQueuedIsCleanedUp() async throws {
+        let flood = try FloodServer(size: 8_000_000)
+        defer { flood.stop() }
+        let port = try TestSSHD.freePort()
+        _ = try await connection.addForward(ForwardedPort(type: .local, port: port, targetAddress: "127.0.0.1", targetPort: flood.port))
+        let fd = try connectTCP(port)
+        try await Task.sleep(nanoseconds: 800_000_000)   // pending fills while nobody reads
+        var counts = try await connection.debugCounts()
+        XCTAssertEqual(counts.bridges, 1)
+        close(fd)
+        let deadline = Date().addingTimeInterval(5)
+        repeat {
+            try await Task.sleep(nanoseconds: 100_000_000)
+            counts = try await connection.debugCounts()
+        } while (counts.bridges > 0 || counts.channels > 0) && Date() < deadline
+        XCTAssertEqual(counts.bridges, 0, "the bridge ended")
+        XCTAssertEqual(counts.channels, 0, "its channel was freed")
+    }
+
     func testAPortInUseIsAnError() async throws {
         let port = try TestSSHD.freePort()
         let forward = ForwardedPort(type: .local, port: port, targetAddress: "127.0.0.1", targetPort: echo.port)
