@@ -76,6 +76,13 @@ final class LibSSHPromptPresenter: SSHSessionUI {
         return KeyboardInteractiveAnswer(answers: answers, remember: remember)
     }
 
+    func notify(title: String, detail: String, isError: Bool, for session: LibSSHSession) {
+        let window = window(for: session)
+        let controller = WindowManager.shared.controllers.first { $0.window === window } ?? WindowManager.shared.activeController
+        controller?.toasts.show(ToastCenter.Toast(symbol: "point.3.connected.trianglepath.dotted", tint: isError ? .danger : .success,
+                                                  title: title, detail: detail))
+    }
+
     func username(host: String, for session: LibSSHSession) async -> String? {
         await text(in: window(for: session), title: "Username for \(host)", message: session.profile.name, secure: false,
                    confirm: "Continue")?.value

@@ -665,7 +665,8 @@ struct PortForwardsEditor: View {
             .padding(.horizontal, 14)
             .frame(minHeight: 40)
         }
-        SettingsRow(forwards.isEmpty ? "No forwarded ports" : "Forwards start with the session") {
+        SettingsRow(forwards.isEmpty ? "No forwarded ports" : "Forwards start with the session",
+                    subtitle: "While connected, change them from Ports on the connection chip") {
             Menu("Add forward") {
                 ForEach(PortForwardType.allCases, id: \.self) { type in
                     Button(type.rawValue.capitalized) {

@@ -345,3 +345,29 @@ final class TestAgent {
     deinit { stop() }
 }
 #endif
+
+#if os(macOS)
+/// Holds a 127.0.0.1 port open so a forward on it fails.
+final class PortListenerHog {
+    let port: Int
+    private let fd: Int32
+
+    init() throws {
+        let socketFD = socket(AF_INET, SOCK_STREAM, 0)
+        var address = sockaddr_in()
+        address.sin_family = sa_family_t(AF_INET)
+        address.sin_addr.s_addr = inet_addr("127.0.0.1")
+        var length = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let ok = withUnsafeMutablePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                bind(socketFD, $0, length) == 0 && getsockname(socketFD, $0, &length) == 0
+            }
+        }
+        guard ok, listen(socketFD, 1) == 0 else { throw NSError(domain: "PortListenerHog", code: 1) }
+        fd = socketFD
+        port = Int(UInt16(bigEndian: address.sin_port))
+    }
+
+    func stop() { close(fd) }
+}
+#endif

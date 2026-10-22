@@ -9,6 +9,11 @@ import TabbyTerminal
 @MainActor
 final class AcceptingUI: SSHSessionUI {
     var hostKeys = 0
+    var notices: [String] = []
+
+    func notify(title: String, detail: String, isError: Bool, for session: LibSSHSession) {
+        notices.append("\(title): \(detail)")
+    }
 
     func verifyHostKey(_ request: HostKeyRequest, for session: LibSSHSession) async -> HostKeyDecision {
         hostKeys += 1
@@ -35,10 +40,11 @@ final class LibSSHSessionTests: XCTestCase {
         sshd.stop()
     }
 
-    func makeSession(key: String? = nil, cwd: String? = nil) -> LibSSHSession {
+    func makeSession(key: String? = nil, cwd: String? = nil, forwards: [ForwardedPort] = []) -> LibSSHSession {
         var options: [String: ConfigValue] = ["host": "127.0.0.1", "port": .int(sshd.port), "user": .string(sshd.user),
                                               "privateKeys": .array([.string(key ?? sshd.keyPath)])]
         if let cwd { options["cwd"] = .string(cwd) }
+        if !forwards.isEmpty { options["forwardedPorts"] = .array(forwards.map(\.configValue)) }
         let profile = Profile(id: "ssh:test", type: "ssh", name: "test box", options: .object(options))
         let home = sshd.directory.appendingPathComponent("home").path
         let environment = LibSSHSession.Environment(
@@ -137,6 +143,30 @@ final class LibSSHSessionTests: XCTestCase {
         try await waitUntil { r2.closed != nil }
         XCTAssertTrue(r2.text.contains("still-42"), r2.text)
         try await waitUntil { connector.sharedCount == 0 }
+    }
+
+    /// The profile's forwards start once connected; one that cannot start is reported, and
+    /// the session carries on.
+    func testTheProfilesForwardsStart() async throws {
+        let echo = try EchoServer()
+        defer { echo.stop() }
+        let busy = try PortListenerHog()
+        defer { busy.stop() }
+        let port = try TestSSHD.freePort()
+        let good = ForwardedPort(type: .local, port: port, targetAddress: "127.0.0.1", targetPort: echo.port)
+        let bad = ForwardedPort(type: .local, port: busy.port, targetAddress: "127.0.0.1", targetPort: echo.port)
+        let session = makeSession(forwards: [good, bad])
+        let r = attach(session)
+        try session.start(cols: 80, rows: 24)
+        try await waitUntil { session.connection?.forwards.count == 1 && !self.ui.notices.isEmpty }
+        XCTAssertEqual(session.connection?.forwards.map(\.forward), [good])
+        let fd = try ProxyTunnel.connect(host: "127.0.0.1", port: port, timeout: 5)
+        XCTAssertEqual(roundTrip(fd, "profile forward"), "profile forward")
+        close(fd)
+        XCTAssertTrue(ui.notices.first?.hasPrefix("Failed to forward port: \(bad.summary)") ?? false, "\(ui.notices)")
+        XCTAssertTrue(r.text.contains("Failed to forward port \(bad.summary)"), r.text)
+        session.kill()
+        try await waitUntil { r.closed != nil }
     }
 
     func testKillWhileConnectedClosesTheSession() async throws {

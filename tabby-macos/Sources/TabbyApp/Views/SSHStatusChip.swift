@@ -2,6 +2,7 @@
 import SwiftUI
 import Observation
 import TabbyCore
+import TabbySSHLib
 import TabbyTerminal
 
 /// Whether the pointer is over a pane (the chip shows on hover).
@@ -27,9 +28,12 @@ private struct ChipContent: View {
     let pane: TerminalPane
     let hover: PaneHover
     @Environment(\.chrome) private var chrome
+    @State private var ports: PortForwardsModel?
+    @State private var showsPorts = false
 
     var body: some View {
-        if let state = pane.connectionState, hover.isHovering || state != .connected {
+        // Stays while its popover is open: the pointer leaves the pane to use it.
+        if let state = pane.connectionState, hover.isHovering || state != .connected || showsPorts {
             let options = SSHOptions(pane.profile.options)
             HStack(spacing: 8) {
                 StatusDot(color: Self.color(state, chrome), size: 7)
@@ -42,6 +46,18 @@ private struct ChipContent: View {
                     .buttonStyle(.plain)
                     .foregroundStyle((state == .disconnected ? chrome.accent : chrome.textMuted).color)
                 }
+                if let session = pane.session as? LibSSHSession {
+                    Rectangle().fill(chrome.separator.color).frame(width: 1, height: 14)
+                    Button { openPorts(session) } label: {
+                        Label("Ports", systemImage: "point.3.connected.trianglepath.dotted").font(ChromeFont.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle((state == .connected ? chrome.textMuted : chrome.textFaint).color)
+                    .disabled(state != .connected)
+                    .popover(isPresented: $showsPorts, arrowEdge: .bottom) {
+                        if let ports { PortsPopover(model: ports).chromeEnvironment() }
+                    }
+                }
             }
             .padding(.horizontal, 10)
             .frame(height: 28)
@@ -52,6 +68,14 @@ private struct ChipContent: View {
             .padding(8)
             .fixedSize()
         }
+    }
+
+    private func openPorts(_ session: LibSSHSession) {
+        guard let connection = session.connection else { return }
+        ports = PortForwardsModel(list: { connection.forwards },
+                                  add: { try await connection.addForward($0) },
+                                  remove: { await connection.removeForward($0) })
+        showsPorts = true
     }
 
     /// A live session is restarted only after asking: whatever runs in it ends.

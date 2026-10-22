@@ -13,6 +13,12 @@ public protocol SSHSessionUI: AnyObject {
     func passphrase(keyPath: String, for session: LibSSHSession) async -> SecretAnswer?
     func keyboardInteractive(_ round: KeyboardInteractiveRound, for session: LibSSHSession) async -> KeyboardInteractiveAnswer?
     func username(host: String, for session: LibSSHSession) async -> String?
+    /// A toast on the session's window (e.g. a forward that could not start).
+    func notify(title: String, detail: String, isError: Bool, for session: LibSSHSession)
+}
+
+public extension SSHSessionUI {
+    func notify(title: String, detail: String, isError: Bool, for session: LibSSHSession) {}
 }
 
 /// An SSH terminal session on the library backend: one shell channel on an `SSHConnection`.
@@ -105,6 +111,7 @@ public final class LibSSHSession: TerminalSession {
                 if let cwd = self.options.cwd {
                     shell.write(Data(" cd -- '\(cwd.replacingOccurrences(of: "'", with: "'\\''"))'\r".utf8))
                 }
+                await self.startProfileForwards(on: connection)
             } catch {
                 self.fail(error)
             }
@@ -138,6 +145,22 @@ public final class LibSSHSession: TerminalSession {
         }
         o.skipBanner = options.skipBanner
         return o
+    }
+
+    /// The profile's saved forwards (those a shared connection does not already run). One
+    /// that fails is reported; the session carries on (OpenSSH's ExitOnForwardFailure no).
+    @MainActor
+    private func startProfileForwards(on connection: SSHConnection) async {
+        for forward in options.forwardedPorts where !connection.forwards.contains(where: { $0.forward == forward }) {
+            do {
+                _ = try await connection.addForward(forward)
+            } catch {
+                let text = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                serviceMessage(text)
+                ui?.notify(title: "Failed to forward port", detail: text.replacingOccurrences(of: "Failed to forward port ", with: ""),
+                           isError: true, for: self)
+            }
+        }
     }
 
     public func write(_ data: Data) {
