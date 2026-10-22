@@ -42,7 +42,8 @@ public struct KDFParams: Codable, Hashable, Sendable {
     var requiredMemory: Int { 128 * r * (n + p + 1) }
 
     /// Refuses unknown algorithms and costs a hostile server could use to exhaust the client.
-    var isSupported: Bool {
+    /// The server applies the same rule to what clients register.
+    public var isSupported: Bool {
         name == Self.scryptName
             && n > 1 && n <= 1 << 20 && n & (n - 1) == 0
             && (1...32).contains(r) && (1...16).contains(p)
