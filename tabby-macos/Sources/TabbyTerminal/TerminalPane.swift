@@ -320,7 +320,7 @@ public final class TerminalPane: TerminalEngineDelegate {
             start()
             return
         }
-        session?.write(data)
+        session?.write(InputProcessing.translate(data, backspace: InputProcessing.backspaceMode(profile.options)))
         if settings.scrollOnInput { engine?.scroll(.bottom) }
         if let s = String(data: data, encoding: .utf8) {
             recentInput = String((recentInput + s).suffix(16))

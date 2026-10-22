@@ -185,6 +185,9 @@ public final class SSHConnection: @unchecked Sendable {
     public var onDisconnect: (@Sendable (SSHConnectionError?) -> Void)?
     /// The user name the login used (after `$NAME` and the prompt).
     public private(set) var resolvedUser = ""
+    /// The server's host key, once connected (`ssh-ed25519`, `SHA256:…`).
+    public private(set) var hostKeyType = ""
+    public private(set) var hostKeyFingerprint = ""
 
     public init(options: SSHConnectionOptions, prompter: SSHConnectionPrompter, passwords: PasswordStore) {
         self.options = options
@@ -363,6 +366,8 @@ public final class SSHConnection: @unchecked Sendable {
         defer { ssh_key_free(key) }
         let fingerprint = Self.fingerprint(key)
         let type = String(cString: ssh_key_type_to_char(ssh_key_type(key)))
+        hostKeyType = type
+        hostKeyFingerprint = fingerprint
         say("Host key fingerprint: \(type) \(fingerprint)")
 
         let state = ssh_session_is_known_server(s)

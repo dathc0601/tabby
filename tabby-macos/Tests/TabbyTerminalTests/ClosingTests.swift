@@ -9,9 +9,10 @@ final class FakeSession: TerminalSession {
     var onStatus: ((SessionStatus) -> Void)?
     private(set) var isRunning = false
     private(set) var killCount = 0
+    private(set) var written: [Data] = []
 
     func start(cols: Int, rows: Int) throws { isRunning = true }
-    func write(_ data: Data) {}
+    func write(_ data: Data) { written.append(data) }
     func resize(cols: Int, rows: Int) {}
     func kill() {
         killCount += 1

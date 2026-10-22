@@ -122,7 +122,7 @@ public final class LibSSHSession: TerminalSession {
         Self.connectionOptions(for: options, environment: environment)
     }
 
-    static func connectionOptions(for options: SSHOptions, environment: Environment) -> SSHConnectionOptions {
+    public static func connectionOptions(for options: SSHOptions, environment: Environment) -> SSHConnectionOptions {
         var o = SSHConnectionOptions(host: options.host, port: options.port, user: options.user, knownHostsFile: environment.knownHostsFile)
         o.auth = options.auth
         o.privateKeys = options.privateKeys

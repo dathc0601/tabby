@@ -246,6 +246,23 @@ final class SSHConnectionTests: XCTestCase {
         XCTAssertTrue(output.text.contains("tabby-test (ED25519)"), output.text)
     }
 
+    /// The profile editor's "Test connection": connect and log in, no shell, then report.
+    func testTestingAConnection() async throws {
+        let ok = await SSHConnectionTest.run(options: options(keys: [sshd.keyPath]), prompter: ScriptedPrompter(),
+                                             passwords: InMemoryPasswordStore())
+        XCTAssertEqual(ok, .success("Connected as \(sshd.user) · ssh-ed25519 \(sshd.hostKeyFingerprint)"))
+        let stranger = sshd.directory.appendingPathComponent("stranger").path
+        try TestSSHD.keygen(stranger, passphrase: "")
+        let rejected = await SSHConnectionTest.run(options: options(keys: [stranger]), prompter: ScriptedPrompter(),
+                                                   passwords: InMemoryPasswordStore())
+        XCTAssertEqual(rejected, .failure("Authentication rejected"))
+        var unreachable = options(keys: [sshd.keyPath])
+        unreachable.port = try TestSSHD.freePort()
+        let refused = await SSHConnectionTest.run(options: unreachable, prompter: ScriptedPrompter(), passwords: InMemoryPasswordStore())
+        guard case .failure(let message) = refused else { return XCTFail("connected to a closed port") }
+        XCTAssertFalse(message.isEmpty)
+    }
+
     func testNoUsableKeyIsRejected() async throws {
         let stranger = sshd.directory.appendingPathComponent("stranger").path
         try TestSSHD.keygen(stranger, passphrase: "")

@@ -63,11 +63,16 @@ final class LibSSHPromptPresenter: SSHSessionUI {
         if let pane = pane(for: session) {
             return await KeyboardInteractivePanels.shared.ask(round, in: pane.id)
         }
+        return await keyboardInteractive(round, in: window(for: session))
+    }
+
+    /// One sheet per prompt (no pane to show the panel in).
+    func keyboardInteractive(_ round: KeyboardInteractiveRound, in window: NSWindow?) async -> KeyboardInteractiveAnswer? {
         var answers: [String] = []
         var remember = false
         for (index, prompt) in round.prompts.enumerated() {
             let message = [round.instruction, prompt.text].filter { !$0.isEmpty }.joined(separator: "\n")
-            guard let answer = await text(in: window(for: session), title: round.name.isEmpty ? round.host : round.name, message: message,
+            guard let answer = await text(in: window, title: round.name.isEmpty ? round.host : round.name, message: message,
                                           secure: !prompt.echo, remember: prompt.isPasswordLike ? "Remember in Keychain" : nil,
                                           value: round.prefilled[index] ?? "", confirm: "Continue") else { return nil }
             answers.append(answer.value)
@@ -88,7 +93,7 @@ final class LibSSHPromptPresenter: SSHSessionUI {
                    confirm: "Continue")?.value
     }
 
-    private func text(in window: NSWindow?, title: String, message: String, secure: Bool = true, remember: String? = nil,
+    func text(in window: NSWindow?, title: String, message: String, secure: Bool = true, remember: String? = nil,
                       value: String = "", confirm: String) async -> SecretAnswer? {
         await withCheckedContinuation { continuation in
             Prompts.text(in: window, title: title, message: message, value: value, secure: secure, remember: remember,
@@ -97,5 +102,39 @@ final class LibSSHPromptPresenter: SSHSessionUI {
             }
         }
     }
+}
+/// Answers a connection's questions on one window (the profile editor's Test connection).
+@MainActor
+final class WindowPrompter: SSHConnectionPrompter {
+    private weak var window: NSWindow?
+
+    init(window: NSWindow?) {
+        self.window = window
+    }
+
+    func verifyHostKey(_ request: HostKeyRequest) async -> HostKeyDecision {
+        await LibSSHPromptPresenter.shared.verifyHostKey(request, in: window)
+    }
+
+    func password(user: String, host: String) async -> SecretAnswer? {
+        await LibSSHPromptPresenter.shared.text(in: window, title: "Password for \(user)@\(host)", message: "",
+                                                remember: "Remember in Keychain", confirm: "Log in")
+    }
+
+    func passphrase(keyPath: String) async -> SecretAnswer? {
+        await LibSSHPromptPresenter.shared.text(in: window, title: "Passphrase for key", message: keyPath,
+                                                remember: "Remember in Keychain", confirm: "Unlock")
+    }
+
+    func keyboardInteractive(_ round: KeyboardInteractiveRound) async -> KeyboardInteractiveAnswer? {
+        await LibSSHPromptPresenter.shared.keyboardInteractive(round, in: window)
+    }
+
+    func username(host: String) async -> String? {
+        await LibSSHPromptPresenter.shared.text(in: window, title: "Username for \(host)", message: "", secure: false,
+                                                confirm: "Continue")?.value
+    }
+
+    func message(_ text: String) {}
 }
 #endif

@@ -1,6 +1,7 @@
 #if canImport(AppKit)
 import AppKit
 import SwiftUI
+import TabbySSHLib
 import TabbyCore
 import TabbyTerminal
 
@@ -287,7 +288,8 @@ struct EditableProfile: Identifiable {
 /// are preserved.
 struct ProfileEditorSheet: View {
     enum Page: String, CaseIterable, Identifiable {
-        case general = "General", ports = "Ports", advanced = "Advanced", colors = "Colours", scripts = "Login scripts"
+        case general = "General", ports = "Ports", advanced = "Advanced", ciphers = "Ciphers", colors = "Colours",
+             scripts = "Login scripts"
         var id: String { rawValue }
     }
 
@@ -296,6 +298,8 @@ struct ProfileEditorSheet: View {
     @State private var profile: Profile
     @State private var page: Page = .general
     @State private var passwordSaved = false
+    @State private var testOutcome: SSHConnectionTest.Outcome?
+    @State private var testing = false
     @Environment(\.chrome) private var chrome
 
     init(item: EditableProfile, initialPage: Page = .general, done: @escaping (Profile?) -> Void) {
@@ -324,6 +328,36 @@ struct ProfileEditorSheet: View {
         Binding(get: { profile.options[key]?.boolValue ?? value }, set: { profile.options[key] = .bool($0) })
     }
 
+    /// A number that may be left empty (stored as an integer, removed when empty).
+    private func optionalIntOption(_ key: String) -> Binding<String> {
+        Binding(get: { profile.options[key]?.intValue.map(String.init) ?? "" },
+                set: { text in
+                    let digits = text.filter(\.isNumber)
+                    profile.options[key] = Int(digits).map { .int($0) } ?? .null
+                })
+    }
+
+    /// `options.input.backspace` (Tabby's input processing), "backspace" when unset.
+    private var backspaceOption: Binding<String> {
+        Binding(get: { InputProcessing.backspaceMode(profile.options) ?? "backspace" },
+                set: { mode in
+                    var input = profile.options["input"]?.objectValue ?? [:]
+                    input["backspace"] = .string(mode)
+                    profile.options["input"] = .object(input)
+                })
+    }
+
+    /// One `options.algorithms` list as comma-separated names; empty uses the defaults.
+    private func algorithmOption(_ kind: String) -> Binding<String> {
+        Binding(get: { (profile.options["algorithms"]?[kind]?.stringArrayValue ?? []).joined(separator: ",") },
+                set: { text in
+                    var algorithms = profile.options["algorithms"]?.objectValue ?? [:]
+                    let list = text.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+                    algorithms[kind] = list.isEmpty ? nil : .array(list.map { .string($0) })
+                    profile.options["algorithms"] = algorithms.isEmpty ? .null : .object(algorithms)
+                })
+    }
+
     private func listOption(_ key: String) -> Binding<String> {
         Binding(get: { (profile.options[key]?.stringArrayValue ?? []).joined(separator: "\n") },
                 set: { profile.options[key] = .array($0.split(separator: "\n").map { .string(String($0)) }) })
@@ -341,6 +375,7 @@ struct ProfileEditorSheet: View {
                     case .general: isSSH ? AnyView(sshGeneral) : AnyView(localGeneral)
                     case .ports: AnyView(SettingsGroup("Forwarded ports") { PortForwardsEditor(options: $profile.options) })
                     case .advanced: isSSH ? AnyView(sshAdvanced) : AnyView(localAdvanced)
+                    case .ciphers: AnyView(sshCiphers)
                     case .colors: AnyView(colours)
                     case .scripts: AnyView(LoginScriptsEditor(options: $profile.options))
                     }
@@ -489,6 +524,49 @@ struct ProfileEditorSheet: View {
                 }
                 SettingsRow("Proxy command") { RowField(placeholder: "None", text: option("proxyCommand"), width: 300) }
             }
+            SettingsGroup {
+                SettingsRow("Test connection", subtitle: testSubtitle) {
+                    HStack(spacing: 8) {
+                        if testing { ProgressView().controlSize(.small) }
+                        Button { testConnection() } label: { Label("Test connection", systemImage: "bolt") }
+                            .buttonStyle(ChromeButtonStyle())
+                            .disabled(testing || (profile.options["host"]?.stringValue ?? "").isEmpty)
+                    }
+                }
+            }
+        }
+    }
+
+    private var testSubtitle: String {
+        switch testOutcome {
+        case .success(let text)?: return text
+        case .failure(let text)?: return "Failed: \(text)"
+        case nil: return "Connects and logs in with these values; no shell is opened"
+        }
+    }
+
+    /// Prompts attach to this sheet (a second sheet on the main window would wait behind it).
+    private func testConnection() {
+        testing = true
+        testOutcome = nil
+        let services = AppServices.shared
+        let resolved = services.profiles.resolved(finalProfile())
+        let prompter = WindowPrompter(window: NSApp.keyWindow)
+        Task {
+            testOutcome = await SSHConnectionTest.run(profile: resolved, connector: services.libSSHFactory.connector, prompter: prompter)
+            testing = false
+        }
+    }
+
+    /// Algorithm preferences, sent as written (Tabby sorted them alphabetically, which
+    /// changed the preference order).
+    private var sshCiphers: some View {
+        SettingsGroup(footer: "Comma-separated, most preferred first. Empty uses the defaults.") {
+            SettingsRow("Key exchange") { RowField(placeholder: "Default", text: algorithmOption("kex"), width: 320) }
+            SettingsRow("Host key") { RowField(placeholder: "Default", text: algorithmOption("serverHostKey"), width: 320) }
+            SettingsRow("Ciphers") { RowField(placeholder: "Default", text: algorithmOption("cipher"), width: 320) }
+            SettingsRow("MACs") { RowField(placeholder: "Default", text: algorithmOption("hmac"), width: 320) }
+            SettingsRow("Compression") { RowField(placeholder: "Default", text: algorithmOption("compression"), width: 320) }
         }
     }
 
@@ -502,6 +580,21 @@ struct ProfileEditorSheet: View {
             SettingsRow("Keep-alive interval", subtitle: "Milliseconds") {
                 TextField("5000", value: intOption("keepaliveInterval", default: 5000), format: .number.grouping(.never))
                     .textFieldStyle(.roundedBorder).font(.custom("Menlo", size: 12)).frame(width: 90)
+            }
+            SettingsRow("Keep-alive count", subtitle: "Unanswered keep-alives before the connection counts as lost") {
+                TextField("10", value: intOption("keepaliveCountMax", default: 10), format: .number.grouping(.never))
+                    .textFieldStyle(.roundedBorder).font(.custom("Menlo", size: 12)).frame(width: 90)
+            }
+            SettingsRow("Ready timeout", subtitle: "Milliseconds to wait for the connection; empty waits as long as the system does") {
+                RowField(placeholder: "Default", text: optionalIntOption("readyTimeout"), width: 90)
+            }
+            SettingsRow("Backspace sends") {
+                RowPicker(selection: backspaceOption) {
+                    Text("Backspace (DEL)").tag("backspace")
+                    Text("Ctrl-H").tag("ctrl-h")
+                    Text("Ctrl-?").tag("ctrl-?")
+                    Text("Delete (ESC [3~)").tag("delete")
+                }
             }
             SettingsRow("Terminal type") { RowField(placeholder: "xterm-256color", text: option("term")) }
             SettingsRow("Start in directory") { RowField(placeholder: "Home", text: option("cwd")) }
