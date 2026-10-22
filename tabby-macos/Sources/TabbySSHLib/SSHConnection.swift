@@ -181,6 +181,8 @@ public final class SSHConnection: @unchecked Sendable {
 
     var session: ssh_session?
     var event: ssh_event?
+    /// A transport socket given to libssh (jump channel, proxy tunnel); closed at teardown.
+    private var ownedSocket: Int32?
     /// libssh keeps a pointer to the session's callback table.
     private let sessionCallbacks = UnsafeMutablePointer<ssh_callbacks_struct>.allocate(capacity: 1)
     private var wakeRead: Int32 = -1
@@ -316,12 +318,15 @@ public final class SSHConnection: @unchecked Sendable {
         }
         if let agent = options.agentSocket { ssh_options_set(s, SSH_OPTIONS_IDENTITY_AGENT, agent) }
         // Tabby's order: a jump host's channel, else the proxy command, else SOCKS, else HTTP.
+        // libssh does not close a socket given with SSH_OPTIONS_FD; teardown does.
         if var fd = options.socket {
+            ownedSocket = fd
             ssh_options_set(s, SSH_OPTIONS_FD, &fd)
         } else if let command = options.proxyCommand, !command.isEmpty {
             ssh_options_set(s, SSH_OPTIONS_PROXYCOMMAND, command)
         } else if let proxy = options.proxy {
             var fd = try ProxyTunnel.open(proxy, to: options.host, port: options.port, timeout: options.connectTimeout ?? 30)
+            ownedSocket = fd
             ssh_options_set(s, SSH_OPTIONS_FD, &fd)
         }
         for (kind, list) in options.algorithms where !list.isEmpty {
@@ -425,6 +430,10 @@ public final class SSHConnection: @unchecked Sendable {
         case .acceptOnce:
             return
         case .acceptAndRemember:
+            // libssh appends; any matching line is trusted, so drop the old key first.
+            if previous != nil {
+                KnownHostsLookup.removeEntries(host: options.host, port: options.port, type: type, file: options.knownHostsFile)
+            }
             if ssh_session_update_known_hosts(s) != SSH_OK { say("Could not save the host key: \(lastError())") }
         }
     }
@@ -789,6 +798,10 @@ public final class SSHConnection: @unchecked Sendable {
             ssh_disconnect(session)
             ssh_free(session)
             self.session = nil
+        }
+        if let ownedSocket {
+            close(ownedSocket)
+            self.ownedSocket = nil
         }
     }
 

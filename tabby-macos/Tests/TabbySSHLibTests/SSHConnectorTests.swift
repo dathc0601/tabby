@@ -103,6 +103,35 @@ final class SSHConnectorTests: XCTestCase {
         try await waitUntil { connector.sharedCount == 0 }
     }
 
+    /// Review I5: the socket a jump channel hands the target connection is closed when that
+    /// connection ends, so the jump host's bridge (and channel) end too.
+    func testTheJumpChannelEndsWithTheTargetConnection() async throws {
+        func options(_ sshd: TestSSHD) -> SSHConnectionOptions {
+            var o = SSHConnectionOptions(host: "127.0.0.1", port: sshd.port, user: sshd.user,
+                                         knownHostsFile: sshd.directory.appendingPathComponent("kh").path)
+            o.privateKeys = [sshd.keyPath]
+            o.globalKnownHostsFile = nil
+            o.homeDirectory = sshd.directory.path
+            return o
+        }
+        let jumpConnection = SSHConnection(options: options(jump), prompter: ScriptedPrompter(), passwords: InMemoryPasswordStore())
+        try await jumpConnection.connect()
+        defer { jumpConnection.disconnect() }
+        var targetOptions = options(target)
+        targetOptions.socket = try await jumpConnection.openBridgedSocket(to: "127.0.0.1", port: target.port)
+        let targetConnection = SSHConnection(options: targetOptions, prompter: ScriptedPrompter(), passwords: InMemoryPasswordStore())
+        try await targetConnection.connect()
+        var counts = try await jumpConnection.debugCounts()
+        XCTAssertEqual(counts.bridges, 1)
+        targetConnection.disconnect()
+        let deadline = Date().addingTimeInterval(5)
+        repeat {
+            try await Task.sleep(nanoseconds: 100_000_000)
+            counts = try await jumpConnection.debugCounts()
+        } while counts.bridges > 0 && Date() < deadline
+        XCTAssertEqual(counts.bridges, 0, "the target's end of the socket pair was closed")
+    }
+
     func testJumpHostLoopsAndMissingJumpHostsAreErrors() async throws {
         let connector = makeConnector()
         _ = profile("ssh:x", sshd: target, jumpHost: "ssh:y")

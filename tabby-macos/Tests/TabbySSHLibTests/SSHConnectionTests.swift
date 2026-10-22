@@ -121,6 +121,26 @@ final class SSHConnectionTests: XCTestCase {
         XCTAssertEqual(asked.first?.previousFingerprint, other.hostKeyFingerprint)
     }
 
+    /// Review I6: remembering a changed key replaces the old one (Tabby replaces it), so the
+    /// old key — perhaps the reason it was rotated — is no longer trusted.
+    func testRememberingAChangedKeyReplacesTheOldOne() async throws {
+        let other = try TestSSHD(name: "other")
+        defer { other.stop() }
+        let unrelated = "unrelated.example.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHm2b2k9xqGqH6W8m1q2wqk8nF2mQe1QwYbWq0B6m6+B\n"
+        let stale = "[127.0.0.1]:\(sshd.port) " + (try String(contentsOfFile: other.hostKeyPath + ".pub", encoding: .utf8))
+        try (unrelated + stale).write(toFile: knownHosts, atomically: true, encoding: .utf8)
+        let prompter = ScriptedPrompter()
+        let connection = SSHConnection(options: options(keys: [sshd.keyPath]), prompter: prompter, passwords: InMemoryPasswordStore())
+        try await connection.connect()
+        connection.disconnect()
+        let lines = try String(contentsOfFile: knownHosts, encoding: .utf8).split(separator: "\n").map(String.init)
+        XCTAssertEqual(lines.filter { $0.hasPrefix("[127.0.0.1]:\(sshd.port) ") }.count, 1)
+        XCTAssertFalse(lines.contains(stale.trimmingCharacters(in: .newlines)), "the old key is gone")
+        XCTAssertTrue(lines.contains(unrelated.trimmingCharacters(in: .newlines)), "other hosts are kept")
+        XCTAssertEqual(KnownHostsLookup.fingerprints(host: "127.0.0.1", port: sshd.port, files: [knownHosts]).map(\.fingerprint),
+                       [sshd.hostKeyFingerprint])
+    }
+
     func testHashedKnownHostsEntriesAreRead() throws {
         let file = sshd.directory.appendingPathComponent("hashed_known_hosts").path
         let line = "[127.0.0.1]:\(sshd.port) " + (try String(contentsOfFile: sshd.hostKeyPath + ".pub", encoding: .utf8))

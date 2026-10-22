@@ -28,6 +28,25 @@ enum KnownHostsLookup {
         return result
     }
 
+    /// Removes `host`'s entries of key type `type` from `file` (other lines and comments
+    /// stay): a changed key that is remembered replaces the old one, as in Tabby.
+    static func removeEntries(host: String, port: Int, type: String, file: String) {
+        guard let text = try? String(contentsOfFile: file, encoding: .utf8) else { return }
+        let name = port == 22 ? host : "[\(host)]:\(port)"
+        var kept: [Substring] = []
+        var removed = false
+        for line in text.split(separator: "\n", omittingEmptySubsequences: false) {
+            let fields = line.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
+            if fields.count >= 3, !fields[0].hasPrefix("#"), !fields[0].hasPrefix("@"), fields[1] == type, matches(fields[0], name) {
+                removed = true
+                continue
+            }
+            kept.append(line)
+        }
+        guard removed else { return }
+        try? kept.joined(separator: "\n").write(toFile: file, atomically: true, encoding: .utf8)
+    }
+
     static func matches(_ field: String, _ name: String) -> Bool {
         if field.hasPrefix("|1|") {
             let parts = field.split(separator: "|")
