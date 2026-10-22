@@ -25,7 +25,10 @@ extension SSHConnection {
 /// 256 KiB chunk per step, so shells and forwards on the same connection keep going.
 public final class SFTPClient: @unchecked Sendable {
     public static let chunkSize = 256 * 1024
-    unowned let connection: SSHConnection
+    /// Strong: panels and Edit-locally watchers may outlive the connection's other users;
+    /// after it ends every call throws `.disconnected`. (The connection's cache of this
+    /// client is cleared at teardown, which breaks the cycle.)
+    let connection: SSHConnection
     private var handle: sftp_session?
 
     init(connection: SSHConnection, handle: sftp_session) {

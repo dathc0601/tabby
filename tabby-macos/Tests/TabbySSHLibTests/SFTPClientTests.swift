@@ -27,7 +27,7 @@ final class SFTPClientTests: XCTestCase {
     }
 
     override func tearDown() async throws {
-        connection.disconnect()
+        connection?.disconnect()
         sshd.stop()
     }
 
@@ -115,6 +115,22 @@ final class SFTPClientTests: XCTestCase {
             XCTFail("listed a missing folder")
         } catch {
             XCTAssertTrue(error.localizedDescription.contains("No such file"), error.localizedDescription)
+        }
+    }
+
+    /// Review C3: a panel or Edit-locally watcher may use the client after its connection
+    /// ended; that is an error, not a crash.
+    func testUsingTheClientAfterTheConnectionEndedIsAnError() async throws {
+        let client = sftp!
+        connection.disconnect()
+        connection = nil
+        sftp = nil
+        try await Task.sleep(nanoseconds: 300_000_000)
+        do {
+            _ = try await client.list(root)
+            XCTFail("listed without a connection")
+        } catch let error as SSHConnectionError {
+            XCTAssertEqual(error, .disconnected)
         }
     }
 
