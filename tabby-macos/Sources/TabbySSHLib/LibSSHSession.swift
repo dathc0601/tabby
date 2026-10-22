@@ -228,7 +228,7 @@ public final class LibSSHSession: TerminalSession {
 final class SessionPrompter: SSHConnectionPrompter {
     private weak var session: LibSSHSession?
 
-    nonisolated init(_ session: LibSSHSession) {
+    init(_ session: LibSSHSession) {
         self.session = session
     }
 
