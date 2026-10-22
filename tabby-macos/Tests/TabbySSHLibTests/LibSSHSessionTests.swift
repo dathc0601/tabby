@@ -117,6 +117,28 @@ final class LibSSHSessionTests: XCTestCase {
         XCTAssertTrue(r.text.contains("at:\(directory.resolvingSymlinksInPath().path)") || r.text.contains("at:\(directory.path)"), r.text)
     }
 
+    /// Two tabs of a profile share one connection; closing one leaves the other working.
+    func testTabsShareAConnection() async throws {
+        let first = makeSession()
+        let connector = SSHConnector(environment: first.environment)
+        first.connector = connector
+        let second = makeSession()
+        second.connector = connector
+        let r1 = attach(first)
+        let r2 = attach(second)
+        try first.start(cols: 80, rows: 24)
+        try second.start(cols: 80, rows: 24)
+        try await waitUntil { r1.statuses.contains(.connected) && r2.statuses.contains(.connected) }
+        XCTAssertTrue(first.connection === second.connection)
+        XCTAssertEqual(ui.hostKeys, 1)
+        first.write(Data("exit\n".utf8))
+        try await waitUntil { r1.closed != nil }
+        second.write(Data("echo still-$((40+2)); exit\n".utf8))
+        try await waitUntil { r2.closed != nil }
+        XCTAssertTrue(r2.text.contains("still-42"), r2.text)
+        try await waitUntil { connector.sharedCount == 0 }
+    }
+
     func testKillWhileConnectedClosesTheSession() async throws {
         let session = makeSession()
         let r = attach(session)

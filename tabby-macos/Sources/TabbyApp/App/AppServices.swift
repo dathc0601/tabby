@@ -118,6 +118,7 @@ public final class AppServices {
         // Jump hosts are resolved through the registry (needs `self`, so wired after init).
         let registry = profiles
         sshFactory.resolveProfile = { id in registry.profile(withId: id).map { registry.resolved($0) } }
+        libSSHFactory.connector.resolveProfile = { id in registry.profile(withId: id).map { registry.resolved($0) } }
         do { try askpass.start() } catch { NSLog("TabbyMac: askpass server failed: \(error)") }
         // Like Tabby, make sure config.yaml exists after the first launch so users can find
         // and edit it, even before they change a setting.

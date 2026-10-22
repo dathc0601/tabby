@@ -60,10 +60,15 @@ public final class LibSSHSession: TerminalSession {
     private var ended = false
     private let output = OutputCoalescer()
 
-    public init(profile: Profile, environment: Environment) {
+    /// Shares connections between sessions (the factory's); a session made on its own gets
+    /// its own connector when it starts.
+    var connector: SSHConnector?
+
+    public init(profile: Profile, environment: Environment, connector: SSHConnector? = nil) {
         self.profile = profile
         options = SSHOptions(profile.options)
         self.environment = environment
+        self.connector = connector
     }
 
     public func start(cols: Int, rows: Int) throws {
@@ -74,15 +79,14 @@ public final class LibSSHSession: TerminalSession {
         let name = profile.name.isEmpty ? options.suggestedName : profile.name
         onStatus?(.connecting("Connecting to \(name)"))
         serviceMessage("Connecting to \(name)")
-        let connection = SSHConnection(options: connectionOptions(), prompter: SessionPrompter(self), passwords: environment.passwords)
-        self.connection = connection
-        connection.onDisconnect = { [weak self] _ in
-            DispatchQueue.main.async { self?.connectionEnded() }
-        }
+        let connector = MainActor.assumeIsolated { self.connector ?? SSHConnector(environment: environment) }
+        self.connector = connector
+        let profile = profile
         Task { @MainActor in
             do {
-                try await connection.connect()
-                guard !self.cancelled else { return connection.disconnect() }
+                let connection = try await connector.acquire(profile: profile, prompter: SessionPrompter(self))
+                self.connection = connection
+                guard !self.cancelled else { return self.releaseConnection() }
                 let handlers = SSHChannelHandlers(
                     data: { [output, weak self] chunk in
                         output.append(chunk) { data in self?.onOutput?(data) }
@@ -105,6 +109,10 @@ public final class LibSSHSession: TerminalSession {
     }
 
     func connectionOptions() -> SSHConnectionOptions {
+        Self.connectionOptions(for: options, environment: environment)
+    }
+
+    static func connectionOptions(for options: SSHOptions, environment: Environment) -> SSHConnectionOptions {
         var o = SSHConnectionOptions(host: options.host, port: options.port, user: options.user, knownHostsFile: environment.knownHostsFile)
         o.auth = options.auth
         o.privateKeys = options.privateKeys
@@ -133,8 +141,18 @@ public final class LibSSHSession: TerminalSession {
 
     public func kill() {
         cancelled = true
-        shell?.close()
-        connection?.disconnect()
+        if let shell {
+            shell.close()
+        } else {
+            releaseConnection()
+        }
+    }
+
+    /// Gives the connection back to the connector (it closes with its last session).
+    private func releaseConnection() {
+        guard let connection else { return }
+        self.connection = nil
+        MainActor.assumeIsolated { connector?.release(connection) }
     }
 
     public func workingDirectory() -> String? { nil }
@@ -145,13 +163,7 @@ public final class LibSSHSession: TerminalSession {
         guard !ended else { return }
         serviceMessage("\(options.host): session closed")
         end(status)
-        connection?.disconnect()
-    }
-
-    private func connectionEnded() {
-        guard !ended, shell != nil else { return }
-        serviceMessage("\(options.host): connection lost")
-        end(nil)
+        releaseConnection()
     }
 
     private func fail(_ error: Error) {
@@ -160,7 +172,7 @@ public final class LibSSHSession: TerminalSession {
             let text = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             onOutput?(Data("\u{1b}[0;37;41m X \u{1b}[0m \u{1b}[31m\(text)\u{1b}[0m\r\n".utf8))
         }
-        connection?.disconnect()
+        releaseConnection()
         end(nil)
     }
 
@@ -244,15 +256,20 @@ final class OutputCoalescer: @unchecked Sendable {
 /// Creates library-backend SSH sessions.
 public final class LibSSHSessionFactory: SessionFactory {
     public let profileType = "ssh"
-    public var environment: LibSSHSession.Environment
+    public var environment: LibSSHSession.Environment {
+        didSet { MainActor.assumeIsolated { connector.environment = environment } }
+    }
     public weak var ui: SSHSessionUI?
+    /// Shared connections and jump hosts for every session of this factory.
+    public let connector: SSHConnector
 
     public init(environment: LibSSHSession.Environment) {
         self.environment = environment
+        connector = MainActor.assumeIsolated { SSHConnector(environment: environment) }
     }
 
     public func makeSession(profile: Profile, context: SessionContext) throws -> TerminalSession {
-        let session = LibSSHSession(profile: profile, environment: environment)
+        let session = LibSSHSession(profile: profile, environment: environment, connector: connector)
         session.ui = ui
         return session
     }
