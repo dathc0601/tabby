@@ -83,10 +83,12 @@ final class ContentTabTests: XCTestCase {
         let c = WindowManager.shared.newWindow(openDefaultTab: false)
         defer { TestApp.dispose(c) }
         c.model.openSettings()
-        TestApp.pump(0.3)
+        let tab = try XCTUnwrap(c.model.activeTab)
+        // The window builds tab views from an observation callback; CI runners can be slow.
+        TestApp.pump(until: { c.contentTabView(for: tab) != nil })
         let content = try XCTUnwrap(c.window?.contentView)
         content.layoutSubtreeIfNeeded()
-        let host = try XCTUnwrap(c.contentTabView(for: try XCTUnwrap(c.model.activeTab)))
+        let host = try XCTUnwrap(c.contentTabView(for: tab))
         XCTAssertFalse(host.isHidden)
         XCTAssertGreaterThan(host.frame.height, 300)
     }
