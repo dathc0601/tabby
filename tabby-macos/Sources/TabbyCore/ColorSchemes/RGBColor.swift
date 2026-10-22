@@ -126,6 +126,46 @@ public struct RGBColor: Hashable, Sendable, CustomStringConvertible {
         return c
     }
 
+    public func withAlpha(_ alpha: Double) -> RGBColor { RGBColor(r: r, g: g, b: b, a: alpha) }
+
+    // MARK: OKLab (the phase 2 design mixes colours like CSS `color-mix(in oklab, …)`)
+
+    public struct OKLab: Hashable, Sendable {
+        public var l: Double
+        public var a: Double
+        public var b: Double
+    }
+
+    /// Björn Ottosson's OKLab, from linear sRGB.
+    public var oklab: OKLab {
+        func linear(_ c: Double) -> Double { c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
+        let lr = linear(r), lg = linear(g), lb = linear(b)
+        let l = cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb)
+        let m = cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb)
+        let s = cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb)
+        return OKLab(l: 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+                     a: 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+                     b: 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s)
+    }
+
+    public init(oklab c: OKLab, alpha: Double = 1) {
+        let l = pow(c.l + 0.3963377774 * c.a + 0.2158037573 * c.b, 3)
+        let m = pow(c.l - 0.1055613458 * c.a - 0.0638541728 * c.b, 3)
+        let s = pow(c.l - 0.0894841775 * c.a - 1.2914855480 * c.b, 3)
+        func gamma(_ c: Double) -> Double { c <= 0.0031308 ? 12.92 * c : 1.055 * pow(c, 1 / 2.4) - 0.055 }
+        self.init(r: gamma(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
+                  g: gamma(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
+                  b: gamma(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s),
+                  a: alpha)
+    }
+
+    /// `color-mix(in oklab, self (1 − t), other t)`.
+    public func mixOKLab(_ other: RGBColor, _ t: Double) -> RGBColor {
+        let p = oklab, q = other.oklab
+        return RGBColor(oklab: OKLab(l: p.l + (q.l - p.l) * t, a: p.a + (q.a - p.a) * t, b: p.b + (q.b - p.b) * t),
+                        alpha: a + (other.a - a) * t)
+    }
+
     public static let white = RGBColor(r: 1, g: 1, b: 1)
     public static let black = RGBColor(r: 0, g: 0, b: 0)
 }

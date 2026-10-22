@@ -13,6 +13,7 @@ public final class ThemeManager {
     public private(set) var chrome: ChromeTheme = ChromeTheme(scheme: .tabbyDefault)
     public private(set) var vibrancy = false
     public private(set) var spaciness: Double = 1
+    public var metrics: ChromeMetrics { ChromeMetrics(spaciness: spaciness) }
     /// Bumped whenever anything above changes.
     public private(set) var revision = 0
 

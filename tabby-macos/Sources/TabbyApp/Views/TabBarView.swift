@@ -67,7 +67,7 @@ struct TabBarView: View {
             }
         }
         .foregroundStyle(chrome.text.color)
-        .background(chrome.surfaceSunken.color.opacity(services.theme.vibrancy ? 0.5 : 1))
+        .background(chrome.chromeBackground.color)
     }
 
     @ViewBuilder
