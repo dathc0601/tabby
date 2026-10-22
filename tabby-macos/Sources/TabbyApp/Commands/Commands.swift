@@ -34,7 +34,7 @@ extension MainWindowController {
             if let t = model.activeTab { t.isPinned.toggle() }
             RecoveryCoordinator.shared.scheduleSave()
         case "restart-tab", "reconnect-tab", "restart-ssh-session": pane?.restart()
-        case "disconnect-tab": pane?.close()
+        case "disconnect-tab": pane?.disconnect()
         case "toggle-last-tab": model.toggleLastTab()
         case "next-tab": model.selectRelative(1)
         case "previous-tab": model.selectRelative(-1)

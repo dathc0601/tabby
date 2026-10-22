@@ -45,6 +45,8 @@ public final class TerminalPane: TerminalEngineDelegate {
     @ObservationIgnored private var restoreState: String?
     @ObservationIgnored private var recentInput = ""
     @ObservationIgnored private var userClosed = false
+    /// Set by `disconnect()`: the session end keeps the pane and waits for a key to reconnect.
+    @ObservationIgnored private var disconnectedByHand = false
     @ObservationIgnored private var progressClearWork: DispatchWorkItem?
     @ObservationIgnored private var loginScripts: LoginScriptRunner?
     @ObservationIgnored private let progressDetector = ProgressDetector()
@@ -117,6 +119,7 @@ public final class TerminalPane: TerminalEngineDelegate {
             s.onStatus = { [weak self] st in self?.status = st }
             session = s
             userClosed = false
+            disconnectedByHand = false
             recentInput = ""
             try s.start(cols: max(size.cols, 2), rows: max(size.rows, 1))
             state = .running
@@ -154,6 +157,15 @@ public final class TerminalPane: TerminalEngineDelegate {
         session?.onOutput = nil
         session?.kill()
         session = nil
+    }
+
+    /// Ends a connection on purpose but keeps the pane, which then offers to reconnect on any
+    /// key whatever `behaviorOnSessionEnd` says. Port of Tabby's
+    /// `ConnectableTerminalTabComponent.disconnect`; local shells ignore it, as in Tabby.
+    public func disconnect() {
+        guard profile.type != "local", isRunning, let session else { return }
+        disconnectedByHand = true
+        session.kill()
     }
 
     /// Whether closing should ask first (a program other than the shell is running).
@@ -203,7 +215,7 @@ public final class TerminalPane: TerminalEngineDelegate {
         let pause = isLocal && LocalOptions(profile.options).pauseAfterExit
         if !isFocused { onProcessEnded?(self, code) }
 
-        let shouldClose: Bool
+        var shouldClose: Bool
         var autoReconnect = false
         switch behaviour {
         case .close: shouldClose = true
@@ -213,6 +225,10 @@ public final class TerminalPane: TerminalEngineDelegate {
             autoReconnect = !userClosed
         case .auto:
             shouldClose = isLocal ? !pause : explicit
+        }
+        if disconnectedByHand {
+            shouldClose = false
+            autoReconnect = false
         }
 
         session = nil

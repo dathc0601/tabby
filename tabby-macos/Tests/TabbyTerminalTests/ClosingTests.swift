@@ -72,6 +72,45 @@ final class ClosingTests: XCTestCase {
         XCTAssertNil(pane.closeWarning(sshWarnOnClose: true), "never started")
     }
 
+    // MARK: disconnect-tab (Tabby `ConnectableTerminalTabComponent.disconnect`)
+
+    func waitForEnded(_ pane: TerminalPane) {
+        let deadline = Date().addingTimeInterval(5)
+        while Date() < deadline {
+            if case .ended = pane.state { return }
+            RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        }
+    }
+
+    func testDisconnectKeepsThePaneAndOffersToReconnect() throws {
+        for behavior in [SessionEndBehavior.auto, .close, .reconnect] {
+            let (pane, engine, factory) = try makePane(behavior: behavior)
+            var closeRequested = false
+            pane.onRequestClose = { _ in closeRequested = true }
+            pane.start()
+            pane.disconnect()
+            waitForEnded(pane)
+            RunLoop.main.run(until: Date().addingTimeInterval(1.3))
+            XCTAssertEqual(pane.state, .ended(code: nil, canRestart: true), "\(behavior)")
+            XCTAssertFalse(closeRequested, "\(behavior): a manual disconnect never closes the tab")
+            XCTAssertEqual(factory.sessions.count, 1, "\(behavior): no automatic reconnect")
+            XCTAssertTrue(engine.text.contains("Press any key"), "\(behavior)")
+            pane.send(text: "x")
+            XCTAssertEqual(pane.state, .running, "\(behavior): any key reconnects")
+            XCTAssertEqual(factory.sessions.count, 2)
+            pane.close()
+        }
+    }
+
+    func testDisconnectIgnoresLocalShells() throws {
+        let (pane, _, factory) = try makePane(type: "local")
+        pane.start()
+        pane.disconnect()
+        XCTAssertEqual(pane.state, .running)
+        XCTAssertEqual(factory.sessions.first?.killCount, 0)
+        pane.close()
+    }
+
     func testLocalPaneIgnoresSSHWarnOnClose() throws {
         let (pane, _, _) = try makePane(type: "local")
         pane.start()
