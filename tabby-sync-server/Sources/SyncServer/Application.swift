@@ -26,7 +26,9 @@ public func buildApplication(_ config: ServerConfig) async throws -> some Applic
     let router = Router(context: SyncRequestContext.self)
     router.add(middleware: ErrorMiddleware())
     router.get("health") { _, _ in "ok" }
-    SyncAPI(fluent: fluent, serverSecret: config.serverSecret, minimumScryptN: config.minimumScryptN)
+    router.head("health") { _, _ in HTTPResponse.Status.ok }
+    SyncAPI(fluent: fluent, serverSecret: config.serverSecret, minimumScryptN: config.minimumScryptN,
+            recoveryTokenLifetime: config.recoveryTokenLifetime)
         .addRoutes(to: router, rateLimiter: RateLimiter(limit: config.rateLimitPerMinute),
                    registrationLimiter: RateLimiter(limit: config.registrationsPerDay, window: 86_400))
 

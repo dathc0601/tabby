@@ -100,6 +100,22 @@ final class RecoveryTests: XCTestCase {
         }
     }
 
+    /// A recovery sign-in that is never finished with a new password must not leave a
+    /// token that reads the vault forever.
+    func testAnAbandonedRecoveryTokenExpires() async throws {
+        try await withApp(testConfig(recoveryTokenLifetime: 0)) { client in
+            let credentials = Credentials()
+            _ = try await client.register(credentials)
+            let session = try await Self.recover(client, credentials)
+            try await client.send(.get, APIPath.vault, token: session.token)
+                .assertError(.unauthorized, ErrorDTO.Code.unauthorized)
+            let change = PasswordChangeRequest(recoveryAuthKey: credentials.recoveryAuthKey, newAuthKey: randomData(32),
+                                               newKdf: credentials.kdf, newWrappedByPassword: randomData(60))
+            try await client.send(.patch, APIPath.accountPassword, token: session.token, json: change)
+                .assertError(.unauthorized, ErrorDTO.Code.unauthorized)
+        }
+    }
+
     func testRecoverySignInWithTheWrongKeyIs401() async throws {
         try await withApp { client in
             var credentials = Credentials()

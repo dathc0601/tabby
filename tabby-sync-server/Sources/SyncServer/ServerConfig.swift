@@ -29,6 +29,8 @@ public struct ServerConfig: Sendable {
     public var registrationsPerDay: Int
     /// The least scrypt N accepted at sign-up and password change (clients refuse less).
     public var minimumScryptN: Int
+    /// How long a recovery-key sign-in may be used before it has set a new password.
+    public var recoveryTokenLifetime: TimeInterval
     public var logLevel: Logger.Level
 
     public init(
@@ -39,6 +41,7 @@ public struct ServerConfig: Sendable {
         rateLimitPerMinute: Int = 10,
         registrationsPerDay: Int = 20,
         minimumScryptN: Int = KDFParams.minimumN,
+        recoveryTokenLifetime: TimeInterval = 3600,
         logLevel: Logger.Level = .info
     ) {
         self.hostname = hostname
@@ -48,6 +51,7 @@ public struct ServerConfig: Sendable {
         self.rateLimitPerMinute = rateLimitPerMinute
         self.registrationsPerDay = registrationsPerDay
         self.minimumScryptN = minimumScryptN
+        self.recoveryTokenLifetime = recoveryTokenLifetime
         self.logLevel = logLevel
     }
 

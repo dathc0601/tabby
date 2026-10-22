@@ -11,6 +11,7 @@ struct SyncAPI: Sendable {
     let fluent: Fluent
     let serverSecret: Data
     let minimumScryptN: Int
+    let recoveryTokenLifetime: TimeInterval
 
     var db: any Database { fluent.db() }
 
@@ -24,12 +25,12 @@ struct SyncAPI: Sendable {
         rateLimited.post("session/recovery") { request, context in try await recoverySignIn(request, context) }
 
         // A recovery-scoped token may read the account and the vault and set a new password.
-        let recoveryAllowed = router.group("v1").add(middleware: AuthMiddleware(fluent: fluent, allowRecoveryScope: true))
+        let recoveryAllowed = router.group("v1").add(middleware: AuthMiddleware(fluent: fluent, allowRecoveryScope: true, recoveryTokenLifetime: recoveryTokenLifetime))
         recoveryAllowed.get("account") { _, context in try jsonResponse(context.requireAuth().account.dto) }
         recoveryAllowed.get("vault") { _, context in try await vault(context) }
         recoveryAllowed.patch("account/password") { request, context in try await changePassword(request, context) }
 
-        let signedIn = router.group("v1").add(middleware: AuthMiddleware(fluent: fluent, allowRecoveryScope: false))
+        let signedIn = router.group("v1").add(middleware: AuthMiddleware(fluent: fluent, allowRecoveryScope: false, recoveryTokenLifetime: recoveryTokenLifetime))
         signedIn.delete("session") { _, context in try await signOut(context) }
         signedIn.delete("account") { request, context in try await deleteAccount(request, context) }
         signedIn.put("account/recovery") { request, context in try await rotateRecovery(request, context) }

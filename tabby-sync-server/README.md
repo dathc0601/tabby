@@ -79,11 +79,15 @@ It is a static Linux build (`--static-swift-stdlib`) on `ubuntu:noble`, running 
 unprivileged user `tabbysync`; without `DATABASE_URL` it keeps SQLite in the `/app/data`
 volume.
 
-With Postgres, use `compose.yaml`:
+With Postgres, use `compose.yaml` (also the quickest local server for manual checks; the
+app reaches it with `TABBYMAC_SYNC_URL=http://localhost:8080`):
 
 ```sh
 cd tabby-sync-server
-cp .env.example .env                   # fill in SERVER_SECRET and POSTGRES_PASSWORD
+cp .env.example .env                   # then set the two secrets, e.g.:
+sed -i '' -e "s/^SERVER_SECRET=.*/SERVER_SECRET=$(openssl rand -hex 32)/" \
+          -e "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 24)/" .env   # GNU sed: -i without ''
+chmod 600 .env
 docker compose up -d --build
 docker compose logs -f server
 ```
@@ -112,6 +116,49 @@ limiter uses the first entry of `X-Forwarded-For`, so do not publish port 8080 t
 internet, or clients can choose their own rate-limit key.
 
 To update: `git pull && docker compose up -d --build` (migrations run at startup).
+
+## Behind Cloudflare (or another CDN)
+
+With the hostname proxied by Cloudflare, the reverse proxy's peer is a Cloudflare edge
+server, so `X-Forwarded-For: $remote_addr` (nginx) or Caddy's default would key every rate
+limit, and the daily registration cap, on a few hundred Cloudflare addresses shared by all
+users. Restore the visitor's address from `CF-Connecting-IP`, trusting it only from
+Cloudflare's published ranges, and still overwrite `X-Forwarded-For` (Cloudflare appends to
+whatever the client sent, so its first entry can be forged).
+
+nginx (`ngx_http_realip_module`): generate a snippet from Cloudflare's lists and include it in
+the `server` block only, so other sites on the host are not affected:
+
+```sh
+{ for v in v4 v6; do curl -fsS https://www.cloudflare.com/ips-$v | sed 's/.*/set_real_ip_from &;/'; done
+  echo 'real_ip_header CF-Connecting-IP;'; } | sudo tee /etc/nginx/snippets/cloudflare-realip.conf
+```
+
+```nginx
+server {
+    server_name tabby-sync.dcstyle.info;
+    include snippets/cloudflare-realip.conf;
+    client_max_body_size 26m;
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-For $remote_addr;   # now the visitor, not Cloudflare
+    }
+    # listen 443 ssl / certificates as before
+}
+```
+
+`nginx -t && systemctl reload nginx`, then sign in once and check that `docker compose logs
+server` shows your own address. Regenerate the snippet when Cloudflare changes its ranges
+(rarely).
+
+Caddy 2.7 or later: in the global options set `servers { trusted_proxies static <the ranges
+from ips-v4 and ips-v6> client_ip_headers CF-Connecting-IP }` and in the site's
+`reverse_proxy` add `header_up X-Forwarded-For {client_ip}`.
+
+Cloudflare's 100 MB request limit (free plan) is above the server's 25 MB vault limit.
+`GET` and `HEAD /health` answer `ok` / 200 for uptime checks.
 
 ## Backups
 

@@ -124,3 +124,16 @@ final class ConfigTests: XCTestCase {
         XCTAssertThrowsError(try ServerConfig.fromEnvironment(["PORT": "eighty"]))
     }
 }
+
+/// Uptime monitors and `curl -I` probe with HEAD.
+final class HealthTests: XCTestCase {
+    func testHealthAnswersGetAndHead() async throws {
+        try await withApp { client in
+            let get = try await client.execute(uri: "/health", method: .get)
+            XCTAssertEqual(get.status, .ok)
+            XCTAssertEqual(String(buffer: get.body), "ok")
+            let head = try await client.execute(uri: "/health", method: .head)
+            XCTAssertEqual(head.status, .ok)
+        }
+    }
+}

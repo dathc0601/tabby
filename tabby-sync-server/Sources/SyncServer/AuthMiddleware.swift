@@ -6,11 +6,12 @@ import HummingbirdFluent
 
 /// Resolves `Authorization: Bearer <token>` to its device and account (401 otherwise),
 /// records `lastSeenAt`, and refuses recovery-scoped tokens (403) unless the group allows
-/// them.
+/// them, and once they are older than `recoveryTokenLifetime` (401, the token is deleted).
 struct AuthMiddleware: RouterMiddleware {
     typealias Context = SyncRequestContext
     let fluent: Fluent
     let allowRecoveryScope: Bool
+    let recoveryTokenLifetime: TimeInterval
 
     func handle(_ request: Request, context: Context, next: (Request, Context) async throws -> Response) async throws -> Response {
         guard let header = request.headers[.authorization] else { throw APIError.unauthorized() }
@@ -24,10 +25,16 @@ struct AuthMiddleware: RouterMiddleware {
         else {
             throw APIError.unauthorized()
         }
-        if device.scope == Device.Scope.recovery.rawValue, !allowRecoveryScope {
-            throw APIError.forbidden()
+        let now = Security.now()
+        if device.scope == Device.Scope.recovery.rawValue {
+            // An abandoned recovery sign-in must not keep reading the vault.
+            if now >= device.createdAt.addingTimeInterval(recoveryTokenLifetime) {
+                try await device.delete(on: db)
+                throw APIError.unauthorized()
+            }
+            if !allowRecoveryScope { throw APIError.forbidden() }
         }
-        device.lastSeenAt = Security.now()
+        device.lastSeenAt = now
         try await device.save(on: db)
 
         var context = context

@@ -3,8 +3,8 @@
 #
 #   docker compose up -d --build
 #
-# The server listens on 127.0.0.1:8080 only; a reverse proxy on the host (Caddy, see
-# README.md) terminates TLS for tabby-sync.dcstyle.info and forwards to it.
+# The server listens on 127.0.0.1:8080 only; a reverse proxy on the host (Caddy or nginx,
+# see README.md, also for Cloudflare) terminates TLS for tabby-sync.dcstyle.info.
 
 services:
   server:
@@ -17,6 +17,7 @@ services:
       SERVER_SECRET: ${SERVER_SECRET:?set SERVER_SECRET in .env}
       DATABASE_URL: postgres://tabby:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/tabby_sync?sslmode=disable
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      REGISTRATIONS_PER_DAY: ${REGISTRATIONS_PER_DAY:-20}
     ports:
       - "127.0.0.1:8080:8080"
     depends_on:
