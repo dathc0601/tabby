@@ -62,6 +62,12 @@ struct SearchBarView: View {
                 .frame(width: 180)
                 .focused($focused)
                 .onSubmit { model.find() }
+                // ⇧↩ steps back, as in other macOS find bars; plain ↩ goes to `onSubmit`.
+                .onKeyPress(.return, phases: [.down, .repeat]) { press in
+                    guard press.modifiers.contains(.shift) else { return .ignored }
+                    model.find(backwards: true)
+                    return .handled
+                }
                 .onChange(of: model.query) { model.restart() }
                 .onKeyPress(.upArrow) { model.find(backwards: true); return .handled }
                 .onKeyPress(.downArrow) { model.find(); return .handled }
