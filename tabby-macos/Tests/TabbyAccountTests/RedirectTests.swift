@@ -1,7 +1,7 @@
+// macOS only: swift-corelibs-foundation traps when a URLProtocol reports a redirect, and the
+// app (the only user of the real transport) runs on macOS.
+#if !canImport(FoundationNetworking)
 import XCTest
-#if canImport(FoundationNetworking)
-import FoundationNetworking
-#endif
 @testable import TabbyAccount
 
 /// The sync client only talks to the address it was given: a redirect (to plain HTTP or
@@ -45,3 +45,4 @@ final class RedirectTests: XCTestCase {
         XCTAssertEqual(RedirectingStub.followed, [], "the token never went to the redirect target")
     }
 }
+#endif
