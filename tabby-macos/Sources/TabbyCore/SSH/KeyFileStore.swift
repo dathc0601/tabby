@@ -28,7 +28,13 @@ public final class KeyFileStore: @unchecked Sendable {
 
     public func path(for id: String) -> String { directory.appendingPathComponent(id).path }
 
+    /// A key id is the lowercase hex SHA-512 of the key file; it names the stored file.
+    public static func isValidID(_ id: String) -> Bool {
+        id.utf8.count == 128 && id.utf8.allSatisfy { (0x30...0x39).contains($0) || (0x61...0x66).contains($0) }
+    }
+
     public func store(id: String, originalPath: String, contents: Data, isDefaultIdentity: Bool) throws {
+        guard Self.isValidID(id) else { throw CocoaError(.fileWriteInvalidFileName) }
         let fm = FileManager.default
         try fm.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         let path = path(for: id)
@@ -42,6 +48,7 @@ public final class KeyFileStore: @unchecked Sendable {
     }
 
     public func remove(id: String) {
+        guard Self.isValidID(id) else { return }
         try? FileManager.default.removeItem(atPath: path(for: id))
         try? save(records().filter { $0.id != id })
     }

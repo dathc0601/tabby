@@ -310,7 +310,8 @@ public final class LocalSyncData {
         let stored = Set(keyStore.records().map(\.id))
         for item in merged.items where !localIDs.contains(item.id) && !stored.contains(item.id) {
             guard let path = item.value["originalPath"]?.stringValue,
-                  let contents = item.value["contents"]?.stringValue.flatMap({ Data(base64Encoded: $0) }) else { continue }
+                  let contents = item.value["contents"]?.stringValue.flatMap({ Data(base64Encoded: $0) }),
+                  Self.keyID(contents) == item.id else { continue }
             try? keyStore.store(id: item.id, originalPath: path, contents: contents,
                                 isDefaultIdentity: item.value["isDefaultIdentity"]?.boolValue ?? false)
         }
