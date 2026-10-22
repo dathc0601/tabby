@@ -107,44 +107,86 @@ extension SSHConnection {
 
     private func serve(_ client: Int32, through runtime: ForwardRuntime) {
         let forward = runtime.forward
-        do {
-            switch forward.type {
-            case .local:
-                let box = try openDirectTCPIP(host: forward.targetAddress, port: forward.targetPort, deliverTo: client)
-                bridge(box, fd: client)
-            case .dynamic:
-                // A local client sends its SOCKS request at once; wait for it a little. (An
-                // accepted socket inherits the listener's O_NONBLOCK on macOS.)
-                _ = fcntl(client, F_SETFL, fcntl(client, F_GETFL) & ~O_NONBLOCK)
-                var tv = timeval(tv_sec: 5, tv_usec: 0)
-                setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
-                guard let reply = Self.readHandshake(client, SOCKS5.parseGreeting) else { close(client); return }
-                _ = reply.withUnsafeBufferPointer { write(client, $0.baseAddress, $0.count) }
-                guard reply == SOCKS5.noAuthAccepted, let target = Self.readHandshake(client, SOCKS5.parseConnect) else {
-                    if reply == SOCKS5.noAuthAccepted {
-                        let refusal = SOCKS5.reply(.commandNotSupported)
-                        _ = refusal.withUnsafeBufferPointer { write(client, $0.baseAddress, $0.count) }
-                    }
-                    close(client); return
+        switch forward.type {
+        case .local:
+            startDirectTCPIP(host: forward.targetAddress, port: forward.targetPort) { [self] result in
+                switch result {
+                case .success(let box): bridge(box, fd: client)
+                case .failure: close(client)
                 }
-                do {
-                    let box = try openDirectTCPIP(host: target.host, port: target.port, deliverTo: client)
-                    let ok = SOCKS5.reply(.succeeded)
-                    _ = ok.withUnsafeBufferPointer { write(client, $0.baseAddress, $0.count) }
-                    bridge(box, fd: client)
-                } catch {
-                    let refusal = SOCKS5.reply(.connectionRefused)
-                    _ = refusal.withUnsafeBufferPointer { write(client, $0.baseAddress, $0.count) }
-                    throw error
-                }
-            case .remote:
-                close(client)
-                return
             }
-            reapChannels()
-        } catch {
+        case .dynamic:
+            // The handshake runs on the event loop (SOCKSClient), never blocking it.
+            _ = fcntl(client, F_SETFL, fcntl(client, F_GETFL) | O_NONBLOCK)
+            socksClients.append(SOCKSClient(fd: client))
+        case .remote:
             close(client)
         }
+    }
+
+    // MARK: SOCKS clients (dynamic forwards)
+
+    /// Between polls: register clients that wait for bytes, open channels for clients that
+    /// asked for a target, drop clients that took too long.
+    func serviceSOCKSClients() {
+        guard !socksClients.isEmpty else { return }
+        for client in socksClients {
+            if client.stage == .greeting || client.stage == .request, Date() > client.deadline { client.stage = .failed }
+            switch client.stage {
+            case .greeting, .request:
+                if !client.registered, let event {
+                    ssh_event_add_fd(event, client.fd, Int16(POLLIN), socksReadable, Unmanaged.passUnretained(client).toOpaque())
+                    client.registered = true
+                }
+            case .open(let target):
+                unregister(client)
+                client.stage = .opening
+                startDirectTCPIP(host: target.host, port: target.port) { [self] result in
+                    switch result {
+                    case .success(let box):
+                        Self.send(client.fd, SOCKS5.reply(.succeeded))
+                        bridge(box, fd: client.fd)
+                        client.stage = .handedOver
+                    case .failure:
+                        Self.send(client.fd, SOCKS5.reply(.connectionRefused))
+                        client.stage = .failed
+                    }
+                }
+            case .opening, .handedOver, .failed:
+                break
+            }
+        }
+        socksClients.removeAll { client in
+            switch client.stage {
+            case .handedOver:
+                unregister(client)
+                return true
+            case .failed:
+                unregister(client)
+                close(client.fd)
+                return true
+            default:
+                return false
+            }
+        }
+    }
+
+    private func unregister(_ client: SOCKSClient) {
+        guard client.registered else { return }
+        if let event { ssh_event_remove_fd(event, client.fd) }
+        client.registered = false
+    }
+
+    func closeSOCKSClients() {
+        for client in socksClients {
+            unregister(client)
+            if client.stage != .handedOver { close(client.fd) }
+        }
+        socksClients.removeAll()
+    }
+
+    static func send(_ fd: Int32, _ bytes: [UInt8]) {
+        _ = bytes.withUnsafeBufferPointer { write(fd, $0.baseAddress, $0.count) }
     }
 
     /// A server-side forward's connection: matched by port and joined to its local target.
@@ -154,11 +196,12 @@ extension SSHConnection {
             say("Rejected incoming forwarded connection for unrecognized port \(destinationAddress):\(destinationPort)")
             return nil
         }
-        guard let fd = try? ProxyTunnel.connect(host: runtime.forward.targetAddress, port: runtime.forward.targetPort, timeout: 5) else {
+        // Not waited for here (inside a libssh callback): the bridge waits for the connect.
+        guard let fd = LocalSocket.startTCP(host: runtime.forward.targetAddress, port: runtime.forward.targetPort) else {
             say("Could not connect to \(runtime.forward.targetAddress):\(runtime.forward.targetPort) for \(runtime.forward.summary)")
             return nil
         }
-        return acceptBridged(session, fd: fd)
+        return acceptBridged(session, fd: fd, connecting: true)
     }
 
     // MARK: Sockets
@@ -184,20 +227,6 @@ extension SSHConnection {
         return fd
     }
 
-    private static func readHandshake<T>(_ fd: Int32, _ parse: ([UInt8]) -> HandshakeStep<T>) -> T? {
-        var data = [UInt8]()
-        while data.count < 600 {
-            switch parse(data) {
-            case let .done(value, _): return value
-            case .failure: return nil
-            case .needMore: break
-            }
-            var byte: UInt8 = 0
-            guard read(fd, &byte, 1) == 1 else { return nil }
-            data.append(byte)
-        }
-        return nil
-    }
 }
 
 private let forwardAccept: ssh_event_callback = { _, _, userdata in
@@ -210,5 +239,61 @@ let forwardedChannelRequested: ssh_channel_open_request_forwarded_tcpip_callback
     Unmanaged<SSHConnection>.fromOpaque(userdata!).takeUnretainedValue().acceptForwarded(
         destinationAddress: destination.map { String(cString: $0) } ?? "", destinationPort: Int(port),
         originator: originator.map { String(cString: $0) } ?? "")
+}
+/// A dynamic forward's client during its SOCKS5 handshake (connection thread).
+final class SOCKSClient {
+    enum Stage: Equatable {
+        case greeting, request
+        case open(SOCKS5.Target)
+        case opening, handedOver, failed
+    }
+
+    let fd: Int32
+    var stage: Stage = .greeting
+    var registered = false
+    let deadline = Date().addingTimeInterval(10)
+    private var data: [UInt8] = []
+
+    init(fd: Int32) {
+        self.fd = fd
+    }
+
+    /// Reads what arrived and moves the handshake on (inside a poll callback: no libssh calls).
+    func readable() {
+        var buffer = [UInt8](repeating: 0, count: 512)
+        let n = read(fd, &buffer, buffer.count)
+        guard n > 0 else {
+            if n == 0 || (errno != EAGAIN && errno != EINTR) { stage = .failed }
+            return
+        }
+        data += buffer[0..<n]
+        guard data.count <= 1024 else { return stage = .failed }
+        if stage == .greeting {
+            switch SOCKS5.parseGreeting(data) {
+            case .needMore: return
+            case .failure: return stage = .failed
+            case let .done(reply, consumed):
+                SSHConnection.send(fd, reply)
+                data.removeFirst(consumed)
+                guard reply == SOCKS5.noAuthAccepted else { return stage = .failed }
+                stage = .request
+            }
+        }
+        if stage == .request {
+            switch SOCKS5.parseConnect(data) {
+            case .needMore: return
+            case .failure:
+                SSHConnection.send(fd, SOCKS5.reply(.commandNotSupported))
+                stage = .failed
+            case let .done(target, _):
+                stage = .open(target)
+            }
+        }
+    }
+}
+
+private let socksReadable: ssh_event_callback = { _, _, userdata in
+    Unmanaged<SOCKSClient>.fromOpaque(userdata!).takeUnretainedValue().readable()
+    return 0
 }
 #endif

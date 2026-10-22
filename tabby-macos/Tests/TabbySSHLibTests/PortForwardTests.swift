@@ -96,6 +96,48 @@ final class PortForwardTests: XCTestCase {
         XCTAssertEqual(counts.channels, 0, "its channel was freed")
     }
 
+    // MARK: Review I3: nothing a forward waits for may stall the connection's other users
+
+    /// A shell on the same connection answers within `limit` seconds.
+    private func assertShellAnswers(within limit: TimeInterval, file: StaticString = #filePath, line: UInt = #line) async throws {
+        let output = OutputCollector()
+        let started = Date()   // opening the shell is part of what must not wait
+        let shell = try await connection.openShell(term: "xterm", columns: 80, rows: 24, handlers: output.handlers)
+        shell.write(Data("echo responsive-$((1+1)); exit\n".utf8))
+        while !output.text.contains("responsive-2"), Date().timeIntervalSince(started) < 15 {
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+        XCTAssertLessThan(Date().timeIntervalSince(started), limit, "the shell waited for the forward", file: file, line: line)
+    }
+
+    /// 192.0.2.1 (TEST-NET-1) is never routed: the server's connect to it hangs.
+    func testAForwardToAnUnreachableHostDoesNotStallTheConnection() async throws {
+        let port = try TestSSHD.freePort()
+        _ = try await connection.addForward(ForwardedPort(type: .local, port: port, targetAddress: "192.0.2.1", targetPort: 9))
+        let client = try connectTCP(port)
+        defer { close(client) }
+        try await Task.sleep(nanoseconds: 200_000_000)
+        try await assertShellAnswers(within: 2)
+    }
+
+    func testASilentSOCKSClientDoesNotStallTheConnection() async throws {
+        let port = try TestSSHD.freePort()
+        _ = try await connection.addForward(ForwardedPort(type: .dynamic, port: port))
+        let client = try connectTCP(port)   // and never says anything
+        defer { close(client) }
+        try await Task.sleep(nanoseconds: 200_000_000)
+        try await assertShellAnswers(within: 2)
+    }
+
+    func testARemoteForwardToAnUnreachableTargetDoesNotStallTheConnection() async throws {
+        let port = try TestSSHD.freePort()
+        _ = try await connection.addForward(ForwardedPort(type: .remote, port: port, targetAddress: "192.0.2.1", targetPort: 9))
+        let client = try connectTCP(port)   // the server forwards it back; this Mac's connect to the target hangs
+        defer { close(client) }
+        try await Task.sleep(nanoseconds: 200_000_000)
+        try await assertShellAnswers(within: 2)
+    }
+
     func testAPortInUseIsAnError() async throws {
         let port = try TestSSHD.freePort()
         let forward = ForwardedPort(type: .local, port: port, targetAddress: "127.0.0.1", targetPort: echo.port)

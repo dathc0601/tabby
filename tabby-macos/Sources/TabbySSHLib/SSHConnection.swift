@@ -202,6 +202,8 @@ public final class SSHConnection: @unchecked Sendable {
     private var x11Requested = false
     /// The connection's SFTP session, opened on first use (connection thread).
     var sftpClient: SFTPClient?
+    /// Dynamic-forward clients still in their SOCKS handshake (connection thread).
+    var socksClients: [SOCKSClient] = []
     /// Forwards by id (connection thread) and their published list (any thread, under `lock`).
     var forwardRuntimes: [UUID: ForwardRuntime] = [:]
     var forwardList: [ForwardStatus] = []
@@ -696,6 +698,9 @@ public final class SSHConnection: @unchecked Sendable {
     }
 
     func reapChannels() {
+        advancePendingOpens()
+        serviceSOCKSClients()
+        for box in channels { box.flushOutgoing() }
         for bridge in bridges {
             bridge.service()
             let wanted = bridge.wantedEvents
@@ -731,11 +736,11 @@ public final class SSHConnection: @unchecked Sendable {
     }
 
     /// Joins `fd` and `channel` until either side ends; the connection owns and closes `fd`.
-    func bridge(_ box: ChannelBox, fd: Int32) {
+    func bridge(_ box: ChannelBox, fd: Int32, connecting: Bool = false) {
         var yes: Int32 = 1
         setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout<Int32>.size))
         _ = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK)
-        let bridge = Bridge(fd: fd, box: box)
+        let bridge = Bridge(fd: fd, box: box, connecting: connecting)
         bridges.append(bridge)
         register(box)
         // Its poll registration happens after the current poll (see reapChannels).
@@ -744,39 +749,96 @@ public final class SSHConnection: @unchecked Sendable {
     /// Opens a direct-tcpip channel to `host:port` (seen from the server) and returns a local
     /// socket joined to it: jump hosts hand it to the next connection as its transport.
     public func openBridgedSocket(to host: String, port: Int) async throws -> Int32 {
-        try await perform { [self] in
-            var fds: [Int32] = [-1, -1]
-            guard socketpair(AF_UNIX, SOCK_STREAM, 0, &fds) == 0 else { throw SSHConnectionError.channelFailed("no socket pair") }
-            let (mine, theirs) = (fds[0], fds[1])
-            do {
-                let box = try openDirectTCPIP(host: host, port: port, deliverTo: mine)
-                bridge(box, fd: mine)
-                reapChannels()
-                var yes: Int32 = 1
-                setsockopt(theirs, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout<Int32>.size))
-                return theirs
-            } catch {
-                close(mine)
-                close(theirs)
-                throw error
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Int32, Error>) in
+            let accepted = enqueue { [self] in
+                var fds: [Int32] = [-1, -1]
+                guard socketpair(AF_UNIX, SOCK_STREAM, 0, &fds) == 0 else {
+                    return continuation.resume(throwing: SSHConnectionError.channelFailed("no socket pair"))
+                }
+                let (mine, theirs) = (fds[0], fds[1])
+                startDirectTCPIP(host: host, port: port) { [self] result in
+                    switch result {
+                    case .success(let box):
+                        bridge(box, fd: mine)
+                        var yes: Int32 = 1
+                        setsockopt(theirs, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout<Int32>.size))
+                        continuation.resume(returning: theirs)
+                    case .failure(let error):
+                        close(mine)
+                        close(theirs)
+                        continuation.resume(throwing: error)
+                    }
+                }
             }
+            if !accepted { continuation.resume(throwing: SSHConnectionError.disconnected) }
         }
     }
 
-    /// A direct-tcpip channel whose output is written to `fd` (on the connection's thread).
-    func openDirectTCPIP(host: String, port: Int, deliverTo fd: Int32) throws -> ChannelBox {
-        guard let session, let channel = ssh_channel_new(session) else { throw SSHConnectionError.channelFailed(lastError()) }
-        // The bridge installs its sink and EOF handling once the channel is open.
-        let box = ChannelBox(channel: channel, handlers: SSHChannelHandlers(data: { _ in }, closed: { _ in }))
-        guard ssh_channel_open_forward(channel, host, Int32(port), "127.0.0.1", 0) == SSH_OK else {
-            let message = lastError()
-            box.free()
-            throw SSHConnectionError.channelFailed("Could not open a channel to \(host):\(port): \(message)")
+    /// A direct-tcpip channel being opened without blocking the loop: the server answers
+    /// only once its own connect to the target finished, which can take minutes.
+    final class PendingOpen {
+        let box: ChannelBox
+        let host: String
+        let port: Int
+        let deadline = Date().addingTimeInterval(60)
+        let done: (Result<ChannelBox, SSHConnectionError>) -> Void
+
+        init(box: ChannelBox, host: String, port: Int, done: @escaping (Result<ChannelBox, SSHConnectionError>) -> Void) {
+            self.box = box
+            self.host = host
+            self.port = port
+            self.done = done
         }
-        return box
+    }
+
+    private var pendingOpens: [PendingOpen] = []
+
+    /// Opens a direct-tcpip channel to `host:port` (seen from the server); `done` runs on the
+    /// connection's thread, maybe later. The bridge installs its sink once it is open.
+    func startDirectTCPIP(host: String, port: Int, done: @escaping (Result<ChannelBox, SSHConnectionError>) -> Void) {
+        guard let session, let channel = ssh_channel_new(session) else {
+            return done(.failure(.channelFailed(lastError())))
+        }
+        let box = ChannelBox(channel: channel, handlers: SSHChannelHandlers(data: { _ in }, closed: { _ in }))
+        let open = PendingOpen(box: box, host: host, port: port, done: done)
+        if !advance(open) { pendingOpens.append(open) }
+    }
+
+    /// One non-blocking step of an open; true once it is finished either way.
+    private func advance(_ open: PendingOpen) -> Bool {
+        guard let session else {
+            open.box.free()
+            open.done(.failure(.disconnected))
+            return true
+        }
+        ssh_set_blocking(session, 0)
+        let rc = ssh_channel_open_forward(open.box.channel, open.host, Int32(open.port), "127.0.0.1", 0)
+        ssh_set_blocking(session, 1)
+        if rc == SSH_OK {
+            open.done(.success(open.box))
+            return true
+        }
+        if rc == SSH_AGAIN, Date() < open.deadline { return false }
+        let message = rc == SSH_AGAIN ? "no answer from the server" : lastError()
+        open.box.free()
+        open.done(.failure(.channelFailed("Could not open a channel to \(open.host):\(open.port): \(message)")))
+        return true
+    }
+
+    private func advancePendingOpens() {
+        guard !pendingOpens.isEmpty else { return }
+        let current = pendingOpens
+        pendingOpens = []
+        for open in current where !advance(open) { pendingOpens.append(open) }
     }
 
     private func teardown() {
+        for open in pendingOpens {
+            open.box.free()
+            open.done(.failure(.disconnected))
+        }
+        pendingOpens.removeAll()
+        closeSOCKSClients()
         closeForwards()
         sftpClient?.free()
         sftpClient = nil
@@ -837,24 +899,30 @@ public final class SSHConnection: @unchecked Sendable {
         }
         guard let session else { return nil }
         let display = X11Display.resolve(options.x11Display, environment: ProcessInfo.processInfo.environment["DISPLAY"])
-        let fd: Int32?
         switch display {
-        case let .socket(path): fd = LocalSocket.unix(path)
-        case let .tcp(host, port): fd = try? ProxyTunnel.connect(host: host, port: port, timeout: 5)
+        case let .socket(path):
+            guard let fd = LocalSocket.unix(path) else {
+                say("Could not connect to the X server: \(display)")
+                return nil
+            }
+            return acceptBridged(session, fd: fd)
+        case let .tcp(host, port):
+            // Not waited for here (inside a libssh callback): the bridge waits for it.
+            guard let fd = LocalSocket.startTCP(host: host, port: port) else {
+                say("Could not connect to the X server: \(display)")
+                return nil
+            }
+            return acceptBridged(session, fd: fd, connecting: true)
         }
-        guard let fd else {
-            say("Could not connect to the X server: \(display)")
-            return nil
-        }
-        return acceptBridged(session, fd: fd)
     }
 
-    func acceptBridged(_ session: ssh_session, fd: Int32) -> ssh_channel? {
+    /// `connecting`: the socket's connect is still in progress (the bridge waits for it).
+    func acceptBridged(_ session: ssh_session, fd: Int32, connecting: Bool = false) -> ssh_channel? {
         guard let channel = ssh_channel_new(session) else {
             close(fd)
             return nil
         }
-        bridge(ChannelBox(channel: channel, handlers: SSHChannelHandlers(data: { _ in }, closed: { _ in })), fd: fd)
+        bridge(ChannelBox(channel: channel, handlers: SSHChannelHandlers(data: { _ in }, closed: { _ in })), fd: fd, connecting: connecting)
         return channel
     }
 
@@ -988,15 +1056,24 @@ final class ChannelBox {
         if isClosed, !holdsUndelivered { finish(status: exitStatus) }
     }
 
+    /// Input waiting for the server's window (a write beyond it would block the loop).
+    private var outgoing = Data()
+
     func write(_ data: Data) {
         guard !isClosed, !data.isEmpty else { return }
-        data.withUnsafeBytes { raw in
-            var offset = 0
-            while offset < raw.count {
-                let written = ssh_channel_write(channel, raw.baseAddress! + offset, UInt32(raw.count - offset))
-                if written <= 0 { break }
-                offset += Int(written)
-            }
+        outgoing.append(data)
+        flushOutgoing()
+    }
+
+    /// Writes as much of `outgoing` as the window takes now (called again between polls).
+    func flushOutgoing() {
+        while !outgoing.isEmpty, !isClosed, !freed {
+            let window = Int(ssh_channel_window_size(channel))
+            guard window > 0 else { return }
+            let count = min(window, outgoing.count, 32_768)
+            let written = outgoing.withUnsafeBytes { ssh_channel_write(channel, $0.baseAddress!, UInt32(count)) }
+            guard written > 0 else { return }
+            outgoing.removeFirst(Int(written))
         }
     }
 
@@ -1093,10 +1170,13 @@ final class Bridge {
     /// Writing to the socket failed: the peer is gone.
     private var socketDead = false
     private var windowOpen = true
+    /// The socket's connect is in progress: wait for writability, then check the result.
+    private var connecting: Bool
 
-    init(fd: Int32, box: ChannelBox) {
+    init(fd: Int32, box: ChannelBox, connecting: Bool = false) {
         self.fd = fd
         self.box = box
+        self.connecting = connecting
         box.isBridged = true
         box.sink = { [unowned self] bytes in take(bytes) }
         box.canWrite = { [unowned self] in windowOpen = true }
@@ -1118,6 +1198,7 @@ final class Bridge {
 
     var wantedEvents: Int16 {
         if isFinished { return 0 }
+        if connecting { return Int16(POLLOUT) }
         var events: Int16 = 0
         if !localEOF && !socketDead && !box.isClosed && windowOpen { events |= Int16(POLLIN) }
         if !pending.isEmpty && !socketDead { events |= Int16(POLLOUT) }
@@ -1130,7 +1211,7 @@ final class Bridge {
         guard pending.count < Self.limit else { return 0 }
         let room = min(bytes.count, Self.limit - pending.count)
         var offset = 0
-        if pending.isEmpty {
+        if pending.isEmpty, !connecting {
             while offset < room {
                 let n = write(fd, bytes.baseAddress! + offset, room - offset)
                 if n > 0 { offset += n; continue }
@@ -1177,6 +1258,14 @@ final class Bridge {
     }
 
     func handle(_ revents: Int32) {
+        if connecting {
+            guard revents & Int32(POLLOUT | POLLHUP | POLLERR) != 0 else { return }
+            var error: Int32 = 0
+            var length = socklen_t(MemoryLayout<Int32>.size)
+            getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &length)
+            connecting = false
+            if error != 0 { return died() }
+        }
         if revents & Int32(POLLOUT) != 0, !pending.isEmpty, !socketDead {
             let written = pending.withUnsafeBytes { write(fd, $0.baseAddress!, $0.count) }
             if written > 0 {
@@ -1225,6 +1314,23 @@ private let x11ChannelRequested: ssh_channel_open_request_x11_callback = { _, _,
 
 /// Connects to a local Unix socket (the agent, an X server).
 enum LocalSocket {
+    /// A non-blocking TCP socket whose connect has started (to the first address).
+    static func startTCP(host: String, port: Int) -> Int32? {
+        var hints = addrinfo(ai_flags: AI_NUMERICSERV, ai_family: AF_UNSPEC, ai_socktype: SOCK_STREAM, ai_protocol: IPPROTO_TCP,
+                             ai_addrlen: 0, ai_canonname: nil, ai_addr: nil, ai_next: nil)
+        var list: UnsafeMutablePointer<addrinfo>?
+        guard getaddrinfo(host, String(port), &hints, &list) == 0, let info = list else { return nil }
+        defer { freeaddrinfo(list) }
+        let fd = socket(info.pointee.ai_family, info.pointee.ai_socktype, info.pointee.ai_protocol)
+        guard fd >= 0 else { return nil }
+        _ = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK)
+        if connect(fd, info.pointee.ai_addr, info.pointee.ai_addrlen) != 0, errno != EINPROGRESS {
+            close(fd)
+            return nil
+        }
+        return fd
+    }
+
     static func unix(_ path: String) -> Int32? {
         let fd = socket(AF_UNIX, SOCK_STREAM, 0)
         guard fd >= 0 else { return nil }

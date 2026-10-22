@@ -31,6 +31,8 @@ enum ProxyTunnel {
 
     private static func fail(_ text: String) -> SSHConnectionError { .connectFailed("Proxy: \(text)") }
 
+    /// A blocking TCP socket connected within `timeout` (non-blocking connect + poll: macOS
+    /// ignores send timeouts for connect()).
     static func connect(host: String, port: Int, timeout: TimeInterval) throws -> Int32 {
         var hints = addrinfo(ai_flags: 0, ai_family: AF_UNSPEC, ai_socktype: SOCK_STREAM, ai_protocol: IPPROTO_TCP,
                              ai_addrlen: 0, ai_canonname: nil, ai_addr: nil, ai_next: nil)
@@ -39,6 +41,7 @@ enum ProxyTunnel {
             throw fail("cannot resolve \(host)")
         }
         defer { freeaddrinfo(list) }
+        let deadline = Date().addingTimeInterval(timeout)
         var lastError = "connection refused"
         var current: UnsafeMutablePointer<addrinfo>? = first
         while let info = current {
@@ -47,14 +50,24 @@ enum ProxyTunnel {
             guard fd >= 0 else { continue }
             var yes: Int32 = 1
             setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout<Int32>.size))
-            var tv = timeval(tv_sec: Int(timeout), tv_usec: 0)
-            setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
-            setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
-            if Darwin.connect(fd, info.pointee.ai_addr, info.pointee.ai_addrlen) == 0 {
-                // Back to blocking without timeouts: libssh owns it from here.
-                var none = timeval(tv_sec: 0, tv_usec: 0)
-                setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &none, socklen_t(MemoryLayout<timeval>.size))
-                setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &none, socklen_t(MemoryLayout<timeval>.size))
+            let flags = fcntl(fd, F_GETFL)
+            _ = fcntl(fd, F_SETFL, flags | O_NONBLOCK)
+            var connected = Darwin.connect(fd, info.pointee.ai_addr, info.pointee.ai_addrlen) == 0
+            if !connected, errno == EINPROGRESS {
+                var pfd = pollfd(fd: fd, events: Int16(POLLOUT), revents: 0)
+                let wait = Int32(max(0, deadline.timeIntervalSinceNow) * 1000)
+                if poll(&pfd, 1, wait) > 0 {
+                    var error: Int32 = 0
+                    var length = socklen_t(MemoryLayout<Int32>.size)
+                    getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &length)
+                    connected = error == 0
+                    if error != 0 { errno = error }
+                } else {
+                    errno = ETIMEDOUT
+                }
+            }
+            if connected {
+                _ = fcntl(fd, F_SETFL, flags & ~O_NONBLOCK)
                 return fd
             }
             lastError = String(cString: strerror(errno))
@@ -81,7 +94,11 @@ enum ProxyTunnel {
             case let .failure(text): throw fail(text)
             case .needMore: break
             }
-            guard Date() < deadline, data.count < 16_384 else { throw fail("no answer from the proxy") }
+            guard data.count < 16_384 else { throw fail("no answer from the proxy") }
+            // Wait no longer than the deadline for each byte.
+            var pfd = pollfd(fd: fd, events: Int16(POLLIN), revents: 0)
+            let wait = Int32(max(0, deadline.timeIntervalSinceNow) * 1000)
+            guard wait > 0, poll(&pfd, 1, wait) > 0 else { throw fail("no answer from the proxy") }
             var byte: UInt8 = 0
             guard read(fd, &byte, 1) == 1 else { throw fail("the proxy closed the connection") }
             data.append(byte)
