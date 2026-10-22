@@ -183,21 +183,22 @@ final class TabManagementTests: XCTestCase {
         let tab = try XCTUnwrap(controller.model.openTab(profile: TestApp.profile("ring", "sleep 30")))
         controller.model.split(.right)
         let content = try XCTUnwrap(controller.window?.contentView)
-        pump(0.3)
-        content.layoutSubtreeIfNeeded()
-        let views = tab.orderedPanes.compactMap { controller.paneView(for: $0) }
-        XCTAssertEqual(views.count, 2)
-        XCTAssertEqual(views.filter(\.showsFocusRing).count, 1)
+        func views() -> [PaneContainerView] { tab.orderedPanes.compactMap { controller.paneView(for: $0) } }
+        func rings() -> Int {
+            content.layoutSubtreeIfNeeded()
+            return views().filter(\.showsFocusRing).count
+        }
+        TestApp.pump(until: { views().count == 2 && rings() == 1 })
+        XCTAssertEqual(views().count, 2)
+        XCTAssertEqual(rings(), 1)
 
         controller.runCommand("pane-focus-all")
-        pump(0.3)
-        content.layoutSubtreeIfNeeded()
-        XCTAssertEqual(views.filter(\.showsFocusRing).count, 2, "every pane looks focused while broadcasting")
+        TestApp.pump(until: { rings() == 2 })
+        XCTAssertEqual(rings(), 2, "every pane looks focused while broadcasting")
 
         controller.runCommand("pane-focus-all")
-        pump(0.3)
-        content.layoutSubtreeIfNeeded()
-        XCTAssertEqual(views.filter(\.showsFocusRing).count, 1)
+        TestApp.pump(until: { rings() == 1 })
+        XCTAssertEqual(rings(), 1)
     }
 
     /// Tabby pastes into every pane while broadcasting (`forEachFocusedTerminalPane(tab => tab.paste())`).

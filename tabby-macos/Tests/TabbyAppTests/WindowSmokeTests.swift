@@ -91,7 +91,8 @@ final class WindowSmokeTests: XCTestCase {
             let profile = Profile(id: "local:side", type: "local", name: "side",
                                   options: LocalOptions(command: "/bin/sh", args: ["-c", "sleep 3"]).configValue)
             _ = controller.model.openTab(profile: profile)
-            pump(0.5)
+            // Tab views come from an observation callback; slow runners need more than a beat.
+            TestApp.pump(until: { controller.model.activePane.flatMap { controller.paneView(for: $0) } != nil })
             let content = try XCTUnwrap(controller.window?.contentView)
             content.layoutSubtreeIfNeeded()
             let pane = try XCTUnwrap(controller.model.activePane)
