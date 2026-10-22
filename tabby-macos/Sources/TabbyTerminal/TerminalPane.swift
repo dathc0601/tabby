@@ -64,6 +64,8 @@ public final class TerminalPane: TerminalEngineDelegate {
     @ObservationIgnored public var onRecoveryStateChanged: (() -> Void)?
     /// Sees keyboard input before it is sent (used for broadcasting to other panes).
     @ObservationIgnored public var onUserInput: ((TerminalPane, Data) -> Void)?
+    /// Sees a paste once it is prepared and confirmed (used for broadcasting to other panes).
+    @ObservationIgnored public var onPaste: ((TerminalPane, String) -> Void)?
 
     public init(id: UUID = UUID(), profile: Profile, factory: SessionFactory, context: SessionContext,
                 settings: TerminalSettings, scheme: ColorScheme, restore: PaneRecovery? = nil) {
@@ -291,19 +293,22 @@ public final class TerminalPane: TerminalEngineDelegate {
             return
         }
         sendPaste(text)
+        onPaste?(self, text)
     }
 
     public func confirmPaste() {
         guard let text = pendingPaste else { return }
         pendingPaste = nil
         sendPaste(text)
+        onPaste?(self, text)
     }
 
     public func cancelPaste() {
         pendingPaste = nil
     }
 
-    private func sendPaste(_ text: String) {
+    /// Sends paste text that is already prepared, bracketed when this pane's program asked for it.
+    public func sendPaste(_ text: String) {
         let bracketed = settings.bracketedPaste && (engine?.isBracketedPasteMode ?? false)
         send(text: PastePreparation.bracketed(text, enabled: bracketed))
     }

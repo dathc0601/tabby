@@ -193,6 +193,25 @@ final class PaneTests: XCTestCase {
         pane.close()
     }
 
+    /// Broadcasting mirrors a paste once it is confirmed, so the warning is asked only once.
+    func testPasteIsReportedOnceItIsConfirmed() throws {
+        let (pane, _) = try makePane(command: "/bin/cat", args: [], behavior: .keep)
+        var reported: [String] = []
+        pane.onPaste = { _, text in reported.append(text) }
+        pane.onRequestPasteConfirmation = { _, _ in }
+        pane.start()
+        pane.paste("one\ntwo")
+        XCTAssertEqual(reported, [], "not while the warning is up")
+        pane.cancelPaste()
+        XCTAssertEqual(reported, [])
+        pane.paste("one\ntwo")
+        pane.confirmPaste()
+        XCTAssertEqual(reported, ["one\rtwo"])
+        pane.paste("single")
+        XCTAssertEqual(reported, ["one\rtwo", "single"])
+        pane.close()
+    }
+
     func testRecoveryStateCarriesCwd() throws {
         let dir = canonicalTemporaryDirectory()
         let profile = Profile(id: "local:x", type: "local", name: "x", options: LocalOptions(command: "/bin/sh", args: []).configValue)

@@ -28,6 +28,7 @@ final class SplitTreeView: NSView {
             _ = self.tab.panes.count
             _ = self.tab.maximizedPaneID
             _ = self.tab.focusedPaneID
+            _ = self.tab.broadcastInput
             _ = AppServices.shared.theme.revision
         }, apply: { [weak self] in
             self?.syncPaneViews()
@@ -58,7 +59,8 @@ final class SplitTreeView: NSView {
             if let f = frames[id] {
                 view.isHidden = false
                 view.frame = f
-                view.showsFocusRing = multiple && tab.focusedPaneID == id
+                // Every pane looks focused while input goes to all of them, as in Tabby.
+                view.showsFocusRing = multiple && (tab.broadcastInput || tab.focusedPaneID == id)
             } else {
                 view.isHidden = true
             }

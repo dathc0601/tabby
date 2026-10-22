@@ -79,6 +79,12 @@ public final class WindowModel {
                 for other in tab.orderedPanes where other !== p { other.send(data) }
             }
         }
+        pane.onPaste = { [weak self] p, text in
+            MainActor.assumeIsolated {
+                guard let tab = self?.tabs.first(where: { $0.panes[p.id] != nil }), tab.broadcastInput else { return }
+                for other in tab.orderedPanes where other !== p { other.sendPaste(text) }
+            }
+        }
         pane.onRecoveryStateChanged = { [weak self] in
             MainActor.assumeIsolated { self?.onRecoveryStateChanged?() }
         }

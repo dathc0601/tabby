@@ -9,19 +9,11 @@ import AppKit
 /// first tab lay out as intended. Guards against regressions that only show up on screen.
 @MainActor
 final class WindowSmokeTests: XCTestCase {
-    static var booted = false
-
-    func pump(_ seconds: Double) { RunLoop.main.run(until: Date().addingTimeInterval(seconds)) }
+    func pump(_ seconds: Double) { TestApp.pump(seconds) }
 
     override func setUp() {
         super.setUp()
-        guard !Self.booted else { return }
-        Self.booted = true
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("tabbymac-smoke-\(UUID().uuidString.prefix(6))").path
-        setenv("TABBYMAC_CONFIG_DIRECTORY", dir, 1)
-        _ = NSApplication.shared
-        NSApp.setActivationPolicy(.accessory)
-        AppServices.shared.start()
+        TestApp.boot()
     }
 
     /// Every view the SwiftUI tab bar creates must stay inside the strip reserved for it.
