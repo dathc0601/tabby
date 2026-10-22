@@ -24,28 +24,30 @@ M0 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1).
 
 ## M1 Local terminal
 
-- [ ] The shell starts in the home directory with `TERM=xterm-256color`, `COLORTERM=truecolor`.
-- [ ] `ls --color`, `vim`, `htop` or `top` render correctly; resizing the window reflows.
-- [ ] `printf '\e]0;Hello\a'` sets the tab title; `cd /tmp` then ⌘T opens the new tab in
+- [x] The shell starts in the home directory with `TERM=xterm-256color`, `COLORTERM=truecolor`.
+- [x] `ls --color`, `vim`, `htop` or `top` render correctly; resizing the window reflows.
+- [x] `printf '\e]0;Hello\a'` sets the tab title; `cd /tmp` then ⌘T opens the new tab in
       `/private/tmp` (OSC 7, or the foreground process cwd, which macOS reports resolved).
-- [ ] ⌘F opens the search bar: typing finds matches, the counter updates, ↩ / ↓ go to the
+- [x] ⌘F opens the search bar: typing finds matches, the counter updates, ↩ / ↓ go to the
       next match and ⇧↩ / ↑ to the previous one, case / regex / whole-word toggles work,
       Esc closes.
-- [ ] ⌘+ / ⌘- / ⌘0 zoom the focused pane's font. After a split the zoomed pane keeps its
+- [x] ⌘+ / ⌘- / ⌘0 zoom the focused pane's font. After a split the zoomed pane keeps its
       size and the new pane starts at the configured size, like a new tab (zoom is per pane,
       as in Tabby).
-- [ ] Select text: copy on select (if enabled) puts it on the clipboard; ⌘C copies, ⌘V pastes,
+- [x] Select text: copy on select (if enabled) puts it on the clipboard; ⌘C copies, ⌘V pastes,
       middle-click pastes, right-click follows the configured action (menu / paste / select).
-- [ ] Paste two lines: the "Paste multiple lines?" sheet shows the trimmed preview; Paste sends
+- [x] Paste two lines: the "Paste multiple lines?" sheet shows the trimmed preview; Paste sends
       them as `\r`-separated input; Cancel sends nothing.
-- [ ] Run `printf '\e[?2004h'; cat -v` and paste a line: it shows as `^[[200~…^[[201~`.
+- [x] Run `printf '\e[?2004h'; cat -v` and paste a line: it shows as `^[[200~…^[[201~`.
       Plain `cat` shows no markers, because paste is only wrapped once the program turns
       bracketed paste on (as in Tabby). ^C, then `printf '\e[?2004l'`.
-- [ ] `printf '\a'`: bell behaves as configured (off / visual flash / audible).
-- [ ] `printf 'Downloading 37%%\n'`: the tab shows a thin 37 % progress line at the bottom of
+- [x] `printf '\a'`: bell behaves as configured (off / visual flash / audible).
+- [x] `printf 'Downloading 37%%\n'`: the tab shows a thin 37 % progress line at the bottom of
       its header, which clears after about 5 s.
-- [ ] `exit`: the tab closes (default) or, in a profile with "Keep the tab open after the
+- [x] `exit`: the tab closes (default) or, in a profile with "Keep the tab open after the
       process exits", shows the exit code and any key restarts the shell.
+
+M1 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1).
 
 ## M2 Tabs and splits
 
