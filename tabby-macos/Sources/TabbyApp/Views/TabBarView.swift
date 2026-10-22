@@ -64,14 +64,19 @@ struct HorizontalTabBar: View {
     static let newTabWidth: CGFloat = 32
     static let dragMinimum: CGFloat = 24
     static let toolbarWidth: CGFloat = 3 * 28 + 2 * 2 + 8
+    /// With the transfers button (shown while there are transfers).
+    static func toolbarWidth(showsTransfers: Bool) -> CGFloat {
+        showsTransfers ? toolbarWidth + 28 + 2 : toolbarWidth
+    }
 
     var body: some View {
         let services = AppServices.shared
         let _ = services.configRevision
         let flex = services.config.bool("appearance.flexTabs")
         let pinned = model.tabs.filter(\.isPinned).count
+        let showsTransfers = !TransferCenter.shared.transfers.isEmpty
         GeometryReader { geo in
-            let fixedParts = leadingInset + Self.newTabWidth + Self.dragMinimum + Self.toolbarWidth
+            let fixedParts = leadingInset + Self.newTabWidth + Self.dragMinimum + Self.toolbarWidth(showsTransfers: showsTransfers)
             let layout = TabStripLayout(available: Double(geo.size.width - fixedParts), pinned: pinned,
                                         regular: model.tabs.count - pinned, flex: flex)
             HStack(spacing: 0) {
@@ -83,6 +88,7 @@ struct HorizontalTabBar: View {
                     .frame(width: Self.newTabWidth)
                 WindowDragArea().frame(minWidth: Self.dragMinimum, maxWidth: .infinity)
                 HStack(spacing: 2) {
+                    TransfersToolbarButton()
                     IconButton(symbol: "rectangle.stack", help: "Profiles & connections", action: actions.showProfiles)
                     IconButton(symbol: "gearshape", help: "Settings", action: actions.showSettings)
                     AccountToolbarButton(openSettings: { WindowManager.shared.openSettings(section: .account) })
@@ -183,6 +189,7 @@ struct VerticalTabBar: View {
             HStack(spacing: 2) {
                 IconButton(symbol: "rectangle.stack", help: "Profiles & connections", action: actions.showProfiles)
                 IconButton(symbol: "gearshape", help: "Settings", action: actions.showSettings)
+                TransfersToolbarButton()
                 Spacer(minLength: 0)
                 AccountToolbarButton(openSettings: { WindowManager.shared.openSettings(section: .account) })
             }
