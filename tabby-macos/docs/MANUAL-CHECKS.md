@@ -57,7 +57,7 @@ M1 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1).
       joins the pinned group at the front; ⌘W and ⌘⇧←/→ leave it there), Colour (a bar along
       the bottom), Close others / left / right (idle tabs close, busy ones ask once, pinned
       tabs stay).
-- [ ] Drag a tab to reorder; the active tab keeps its content.
+- [x] Drag a tab to reorder; the active tab keeps its content.
 - [x] Settings → Window → tab bar position top / bottom / left / right: the strip moves and the
       terminal stays below / beside it without overlap.
 - [x] With six or more tabs every tab stays visible, shrinking to fit; the + follows the last tab.
@@ -65,7 +65,7 @@ M1 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1).
       switches to the most recently used tab.
 - [x] Split right ⌘⇧D, down ⌘D, left / up from the Shell menu: the new pane gets focus and
       starts in the current directory.
-- [ ] Drag a divider: both panes resize and the shells see the new size (`stty size`).
+- [x] Drag a divider: both panes resize and the shells see the new size (`stty size`).
 - [x] Pane navigation shortcuts move focus in all four directions; previous / next cycle.
 - [x] Maximise pane toggles a single pane filling the tab; the others come back untouched.
 - [x] Broadcast (⌘⇧I, View → Broadcast Input to All Panes): every pane shows the focus ring,
@@ -75,6 +75,8 @@ M1 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1).
 - [x] Close a pane or tab whose shell has a running child (`sleep 100`): a confirmation
       sheet appears; cancelling keeps it.
 - [x] Save layout as profile: the new profile appears in the selector and reopens the layout.
+
+M2 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1).
 
 ## M3 Hotkeys, selector and menus
 
