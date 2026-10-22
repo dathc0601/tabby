@@ -62,7 +62,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             controller.model.openTab()
         }
         RecoveryCoordinator.shared.start()
-        DockController.shared.apply()
+        DockController.shared.apply(followMouse: true)
         NSApp.activate(ignoringOtherApps: true)
 
         if let error = services.loadError {
@@ -140,7 +140,7 @@ final class WindowManager {
             NSApp.unhide(nil)
             NSApp.activate(ignoringOtherApps: true)
             if controllers.isEmpty { newWindow() }
-            DockController.shared.apply()
+            DockController.shared.apply(followMouse: true)
             activeController?.window?.makeKeyAndOrderFront(nil)
         }
     }
@@ -206,7 +206,23 @@ final class DockController {
         return config.value("appearance.dockAlwaysOnTop")?.boolValue ?? true ? .floating : .normal
     }
 
-    func apply() {
+    /// Tabby's display choice: `appearance.dockScreen` when it names a connected display
+    /// (Electron's display id is the CGDirectDisplayID, AppKit's `NSScreenNumber`), otherwise
+    /// the display under `point`.
+    static func screen(for dockScreen: ConfigValue?, near point: NSPoint) -> NSScreen? {
+        let screens = NSScreen.screens
+        if let id = dockScreen?.intValue, let match = screens.first(where: {
+            ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.intValue == id
+        }) {
+            return match
+        }
+        return screens.first { NSMouseInRect(point, $0.frame, false) } ?? NSScreen.main
+    }
+
+    /// Docks the first window. `followMouse` picks the display under the mouse, as Tabby does
+    /// at launch and when the window is shown; for setting changes the window stays on its
+    /// display (Settings is a separate window here and may sit on another one).
+    func apply(followMouse: Bool = false) {
         let config = AppServices.shared.config
         let side = config.string("appearance.dock") ?? "off"
         SettingsWindowController.shared?.window?.level = level
@@ -216,7 +232,8 @@ final class DockController {
             window.collectionBehavior = [.fullScreenPrimary]
             return
         }
-        guard let screen = window.screen ?? NSScreen.main else { return }
+        let point = followMouse ? NSEvent.mouseLocation : CGPoint(x: window.frame.midX, y: window.frame.midY)
+        guard let screen = Self.screen(for: config.value("appearance.dockScreen"), near: point) else { return }
         let area = screen.visibleFrame
         let fill = CGFloat(config.double("appearance.dockFill") ?? 0.5)
         let space = CGFloat(config.double("appearance.dockSpace") ?? 1)

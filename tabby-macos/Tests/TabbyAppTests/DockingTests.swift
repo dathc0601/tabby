@@ -55,5 +55,19 @@ final class DockingTests: XCTestCase {
         dock("top", alwaysOnTop: false)
         XCTAssertEqual(settings.level, .normal)
     }
+
+    /// Tabby docks on `appearance.dockScreen` when it names a connected display (Electron's
+    /// display id is the CGDirectDisplayID) and otherwise on the display under the mouse. The
+    /// window's own screen was used, so a window left on another display docked there.
+    func testDocksOnTheDisplayUnderTheMouse() throws {
+        let screens = NSScreen.screens
+        for screen in screens {
+            let middle = NSPoint(x: screen.frame.midX, y: screen.frame.midY)
+            XCTAssertEqual(DockController.screen(for: "current", near: middle), screen, "\(screen.frame)")
+        }
+        let last = try XCTUnwrap(screens.last)
+        let id = try XCTUnwrap(last.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)
+        XCTAssertEqual(DockController.screen(for: .int(id.intValue), near: .zero), last, "a display picked by id")
+    }
 }
 #endif
