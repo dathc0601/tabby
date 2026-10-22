@@ -4,6 +4,7 @@ import Observation
 import TabbyCore
 import TabbyTerminal
 import TabbySSH
+import TabbyAccount
 
 /// Process-wide services: configuration, profiles, sessions, theme. Replaces the Angular
 /// root injector of Tabby.
@@ -20,9 +21,12 @@ public final class AppServices {
     @ObservationIgnored public let recovery: RecoveryStore
     @ObservationIgnored public let askpass: AskpassServer
     @ObservationIgnored public let passwords: PasswordStore
+    /// Private keys that arrived through sync (`<config>/keys`).
+    @ObservationIgnored public let keyFiles: KeyFileStore
     @ObservationIgnored public private(set) var factories: [String: SessionFactory] = [:]
     @ObservationIgnored public let sshFactory: SSHSessionFactory
     public let theme: ThemeManager
+    let account: AccountService
 
     /// Bumped on every config change so SwiftUI views can depend on it.
     public private(set) var configRevision = 0
@@ -43,7 +47,13 @@ public final class AppServices {
         schemes = ColorSchemeCatalog()
         recovery = RecoveryStore(url: paths.recoveryFile)
         askpass = AskpassServer(socketPath: AskpassServer.defaultSocketPath())
-        passwords = KeychainPasswordStore()
+        // Tests set TABBYMAC_KEYCHAIN=memory: syncing reads every saved SSH password, and in a
+        // test run that must never reach the user's login keychain (or raise its prompt).
+        let keychain: PasswordStore = ProcessInfo.processInfo.environment["TABBYMAC_KEYCHAIN"] == "memory"
+            ? InMemoryPasswordStore() : KeychainPasswordStore()
+        let notifyingPasswords = NotifyingPasswordStore(keychain)
+        passwords = notifyingPasswords
+        keyFiles = KeyFileStore(directory: paths.root.appendingPathComponent("keys", isDirectory: true))
         theme = ThemeManager()
 
         let recents = RecentProfilesStore(url: paths.recentProfilesFile)
@@ -68,6 +78,13 @@ public final class AppServices {
             ),
             resolveProfile: { _ in nil }
         )
+        let keyFiles = keyFiles
+        sshFactory.environment.syncedKeys = { keyFiles.syncedKeys() }
+        account = AccountService.standard(
+            local: LocalSyncData(config: config, passwords: notifyingPasswords, keyStore: keyFiles, knownHostsFile: paths.knownHostsFile,
+                                 // Tests point this at a scratch folder so no real ~/.ssh key is read.
+                                 homeDirectory: ProcessInfo.processInfo.environment["TABBYMAC_SYNC_HOME"] ?? NSHomeDirectory()),
+            paths: paths)
         factories["local"] = LocalSessionFactory()
         factories["ssh"] = sshFactory
         loadError = error
@@ -75,6 +92,8 @@ public final class AppServices {
         config.observe { [weak self] in
             MainActor.assumeIsolated { self?.configChanged() }
         }
+        let account = account
+        notifyingPasswords.onChange = { MainActor.assumeIsolated { account.localDataChanged() } }
         theme.update(config: config)
     }
 
@@ -87,6 +106,7 @@ public final class AppServices {
         // Like Tabby, make sure config.yaml exists after the first launch so users can find
         // and edit it, even before they change a setting.
         if loadError == nil, !FileManager.default.fileExists(atPath: paths.configFile.path) { flushSave() }
+        account.start()
     }
 
     public func stop() {
@@ -107,6 +127,7 @@ public final class AppServices {
         theme.update(config: config)
         sshFactory.environment.verifyHostKeys = config.value("ssh.verifyHostKeys")?.boolValue ?? true
         scheduleSave()
+        account.localDataChanged()
     }
 
     public func scheduleSave() {

@@ -4,6 +4,7 @@ import AppKit
 import SwiftUI
 @testable import TabbyCore
 @testable import TabbyApp
+import TabbyAccount
 
 /// Renders the main screens to PNG files for comparing with the design canvases without a
 /// display (works while the Mac is locked). Skipped unless `TABBYMAC_SNAPSHOT_DIR` is set:
@@ -156,6 +157,34 @@ final class DesignSnapshotTests: XCTestCase {
         center.show(ToastCenter.Toast(symbol: "checkmark.circle.fill", tint: .success, title: "Process completed",
                                       detail: "terraform apply exited with code 0 in tab 4 · 3m 12s", actionTitle: "Show", action: {}))
         try render(ToastOverlay(center: center), NSSize(width: 520, height: 110), "toast")
+    }
+
+    func testAccountScreens() async throws {
+        for mode in [AccountSheetMode.signIn, .register, .forgotPassword, .recoveryKey("K7QF-9MXA-2PLT-R4WN-8HJD-C3VZ-T6YB-Q1EM")] {
+            try render(AccountSheet(mode: mode, dismiss: {}), NSSize(width: 440, height: 520), "account-\(String(describing: mode).prefix(12))")
+        }
+        try render(KeyFilesSheet(files: [KeyFileCandidate(id: "a", originalPath: "~/.ssh/id_ed25519", isDefaultIdentity: true),
+                                         KeyFileCandidate(id: "b", originalPath: "~/.ssh/acme_ci", isDefaultIdentity: false)], dismiss: {}),
+                   NSSize(width: 480, height: 320), "account-keyfiles")
+        let c = window()
+        defer { TestApp.dispose(c) }
+        c.model.openSettings(section: .account)
+        TestApp.pump(0.6)
+        try save(try XCTUnwrap(c.window?.contentView), "settings-account-signedout")
+        let account = AppServices.shared.account
+        if !account.isSignedIn {
+            _ = try await account.register(email: "alex.nguyen@example.com", password: "Correct-Horse-9", keepSignedIn: false)
+            await account.finishRegistration()
+        }
+        TestApp.pump(0.8)
+        try save(try XCTUnwrap(c.window?.contentView), "settings-account-signedin")
+        try render(AccountPopover(close: {}, openSettings: {}), NSSize(width: 290, height: 300), "account-popover")
+        try render(SignOutSheet(dismiss: {}), NSSize(width: 440, height: 300), "account-signout")
+        try render(AccountSheet(mode: .restored, dismiss: {}), NSSize(width: 440, height: 420), "account-restored")
+        c.model.openSettings(section: .vault)
+        TestApp.pump(0.6)
+        try save(try XCTUnwrap(c.window?.contentView), "settings-vault")
+        await account.signOut(removeSyncedData: false)
     }
 
     func testContentTabs() throws {

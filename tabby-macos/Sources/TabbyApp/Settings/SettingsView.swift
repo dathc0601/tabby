@@ -13,6 +13,8 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case profiles = "Profiles & connections"
     case ssh = "SSH"
     case hotkeys = "Hotkeys"
+    case vault = "Vault"
+    case account = "Account & sync"
     case configFile = "Config file"
 
     var id: String { rawValue }
@@ -28,6 +30,8 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .profiles: return "rectangle.stack"
         case .ssh: return "server.rack"
         case .hotkeys: return "keyboard"
+        case .vault: return "key"
+        case .account: return "person.crop.circle"
         case .configFile: return "curlybraces"
         }
     }
@@ -35,8 +39,8 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     /// The sidebar groups of the design.
     static let groups: [[SettingsSection]] = [
         [.application, .appearance, .colorScheme, .terminal, .window],
-        [.profiles, .ssh, .hotkeys],
-        [.configFile],
+        [.profiles, .ssh, .hotkeys, .vault],
+        [.account, .configFile],
     ]
 
     /// Row labels on the page, so "Search settings" finds a page by what is on it.
@@ -50,6 +54,8 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .profiles: return ["profile", "connection", "group", "ssh", "local", "default", "hidden"]
         case .ssh: return ["host key", "known hosts", "warn", "quick connect", "keychain"]
         case .hotkeys: return ["shortcut", "keyboard", "chord", "binding"]
+        case .vault: return ["password", "passphrase", "keychain", "secret", "key"]
+        case .account: return ["sync", "sign in", "sign out", "devices", "recovery key", "cloud", "email"]
         case .configFile: return ["yaml", "config.yaml", "raw"]
         }
     }
@@ -89,6 +95,8 @@ struct SettingsRootView: View {
                 case .hotkeys: HotkeysSettingsView()
                 case .profiles: ProfilesSettingsView()
                 case .ssh: SSHSettingsView()
+                case .vault: VaultSettingsView()
+                case .account: AccountSettingsView()
                 case .configFile: ConfigFileSettingsView()
                 }
             }

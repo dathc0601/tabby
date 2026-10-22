@@ -4,6 +4,7 @@ import QuartzCore
 import UserNotifications
 import TabbyCore
 import TabbySSH
+import TabbyAccount
 
 /// Entry point used by the Xcode app target (`App/main.swift`) and by `swift run TabbyMacDev`.
 public enum TabbyAppMain {
@@ -29,6 +30,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         services.start()
         services.sshFactory.promptHandler = SSHPromptPresenter.shared
 
+        services.account.onSyncFinished = { report, error in
+            MainActor.assumeIsolated { WindowManager.shared.syncFinished(report, error: error) }
+        }
         MainMenu.install()
         let manager = HotkeyManager { id in
             if id == "settings" { WindowManager.shared.openSettings(); return true }
@@ -133,6 +137,36 @@ final class WindowManager {
         lastActive = controller
         if openDefaultTab { controller.model.openTab() }
         return controller
+    }
+
+    private var lastSyncError: String?
+    private var offeredKeyFiles: Set<String> = []
+
+    /// Toasts for sync results in the active window, and the one-time question about new key
+    /// files.
+    func syncFinished(_ report: SyncReport?, error: Error?) {
+        let account = AppServices.shared.account
+        guard let controller = activeController else { return }
+        if let error {
+            let message = error.localizedDescription
+            if message != lastSyncError {
+                controller.toasts.show(ToastCenter.Toast(symbol: "exclamationmark.icloud", tint: .danger, title: "Sync failed", detail: message,
+                                                         actionTitle: "Settings", action: { [weak self] in self?.openSettings(section: .account) }), for: 8)
+            }
+            lastSyncError = message
+            return
+        }
+        lastSyncError = nil
+        guard let report else { return }
+        if report.applied && !account.isRestoring {
+            controller.toasts.show(ToastCenter.Toast(symbol: "arrow.triangle.2.circlepath.icloud", tint: .accent,
+                                                     title: "Synced", detail: "Changes from your other Macs are here."))
+        }
+        let fresh = report.pendingKeyFiles.filter { !offeredKeyFiles.contains($0.id) }
+        if !fresh.isEmpty, controller.window?.attachedSheet == nil {
+            offeredKeyFiles.formUnion(fresh.map(\.id))
+            AccountSheets.presentKeyFiles(report.pendingKeyFiles, in: controller.window)
+        }
     }
 
     /// Opens Settings as a tab of the active window (a new window when there is none).

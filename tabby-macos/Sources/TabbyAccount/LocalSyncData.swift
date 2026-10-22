@@ -26,6 +26,12 @@ public struct KeyFileCandidate: Hashable, Sendable, Identifiable {
     /// The path as the profile names it, or `~/.ssh/<name>` for ssh's default identities.
     public var originalPath: String
     public var isDefaultIdentity: Bool
+
+    public init(id: String, originalPath: String, isDefaultIdentity: Bool) {
+        self.id = id
+        self.originalPath = originalPath
+        self.isDefaultIdentity = isDefaultIdentity
+    }
 }
 
 /// This Mac's syncable data: user profiles and groups, SSH passwords and key passphrases in

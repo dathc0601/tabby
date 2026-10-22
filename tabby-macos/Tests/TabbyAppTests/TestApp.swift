@@ -14,6 +14,10 @@ enum TestApp {
         booted = true
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("tabbymac-smoke-\(UUID().uuidString.prefix(6))").path
         setenv("TABBYMAC_CONFIG_DIRECTORY", dir, 1)
+        // Never the real server or a signed-in session from the user's Keychain.
+        setenv("TABBYMAC_SYNC_URL", "memory:", 1)
+        setenv("TABBYMAC_KEYCHAIN", "memory", 1)
+        setenv("TABBYMAC_SYNC_HOME", dir + "/home", 1)
         _ = NSApplication.shared
         NSApp.setActivationPolicy(.accessory)
         AppServices.shared.start()

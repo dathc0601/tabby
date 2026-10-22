@@ -3,17 +3,17 @@ import Foundation
 import FoundationNetworking
 #endif
 import TabbySyncProtocol
-@testable import TabbyAccount
 
 /// An in-memory stand-in for tabby-sync-server with the same HTTP semantics (status codes,
-/// recovery-scoped tokens, If-Match compare-and-swap), so client and engine tests need no
-/// network. The real server's own tests cover the server.
-final class FakeSyncServer: HTTPTransport, @unchecked Sendable {
-    struct Account {
+/// recovery-scoped tokens, If-Match compare-and-swap), for tests and for running the app
+/// without a server (`TABBYMAC_SYNC_URL=memory:`). It keeps raw auth keys, so it is never a
+/// real server: tabby-sync-server is.
+public final class InMemorySyncServer: HTTPTransport, @unchecked Sendable {
+    public struct Account {
         var id = UUID()
         var email: String
         var kdf: KDFParams
-        var authKey: Data
+        public var authKey: Data
         var recoveryAuthKey: Data
         var wrappedByPassword: Data
         var wrappedByRecovery: Data
@@ -25,7 +25,7 @@ final class FakeSyncServer: HTTPTransport, @unchecked Sendable {
         }
     }
 
-    struct Device {
+    public struct Device {
         var id = UUID()
         var accountID: UUID
         var token: String
@@ -35,15 +35,17 @@ final class FakeSyncServer: HTTPTransport, @unchecked Sendable {
     }
 
     private let lock = NSLock()
-    var accounts: [String: Account] = [:]
-    var devices: [UUID: Device] = [:]
-    var vaults: [UUID: VaultDTO] = [:]
+    public var accounts: [String: Account] = [:]
+    public var devices: [UUID: Device] = [:]
+    public var vaults: [UUID: VaultDTO] = [:]
     /// Requests seen, as "METHOD /path".
-    var log: [String] = []
+    public var log: [String] = []
     /// Fails the next PUT /v1/vault with 409 as if another Mac had uploaded first.
-    var injectConflict = false
+    public var injectConflict = false
 
-    func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+    public init() {}
+
+    public func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         lock.lock()
         defer { lock.unlock() }
         let url = request.url!
@@ -180,7 +182,3 @@ final class FakeSyncServer: HTTPTransport, @unchecked Sendable {
         }
     }
 }
-
-/// Small scrypt parameters so tests run fast.
-let testKDF = KDFParams(n: 1024, r: 8, p: 1, salt: Data(repeating: 7, count: 16))
-let testDevice = DeviceInfo(name: "Test Mac", model: "Mac15,3", os: "macOS 27.0")

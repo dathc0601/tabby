@@ -63,7 +63,7 @@ struct HorizontalTabBar: View {
     /// The "+" button, the minimum drag area and the trailing toolbar.
     static let newTabWidth: CGFloat = 32
     static let dragMinimum: CGFloat = 24
-    static let toolbarWidth: CGFloat = 2 * 28 + 2 + 8
+    static let toolbarWidth: CGFloat = 3 * 28 + 2 * 2 + 8
 
     var body: some View {
         let services = AppServices.shared
@@ -85,6 +85,7 @@ struct HorizontalTabBar: View {
                 HStack(spacing: 2) {
                     IconButton(symbol: "rectangle.stack", help: "Profiles & connections", action: actions.showProfiles)
                     IconButton(symbol: "gearshape", help: "Settings", action: actions.showSettings)
+                    AccountToolbarButton(openSettings: { WindowManager.shared.openSettings(section: .account) })
                 }
                 .padding(.trailing, 8)
             }
@@ -183,6 +184,7 @@ struct VerticalTabBar: View {
                 IconButton(symbol: "rectangle.stack", help: "Profiles & connections", action: actions.showProfiles)
                 IconButton(symbol: "gearshape", help: "Settings", action: actions.showSettings)
                 Spacer(minLength: 0)
+                AccountToolbarButton(openSettings: { WindowManager.shared.openSettings(section: .account) })
             }
             .padding(6)
         }

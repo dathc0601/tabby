@@ -16,6 +16,7 @@ public enum HotkeyCatalog {
         add("new-window", "New window", "Application")
         add("toggle-window", "Show/hide window (global)", "Application")
         add("settings", "Open Settings", "Application")
+        add("sync-now", "Sync account now", "Application")
         add("command-selector", "Show command selector", "Application")
         add("profile-selector", "Show profile selector", "Application")
         add("switch-profile", "Switch profile in the active pane", "Application")

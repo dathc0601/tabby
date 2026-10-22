@@ -4,6 +4,8 @@ import TabbyCore
 import TabbySyncProtocol
 
 public struct SyncReport: Equatable, Sendable {
+    public init() {}
+
     /// A new vault revision was uploaded.
     public var uploaded = false
     /// Changes from other Macs were written to this one.
@@ -178,6 +180,12 @@ public final class SyncEngine {
         public var profiles = 0
         public var passwords = 0
         public var keys = 0
+
+        public init(profiles: Int = 0, passwords: Int = 0, keys: Int = 0) {
+            self.profiles = profiles
+            self.passwords = passwords
+            self.keys = keys
+        }
     }
 
     /// What came from the account, for the sign-out choice ("Deletes 23 profiles, 6 passwords

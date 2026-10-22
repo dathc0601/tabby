@@ -16,6 +16,13 @@ extension MainWindowController {
         // Application
         case "new-window": WindowManager.shared.newWindow()
         case "settings": model.openSettings()
+        case "sync-now":
+            let account = AppServices.shared.account
+            if account.isSignedIn {
+                Task { await account.syncNow() }
+            } else {
+                AccountSheets.present(.signIn, in: window)
+            }
         case "profile-selector": showProfileSelector()
         case "switch-profile": showProfileSelector(switchActivePane: true)
         case "command-selector": showCommandPalette()

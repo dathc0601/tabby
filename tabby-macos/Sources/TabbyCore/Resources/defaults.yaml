@@ -121,6 +121,8 @@ hotkeys:
     __nonStructural: true
   # tabby-core (macOS)
   toggle-fullscreen: ['Ctrl-⌘-F']
+  # TabbyMac: personal account (not in Tabby)
+  sync-now: ['⌘-Shift-S']
   close-tab: ['⌘-W']
   reopen-tab: ['⌘-Shift-T']
   toggle-last-tab: []
@@ -240,3 +242,13 @@ hacks:
 language: null
 defaultQuickConnectProvider: ssh
 showProfileTree: false
+# TabbyMac personal account and sync (not in Tabby). Stays on this Mac; never synced.
+account:
+  auto: true
+  parts:
+    profiles: true
+    secrets: true
+    knownHosts: true
+    settings: true
+  approvedKeyFiles: []
+  declinedKeyFiles: []
