@@ -15,14 +15,18 @@ public struct SSHConfigGenerator {
         public var localCommand: String?
         /// Private keys that arrived through sync, used when a key file is missing here.
         public var syncedKeys: SyncedKeys
+        /// Whether a key file exists here (injected by tests so they never look at ~/.ssh).
+        public var fileExists: @Sendable (String) -> Bool
 
         public init(knownHostsFile: String, extraKnownHostsFiles: [String] = [], controlDirectory: String, localCommand: String? = nil,
-                    syncedKeys: SyncedKeys = .none) {
+                    syncedKeys: SyncedKeys = .none,
+                    fileExists: @escaping @Sendable (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }) {
             self.knownHostsFile = knownHostsFile
             self.extraKnownHostsFiles = extraKnownHostsFiles
             self.controlDirectory = controlDirectory
             self.localCommand = localCommand
             self.syncedKeys = syncedKeys
+            self.fileExists = fileExists
         }
     }
 
@@ -91,8 +95,8 @@ public struct SSHConfigGenerator {
         if !o.user.isEmpty { add("User", Self.quote(o.user)) }
 
         let keys = o.privateKeys.isEmpty
-            ? paths.syncedKeys.identitiesForProfileWithoutKeys()
-            : o.privateKeys.map { paths.syncedKeys.resolve($0) }
+            ? paths.syncedKeys.identitiesForProfileWithoutKeys(fileExists: paths.fileExists)
+            : o.privateKeys.map { paths.syncedKeys.resolve($0, fileExists: paths.fileExists) }
         for key in keys {
             add("IdentityFile", Self.quote(Self.normalizeKeyPath(key)))
         }

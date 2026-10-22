@@ -11,7 +11,6 @@
 //   TabbyApp       macOS: AppKit window, tab bar, split panes, SwiftUI settings and modals.
 //   TabbyIPC       Unix-socket messages shared by the app and the askpass helper.
 //   tabby-askpass  Tiny helper that OpenSSH runs as SSH_ASKPASS; forwards prompts to the app.
-//   TabbySyncProtocol  Account and sync wire format and crypto (shared with ../tabby-sync-server).
 //   TabbyAccount   Sign-in, snapshot of this Mac's profiles/secrets/keys, sync engine.
 //   TabbySyncProtocol  Account & sync wire format shared with ../tabby-sync-server: DTOs,
 //                  SyncSnapshot, SyncMerger, VaultCrypto. Foundation + swift-crypto only (no

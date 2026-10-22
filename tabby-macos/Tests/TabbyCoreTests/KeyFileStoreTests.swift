@@ -64,7 +64,9 @@ final class KeyFileStoreTests: XCTestCase {
     func testGeneratorUsesSyncedKeys() throws {
         let store = KeyFileStore(directory: dir)
         try store.store(id: abc, originalPath: "~/.ssh/acme_ci_missing_here", contents: Data("KEY".utf8), isDefaultIdentity: false)
-        let gen = SSHConfigGenerator(paths: .init(knownHostsFile: "/tmp/kh", controlDirectory: "/tmp/cm", syncedKeys: store.syncedKeys()))
+        // fileExists is injected: the test never looks at the real ~/.ssh.
+        let gen = SSHConfigGenerator(paths: .init(knownHostsFile: "/tmp/kh", controlDirectory: "/tmp/cm", syncedKeys: store.syncedKeys(),
+                                                  fileExists: { _ in false }))
         let out = try gen.generate(SSHOptions(["host": "example.com", "privateKeys": ["~/.ssh/acme_ci_missing_here"]]), jumpHostResolver: { _ in nil })
         XCTAssertTrue(out.config.contains("IdentityFile \(store.path(for: abc))"), out.config)
     }

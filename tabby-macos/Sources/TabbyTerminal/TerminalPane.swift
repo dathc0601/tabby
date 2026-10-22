@@ -29,9 +29,9 @@ public final class TerminalPane: TerminalEngineDelegate {
     public private(set) var progress: Double?
     public private(set) var hasActivity = false
     public private(set) var status: SessionStatus?
-    /// Automatic reconnects since the connection was last up (profile "Reconnect" behaviour).
     /// When the current session started (the "Process completed" toast shows how long it ran).
     public private(set) var startedAt: Date?
+    /// Automatic reconnects since the connection was last up (profile "Reconnect" behaviour).
     public private(set) var reconnectAttempt = 0
     public static let maxReconnectAttempts = 5
     /// Pause before the first automatic reconnect; later attempts double it (up to 30 s).
