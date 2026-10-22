@@ -169,6 +169,21 @@ final class LibSSHSessionTests: XCTestCase {
         try await waitUntil { r.closed != nil }
     }
 
+    /// Review C1: TerminalPane drops the session right after kill(); the connection must
+    /// still be released.
+    func testClosingATabReleasesItsConnectionEvenWhenTheSessionGoes() async throws {
+        var session: LibSSHSession? = makeSession()
+        let connector = SSHConnector(environment: session!.environment)
+        session!.connector = connector
+        let r = attach(session!)
+        try session!.start(cols: 80, rows: 24)
+        try await waitUntil { r.statuses.contains(.connected) }
+        XCTAssertEqual(connector.sharedCount, 1)
+        session!.kill()
+        session = nil
+        try await waitUntil { connector.sharedCount == 0 }
+    }
+
     func testKillWhileConnectedClosesTheSession() async throws {
         let session = makeSession()
         let r = attach(session)

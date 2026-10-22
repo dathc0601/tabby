@@ -174,11 +174,10 @@ public final class LibSSHSession: TerminalSession {
 
     public func kill() {
         cancelled = true
-        if let shell {
-            shell.close()
-        } else {
-            releaseConnection()
-        }
+        shell?.close()
+        // Released here, not when the close is reported: the pane lets go of this session
+        // right after kill(), so a handler holding it weakly would never run.
+        releaseConnection()
     }
 
     /// Gives the connection back to the connector (it closes with its last session).

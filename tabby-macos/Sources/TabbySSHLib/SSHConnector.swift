@@ -42,7 +42,10 @@ public final class SSHConnector {
     public func release(_ connection: SSHConnection) {
         guard let entry = live[ObjectIdentifier(connection)] else { return connection.disconnect() }
         entry.refs -= 1
-        if entry.refs <= 0 { connection.disconnect() }
+        guard entry.refs <= 0 else { return }
+        // Closing: new tabs must not join it while it shuts down.
+        if let key = entry.key, pending[key] === entry { pending[key] = nil }
+        connection.disconnect()
     }
 
     // MARK: Internals

@@ -58,6 +58,23 @@ final class SSHConnectorTests: XCTestCase {
         connector.release(c)
     }
 
+    /// Review I10: right after the last release, a new acquire gets a fresh connection, not
+    /// the one that is closing.
+    func testANewTabDoesNotJoinAClosingConnection() async throws {
+        let connector = makeConnector()
+        let p = profile("ssh:again", sshd: target)
+        let first = try await connector.acquire(profile: p, prompter: ScriptedPrompter())
+        connector.release(first)
+        let second = try await connector.acquire(profile: p, prompter: ScriptedPrompter())
+        XCTAssertFalse(first === second)
+        let output = OutputCollector()
+        let shell = try await second.openShell(term: "xterm", columns: 80, rows: 24, handlers: output.handlers)
+        shell.write(Data("echo fresh; exit\n".utf8))
+        _ = try await output.waitForClose(timeout: 10)
+        XCTAssertTrue(output.text.contains("fresh"), output.text)
+        connector.release(second)
+    }
+
     func testWithoutReuseEveryTabConnects() async throws {
         let connector = makeConnector()
         let p = profile("ssh:solo", sshd: target, reuse: false)
