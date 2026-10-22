@@ -16,8 +16,21 @@ public struct ChangeTracker: Codable, Equatable, Sendable {
     private var items: [String: [String: Entry]] = [:]
     private var deleted: [String: [String: Date]] = [:]
     private var texts: [String: Entry] = [:]
+    /// Ids that first appeared here by being applied from the account; "Remove synced data"
+    /// deletes only these. Absent in state files from before it existed (nothing is removed).
+    private var fromAccount: [String: Set<String>] = [:]
+
+    enum CodingKeys: String, CodingKey { case items, deleted, texts, fromAccount }
 
     public init() {}
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        items = try c.decodeIfPresent([String: [String: Entry]].self, forKey: .items) ?? [:]
+        deleted = try c.decodeIfPresent([String: [String: Date]].self, forKey: .deleted) ?? [:]
+        texts = try c.decodeIfPresent([String: Entry].self, forKey: .texts) ?? [:]
+        fromAccount = try c.decodeIfPresent([String: Set<String>].self, forKey: .fromAccount) ?? [:]
+    }
 
     static func hash(_ value: JSONValue) -> String {
         let data = (try? SyncCoding.encoder.encode(value)) ?? Data()
@@ -86,11 +99,23 @@ public struct ChangeTracker: Codable, Equatable, Sendable {
         items[section] = other.items[section]
         deleted[section] = other.deleted[section]
         texts[section] = other.texts[section]
+        fromAccount[section] = other.fromAccount[section]
+    }
+
+    /// Records items that were not on this Mac until a merge from the account was applied.
+    public mutating func markFromAccount(_ section: String, ids: Set<String>) {
+        guard !ids.isEmpty else { return }
+        fromAccount[section, default: []].formUnion(ids)
     }
 
     /// The items this Mac has in step with the account (for "Remove synced data").
     public func knownIDs(_ section: String) -> [String] {
         (items[section] ?? [:]).keys.sorted()
+    }
+
+    /// The items that arrived on this Mac from the account (not ones it had before).
+    public func fromAccountIDs(_ section: String) -> [String] {
+        (fromAccount[section] ?? []).intersection((items[section] ?? [:]).keys).sorted()
     }
 
     /// Whether this item, with this value, is in step with the account.

@@ -25,6 +25,8 @@ final class AccountService {
     private(set) var devices: [DeviceDTO] = []
     private(set) var pendingKeyFiles: [KeyFileCandidate] = []
     private(set) var counts = SyncEngine.SyncedCounts()
+    /// What "Remove synced data" would delete (what came from the account).
+    private(set) var removableCounts = SyncEngine.SyncedCounts()
     /// True while a new Mac applies the account for the first time (the "Welcome back" view).
     private(set) var isRestoring = false
     /// Changes made here that have not reached the server yet.
@@ -184,6 +186,7 @@ final class AccountService {
         devices = []
         pendingKeyFiles = []
         counts = SyncEngine.SyncedCounts()
+        removableCounts = SyncEngine.SyncedCounts()
         lastSyncAt = nil
         hasLocalChanges = false
         status = .signedOut
@@ -203,6 +206,7 @@ final class AccountService {
             guard self.engine === engine else { return }
             pendingKeyFiles = report.pendingKeyFiles
             counts = engine.syncedCounts
+            removableCounts = engine.removableCounts
             lastSyncAt = Date()
             hasLocalChanges = false
             if engine.session != session, let s = Optional(engine.session) {

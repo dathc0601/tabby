@@ -216,6 +216,36 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertTrue(b.keys.records().isEmpty)
     }
 
+    /// Only what arrived from the account goes: this Mac's own profiles and passwords, even
+    /// after they were uploaded, and Keychain items that were here before signing in (Electron
+    /// Tabby shares their names) stay.
+    func testRemoveSyncedDataKeepsWhatThisMacBrought() async throws {
+        try await signInBoth()
+        b.addProfile(id: "ssh:b-own", name: "b-own", host: "b.example.com")
+        b.passwords.savePassword("mine", host: "b.example.com", port: 22, user: "deploy")
+        b.passwords.savePassword("electron", host: "legacy.example.com", port: 22, user: "root")
+        _ = try await b.engine.sync()
+        a.addProfile(id: "ssh:from-a", name: "from-a", host: "a.example.com")
+        a.passwords.savePassword("theirs", host: "a.example.com", port: 22, user: "deploy")
+        _ = try await a.engine.sync()
+        _ = try await b.engine.sync()
+        XCTAssertEqual(Set(b.profileNames), ["b-own", "from-a"])
+        XCTAssertEqual(b.engine.removableCounts, SyncEngine.SyncedCounts(profiles: 1, passwords: 1, keys: 0))
+
+        b.engine.removeSyncedData()
+        XCTAssertEqual(b.profileNames, ["b-own"])
+        XCTAssertEqual(b.passwords.password(host: "b.example.com", port: 22, user: "deploy"), "mine")
+        XCTAssertEqual(b.passwords.password(host: "legacy.example.com", port: 22, user: "root"), "electron")
+        XCTAssertNil(b.passwords.password(host: "a.example.com", port: 22, user: "deploy"))
+    }
+
+    /// State files written before origins were recorded remove nothing rather than guess.
+    func testAnOlderStateFileRemovesNothing() async throws {
+        let decoded = try SyncCoding.decoder.decode(ChangeTracker.self, from: Data(#"{"items":{"profiles":{"ssh:x":{"hash":"h","modifiedAt":"2026-10-01T00:00:00.000Z"}}},"deleted":{},"texts":{}}"#.utf8))
+        XCTAssertEqual(decoded.knownIDs("profiles"), ["ssh:x"], "older state still decodes")
+        XCTAssertEqual(decoded.fromAccountIDs("profiles"), [])
+    }
+
     /// The account's settings win on a Mac's first sync; after that, its own edits sync out.
     func testSettingsEditedAfterTheFirstSyncSpreadBack() async throws {
         try await signInBoth()

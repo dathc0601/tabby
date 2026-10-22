@@ -187,6 +187,7 @@ public final class SyncEngine {
                 }
                 let present = after.ids(name)
                 state.tracker.adopt(name, ItemSection(items: section.items.filter { present[$0.id] == $0.value }, deleted: section.deleted))
+                state.tracker.markFromAccount(name, ids: Set(present.keys).subtracting(collected.ids(name).keys))
             }
             if parts.settings, after.settings == merged.settings?.text {
                 state.tracker.adoptText("settings", merged.settings)
@@ -255,12 +256,21 @@ public final class SyncEngine {
         return SyncedCounts(profiles: tracker.knownIDs("profiles").count, passwords: secrets.count, keys: tracker.knownIDs("keyFiles").count)
     }
 
+    /// What "Remove synced data" deletes: what arrived from the account, not what this Mac
+    /// brought (its own items stay even after they were uploaded).
+    public var removableCounts: SyncedCounts {
+        let tracker = loadState().tracker
+        let secrets = tracker.fromAccountIDs("secrets").filter { $0.hasPrefix("ssh:password|") || $0.hasPrefix("ssh:key-passphrase|") }
+        return SyncedCounts(profiles: tracker.fromAccountIDs("profiles").count, passwords: secrets.count,
+                            keys: tracker.fromAccountIDs("keyFiles").count)
+    }
+
     /// Deletes what came from the account from this Mac only (nothing is uploaded). Works from
     /// the change tracker, so it also works after a relaunch with no sync yet.
     public func removeSyncedData() {
         let tracker = loadState().tracker
-        local.remove(profileIDs: Set(tracker.knownIDs("profiles")), groupIDs: Set(tracker.knownIDs("groups")),
-                     secretIDs: tracker.knownIDs("secrets"))
+        local.remove(profileIDs: Set(tracker.fromAccountIDs("profiles")), groupIDs: Set(tracker.fromAccountIDs("groups")),
+                     secretIDs: tracker.fromAccountIDs("secrets"))
         try? FileManager.default.removeItem(at: stateFile)
         revision = nil
         lastSnapshot = nil

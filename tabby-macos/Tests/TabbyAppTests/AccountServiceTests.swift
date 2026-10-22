@@ -99,12 +99,14 @@ final class AccountServiceTests: XCTestCase {
         _ = try await a.register(email: "a@b.co", password: "pw", keepSignedIn: true)
         await a.finishRegistration()
         let (b, bConfig, _) = try makeMac()
+        addProfile(bConfig, "made-on-b")
         try await b.signIn(email: "a@b.co", password: "pw", keepSignedIn: true)
-        XCTAssertEqual(bConfig.value("profiles")?.arrayValue?.count, 1)
+        XCTAssertEqual(bConfig.value("profiles")?.arrayValue?.count, 2)
+        XCTAssertEqual(b.removableCounts.profiles, 1, "the sign-out sheet counts only what came from the account")
         await b.signOut(removeSyncedData: true)
         XCTAssertFalse(b.isSignedIn)
         XCTAssertEqual(b.status, .signedOut)
-        XCTAssertNil(bConfig.user["profiles"])
+        XCTAssertEqual(bConfig.value("profiles")?.arrayValue?.compactMap { $0["name"]?.stringValue }, ["made-on-b"])
         XCTAssertEqual(aConfig.value("profiles")?.arrayValue?.count, 1, "the other Mac keeps it")
     }
 

@@ -614,7 +614,7 @@ struct SignOutSheet: View {
 
     var body: some View {
         let account = AppServices.shared.account
-        let c = account.counts
+        let c = account.removableCounts
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
                 Image(systemName: "rectangle.portrait.and.arrow.right").font(.system(size: 17)).foregroundStyle(chrome.accent.color)
@@ -627,7 +627,7 @@ struct SignOutSheet: View {
             }
             choice(false, "Keep a local copy", "Profiles and keys stay usable here, unsynced")
             choice(true, "Remove synced data from this Mac",
-                   "Deletes \(c.profiles) profiles, \(c.passwords) passwords and \(c.keys) keys from this Mac only")
+                   "Deletes the \(c.profiles) profiles, \(c.passwords) passwords and \(c.keys) keys that came from your account; what was made on this Mac stays")
             HStack {
                 Spacer()
                 if working { ProgressView().controlSize(.small) }
