@@ -44,6 +44,28 @@ final class WindowSmokeTests: XCTestCase {
         XCTAssertTrue(view.engine.snapshotText(maxLines: 5).contains("HELLO-FROM-SHELL"))
     }
 
+    /// Tabs take the width they need before the empty drag area does (Tabby's
+    /// `.tabs { flex: 0 1 auto }` next to `.btn-space { flex: 1 0 1% }`).
+    func testTabsTakeTheStripBeforeTheDragArea() throws {
+        let controller = WindowManager.shared.newWindow(openDefaultTab: false)
+        defer { TestApp.dispose(controller) }
+        controller.window?.setContentSize(NSSize(width: 960, height: 600))
+        let content = try XCTUnwrap(controller.window?.contentView)
+        func dragArea() throws -> NSRect {
+            pump(0.3)
+            content.layoutSubtreeIfNeeded()
+            let tabBar = try XCTUnwrap(content.subviews.first { "\(type(of: $0))".hasPrefix("NSHostingView<TabBarView>") })
+            let drag = try XCTUnwrap(allSubviews(tabBar).first { $0 is WindowDragArea.DragView })
+            return drag.convert(drag.bounds, to: tabBar)
+        }
+        controller.model.openTab(profile: TestApp.profile("strip-1", "sleep 30"))
+        let one = try dragArea()
+        for i in 2...6 { controller.model.openTab(profile: TestApp.profile("strip-\(i)", "sleep 30")) }
+        let six = try dragArea()
+        XCTAssertGreaterThan(one.width, 400, "one tab is at most 200 pt wide and leaves the rest: \(one)")
+        XCTAssertLessThanOrEqual(six.width, 24.5, "six tabs need the whole strip, the drag area keeps its minimum: \(six)")
+    }
+
     /// With the tab bar on a side edge, the transparent title bar still spans the whole width,
     /// so the terminal must start below it or its first row turns into a window drag area.
     func testSideTabBarKeepsTerminalBelowTitleBar() throws {

@@ -51,10 +51,10 @@ struct TabBarView: View {
             } else {
                 HStack(spacing: 0) {
                     Color.clear.frame(width: leadingInset)
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 0) { tabs(chrome: chrome, height: height, flex: flex) }
-                    }
-                    .frame(maxWidth: flex ? .infinity : nil)
+                    // Tabs claim the width before the drag area and shrink when it runs out, as
+                    // Tabby's `.tabs { flex: 0 1 auto }` of 200 px headers with `min-width: 0`.
+                    HStack(spacing: 0) { tabs(chrome: chrome, height: height, flex: flex) }
+                        .layoutPriority(1)
                     Button(action: actions.newTab) {
                         Image(systemName: "plus").frame(width: 32, height: height)
                     }
@@ -150,7 +150,7 @@ struct TabHeaderView: View {
                 Rectangle().fill(color.color).frame(height: 3).frame(maxHeight: .infinity, alignment: .top)
             }
         }
-        .frame(minWidth: vertical ? nil : (flex ? 80 : 160), maxWidth: vertical ? .infinity : (flex ? .infinity : 200))
+        .frame(maxWidth: vertical || flex ? .infinity : 200)
         .background(isActive ? chrome.surface.color : (hovering ? chrome.surfaceRaised.color.opacity(0.5) : .clear))
         .overlay(alignment: vertical ? .leading : .top) {
             if isActive {
