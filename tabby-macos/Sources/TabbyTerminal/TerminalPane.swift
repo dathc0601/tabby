@@ -395,7 +395,10 @@ public final class TerminalPane: TerminalEngineDelegate {
     public func recoveryState(includeBuffer: Bool = true) -> PaneRecovery {
         var p = profile
         let cwd = session?.workingDirectory() ?? workingDirectory
-        if let cwd, p.type == "local" { p.options["cwd"] = .string(cwd) }
+        // Local tabs reopen where they were; SSH tabs too with rememberCwd (Tabby).
+        if let cwd, p.type == "local" || (p.type == "ssh" && SSHOptions(p.options).rememberCwd) {
+            p.options["cwd"] = .string(cwd)
+        }
         return PaneRecovery(
             type: PaneRecovery.type(forProfileType: profile.type),
             profile: p,

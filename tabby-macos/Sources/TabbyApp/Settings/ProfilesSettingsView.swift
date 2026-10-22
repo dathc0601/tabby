@@ -598,6 +598,8 @@ struct ProfileEditorSheet: View {
             }
             SettingsRow("Terminal type") { RowField(placeholder: "xterm-256color", text: option("term")) }
             SettingsRow("Start in directory") { RowField(placeholder: "Home", text: option("cwd")) }
+            SettingsRow("Reopen in the last directory", subtitle: "When the tab is restored; the remote shell must report it (OSC 7)",
+                        isOn: boolOption("rememberCwd"))
         }
     }
 
