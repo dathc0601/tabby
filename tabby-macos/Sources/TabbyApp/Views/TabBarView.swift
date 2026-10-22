@@ -284,7 +284,9 @@ struct TabHeaderView: View {
             if !hideIndex {
                 Text("\(index + 1)").font(ChromeFont.tabIndex).foregroundStyle(chrome.textFaint.color).fixedSize()
             }
-            if showIcon, let icon = tab.icon {
+            if let content = tab.content {
+                Image(systemName: content.symbol).font(.system(size: 12)).foregroundStyle(chrome.textMuted.color)
+            } else if showIcon, let icon = tab.icon {
                 Image(systemName: ProfileIcons.symbol(for: icon))
                     .font(.system(size: 12))
                     .foregroundStyle((profileColor ?? userColor ?? chrome.textMuted).color)

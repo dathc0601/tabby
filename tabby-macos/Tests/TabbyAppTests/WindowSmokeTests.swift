@@ -128,14 +128,5 @@ final class WindowSmokeTests: XCTestCase {
         XCTAssertEqual(items.first?.keyEquivalent, "f")
         XCTAssertEqual(items.first?.keyEquivalentModifierMask, [.control, .command])
     }
-
-    func testSettingsWindowKeepsItsSize() {
-        SettingsWindowController.show()
-        pump(0.5)
-        let window = NSApp.windows.first { $0.title == "Settings" }
-        defer { window?.orderOut(nil) }
-        XCTAssertNotNil(window)
-        XCTAssertGreaterThanOrEqual(window?.frame.height ?? 0, 460, "the hosting controller must not shrink the window")
-    }
 }
 #endif

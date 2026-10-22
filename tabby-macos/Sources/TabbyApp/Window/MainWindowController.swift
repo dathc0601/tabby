@@ -19,7 +19,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
     private let root = WindowRootView()
     private var tabBarHost: NSHostingView<TabBarView>!
     private var startPageHost: NSHostingView<StartPageView>!
-    private var tabViews: [UUID: SplitTreeView] = [:]
+    /// A `SplitTreeView` per terminal tab, an `NSHostingView<ContentTabRoot>` per content tab.
+    private var tabViews: [UUID: NSView] = [:]
     /// One view per pane for its whole life, so moving a pane between tabs keeps its buffer.
     private var paneContainers: [UUID: PaneContainerView] = [:]
     private var loops: [ObservationLoop] = []
@@ -47,7 +48,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
             close: { [weak self] in self?.requestCloseTab($0) },
             newTab: { [weak self] in _ = self?.runCommand("new-tab") },
             showProfiles: { [weak self] in _ = self?.runCommand("profile-selector") },
-            showSettings: { SettingsWindowController.show() },
+            showSettings: { [weak self] in self?.model.openSettings() },
             command: { [weak self] id, tab in
                 guard let self else { return }
                 if let tab { self.model.select(tab.id) }
@@ -63,7 +64,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
         startPageHost = NSHostingView(rootView: StartPageView(
             newTab: { [weak self] in _ = self?.runCommand("new-tab") },
             showProfiles: { [weak self] in _ = self?.runCommand("profile-selector") },
-            showSettings: { SettingsWindowController.show() },
+            showSettings: { [weak self] in self?.model.openSettings() },
             openProfile: { [weak self] p in _ = self?.model.openTab(profile: p) }
         ))
         // The hosts sit under the transparent title bar of a full-size-content window. Without
@@ -174,7 +175,17 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
 
     private func syncTabViews() {
         for tab in model.tabs where tabViews[tab.id] == nil {
-            let v = SplitTreeView(tab: tab, controller: self)
+            let v: NSView
+            if tab.content != nil {
+                let host = NSHostingView(rootView: ContentTabRoot(tab: tab, close: { [weak self, weak tab] in
+                    guard let self, let tab else { return }
+                    self.model.closeTab(tab.id)
+                }))
+                host.safeAreaRegions = []
+                v = host
+            } else {
+                v = SplitTreeView(tab: tab, controller: self)
+            }
             root.addSubview(v, positioned: .below, relativeTo: tabBarHost)
             tabViews[tab.id] = v
         }
@@ -192,7 +203,19 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
         window?.title = model.activeTab?.title ?? "TabbyMac"
         layoutTrafficLights()
         prunePaneViews()
-        if let pane = model.activePane { focusEngine(of: pane) }
+        if let pane = model.activePane {
+            focusEngine(of: pane)
+        } else if let tab = model.activeTab, tab.content != nil, let view = tabViews[tab.id] {
+            // Keys must not keep going to the terminal of the tab that was active before.
+            window?.makeFirstResponder(view)
+        } else if model.tabs.isEmpty {
+            window?.makeFirstResponder(startPageHost)
+        }
+    }
+
+    /// The hosting view of a Settings or Welcome tab.
+    func contentTabView(for tab: TabModel) -> NSView? {
+        tab.content == nil ? nil : tabViews[tab.id]
     }
 
     func paneContainer(for pane: TerminalPane) -> PaneContainerView {
@@ -213,7 +236,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
 
     func paneView(for pane: TerminalPane) -> PaneContainerView? {
         if let tab = model.tabs.first(where: { $0.panes[pane.id] != nil }) {
-            tabViews[tab.id]?.syncPaneViews()
+            (tabViews[tab.id] as? SplitTreeView)?.syncPaneViews()
         }
         return paneContainers[pane.id]
     }
@@ -339,7 +362,7 @@ final class WindowRootView: NSView {
     weak var tabBar: NSView?
     weak var startPage: NSView?
     weak var effectView: NSVisualEffectView?
-    var tabViews: [UUID: SplitTreeView] = [:]
+    var tabViews: [UUID: NSView] = [:]
     var activeTabID: UUID?
     var placement: TabBarPlacement = .top
     var tabBarHeight: CGFloat = 38

@@ -38,42 +38,6 @@ final class SettingsNavigation {
     var section: SettingsSection? = .application
 }
 
-/// The Settings window (Tabby shows Settings as a tab; a separate window is the macOS norm).
-@MainActor
-final class SettingsWindowController: NSWindowController {
-    private(set) static var shared: SettingsWindowController?
-    let navigation = SettingsNavigation()
-
-    static func show(section: SettingsSection? = nil) {
-        let controller = shared ?? SettingsWindowController()
-        shared = controller
-        if let section { controller.navigation.section = section }
-        controller.showWindow(nil)
-        controller.window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-    }
-
-    init() {
-        let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 860, height: 600),
-                              styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
-                              backing: .buffered, defer: false)
-        window.title = "Settings"
-        window.isReleasedWhenClosed = false
-        window.contentMinSize = CGSize(width: 720, height: 460)
-        window.level = DockController.shared.level
-        window.center()
-        super.init(window: window)
-        let hosting = NSHostingController(rootView: SettingsRootView(navigation: navigation))
-        // By default the controller pushes SwiftUI's ideal size onto the window, which shrinks
-        // it to a few rows. The user's frame (autosaved below) should win instead.
-        hosting.sizingOptions = []
-        window.contentViewController = hosting
-        window.setFrameAutosaveName("TabbyMacSettingsWindow")
-    }
-
-    required init?(coder: NSCoder) { fatalError() }
-}
-
 struct SettingsRootView: View {
     @Bindable var navigation: SettingsNavigation
 

@@ -15,7 +15,7 @@ extension MainWindowController {
         switch id {
         // Application
         case "new-window": WindowManager.shared.newWindow()
-        case "settings": SettingsWindowController.show()
+        case "settings": model.openSettings()
         case "profile-selector": showProfileSelector()
         case "switch-profile": showProfileSelector(switchActivePane: true)
         case "command-selector": showCommandPalette()
@@ -107,7 +107,13 @@ extension MainWindowController {
 
         default:
             if id.hasPrefix("tab-"), let n = Int(id.dropFirst(4)) {
-                model.select(index: n - 1)
+                // On the start page ⌘1–⌘3 open the recent profiles it lists.
+                if model.tabs.isEmpty {
+                    let recents = StartPageView.recentProfiles()
+                    if recents.indices.contains(n - 1) { model.openTab(profile: recents[n - 1]) }
+                } else {
+                    model.select(index: n - 1)
+                }
             } else if id.hasPrefix("pane-nav-"), let n = Int(id.dropFirst(9)) {
                 model.navigatePane(index: n - 1)
             } else if id.hasPrefix("profile.") {
@@ -147,8 +153,8 @@ extension MainWindowController {
                     self?.open(p, switchActivePane: switchActivePane)
                 })
             case .manageProfiles:
-                items.append(SelectorItem(id: "manage", title: entry.title, icon: "gearshape") {
-                    SettingsWindowController.show(section: .profiles)
+                items.append(SelectorItem(id: "manage", title: entry.title, icon: "gearshape") { [weak self] in
+                    self?.model.openSettings(section: .profiles)
                 })
             case .clearRecent:
                 items.append(SelectorItem(id: "clear", title: entry.title, group: entry.group, icon: "trash") {

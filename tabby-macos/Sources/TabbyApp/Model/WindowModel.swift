@@ -102,6 +102,27 @@ public final class WindowModel {
         return tab
     }
 
+    /// Focuses this window's Settings tab, opening it at the end when there is none (Tabby's
+    /// `SettingsTabComponent` is a singleton too).
+    func openSettings(section: SettingsSection? = nil) {
+        let tab = tabs.first { $0.content == .settings } ?? {
+            let t = TabModel(content: .settings)
+            insertTab(t)
+            return t
+        }()
+        if let section { tab.settingsNavigation?.section = section }
+        select(tab.id)
+    }
+
+    /// The first-run Welcome tab (Tabby's `WelcomeTabComponent`).
+    func openWelcome() {
+        if let tab = tabs.first(where: { $0.content == .welcome }) {
+            select(tab.id)
+        } else {
+            insertTab(TabModel(content: .welcome))
+        }
+    }
+
     /// Adds and selects a tab, at `index` or after the last tab (Tabby's `addTabRaw`).
     public func insertTab(_ tab: TabModel, at index: Int? = nil) {
         tabs.insert(tab, at: min(max(index ?? tabs.count, 0), tabs.count))
@@ -245,7 +266,7 @@ public final class WindowModel {
     }
 
     public func split(_ side: SplitDirection, profile: Profile? = nil) {
-        guard let tab = activeTab else { openTab(profile: profile); return }
+        guard let tab = activeTab, tab.content == nil else { openTab(profile: profile); return }
         let base = tab.focusedPane
         let p = profile ?? base.map { services.profiles.resolved($0.profile) } ?? services.defaultProfile()
         guard let pane = makePane(profile: p, cwd: base?.currentDirectory()) else { return }
@@ -309,7 +330,7 @@ public final class WindowModel {
     /// Moves the panes of all other tabs into the active tab, laid out in a grid
     /// (`combine-tabs`, Tabby's `combineTabsInto`).
     public func combineTabs() {
-        guard let target = activeTab else { return }
+        guard let target = activeTab, target.content == nil else { return }
         explode(target)
         let panes = tabs.filter { $0 !== target }.flatMap { tab in tab.layout.panes.compactMap { tab.remove($0) } }
         // Fill rows of `stride` panes: each pane goes right of the previous one, and every

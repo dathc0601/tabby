@@ -79,10 +79,26 @@ final class DesignSnapshotTests: XCTestCase {
     }
 
     func testStartPage() throws {
+        AppServices.shared.profiles.recents.push(TestApp.profile("staging-db", "sleep 30"))
+        AppServices.shared.profiles.recents.push(TestApp.profile("prod-web-01", "sleep 30"))
         let c = window()
         defer { TestApp.dispose(c) }
         TestApp.pump(0.5)
         try save(try XCTUnwrap(c.window?.contentView), "start")
+    }
+
+    func testContentTabs() throws {
+        let c = window()
+        defer { TestApp.dispose(c) }
+        c.model.openTab(profile: TestApp.profile("~/Projects", "sleep 30"))
+        c.model.openWelcome()
+        TestApp.pump(0.8)
+        try save(try XCTUnwrap(c.window?.contentView), "welcome")
+        for section in SettingsSection.allCases {
+            c.model.openSettings(section: section)
+            TestApp.pump(0.6)
+            try save(try XCTUnwrap(c.window?.contentView), "settings-\(section)")
+        }
     }
 }
 #endif

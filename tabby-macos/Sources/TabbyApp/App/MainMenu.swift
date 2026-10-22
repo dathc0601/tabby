@@ -143,7 +143,7 @@ final class MenuTarget: NSObject {
             return
         }
         switch id {
-        case "settings": SettingsWindowController.show()
+        case "settings": WindowManager.shared.openSettings()
         case "new-window": WindowManager.shared.newWindow()
         default:
             if let controller = WindowManager.shared.activeController {

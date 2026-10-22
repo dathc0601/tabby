@@ -41,19 +41,18 @@ final class DockingTests: XCTestCase {
         XCTAssertFalse(window.collectionBehavior.contains(.canJoinAllSpaces), "an undocked window stays on its own Space")
     }
 
-    /// Settings is a window of its own (a tab of the docked window in Tabby), so it floats with
-    /// an always-on-top docked terminal. It stayed normal, and the terminal covered it as soon
-    /// as a side was picked and whenever Settings was opened while docked.
-    func testSettingsFloatsWithTheDockedWindow() throws {
+    /// Settings opens as a tab of the docked window, as in Tabby, so an always-on-top docked
+    /// terminal can no longer cover it (it did when Settings was a window of its own).
+    func testSettingsOpensInsideTheDockedWindow() throws {
         let window = try dockedWindow()
-        SettingsWindowController.show()
-        let settings = try XCTUnwrap(NSApp.windows.first { $0.title == "Settings" })
-        defer { settings.orderOut(nil) }
         dock("top")
-        XCTAssertEqual(settings.level, window.level, "picking a side in Settings")
-        XCTAssertEqual(SettingsWindowController().window?.level, .floating, "opening Settings while docked")
-        dock("top", alwaysOnTop: false)
-        XCTAssertEqual(settings.level, .normal)
+        let controller = try XCTUnwrap(window.windowController as? MainWindowController)
+        defer { controller.model.tabs.filter { $0.content != nil }.forEach { controller.model.closeTab($0.id) } }
+        XCTAssertTrue(controller.runCommand("settings"))
+        XCTAssertEqual(controller.model.activeTab?.content, .settings)
+        XCTAssertEqual(window.level, .floating)
+        XCTAssertFalse(NSApp.windows.contains { $0.isVisible && !($0.windowController is MainWindowController) && $0.title == "Settings" },
+                       "no separate Settings window")
     }
 
     /// Tabby docks on `appearance.dockScreen` when it names a connected display (Electron's

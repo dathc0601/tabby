@@ -30,7 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         MainMenu.install()
         let manager = HotkeyManager { id in
-            if id == "settings" { SettingsWindowController.show(); return true }
+            if id == "settings" { WindowManager.shared.openSettings(); return true }
             if id == "new-window" { WindowManager.shared.newWindow(); return true }
             guard let controller = WindowManager.shared.activeController else { return false }
             return controller.runCommand(id)
@@ -62,6 +62,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let autoOpen = services.config.value("terminal.autoOpen")?.boolValue ?? true
         if !restored && autoOpen {
             controller.model.openTab()
+        }
+        if WelcomePolicy.shouldShow(config: services.config) {
+            controller.model.openWelcome()
         }
         RecoveryCoordinator.shared.start()
         DockController.shared.apply(followMouse: true)
@@ -131,6 +134,14 @@ final class WindowManager {
         return controller
     }
 
+    /// Opens Settings as a tab of the active window (a new window when there is none).
+    func openSettings(section: SettingsSection? = nil) {
+        let controller = activeController ?? newWindow(openDefaultTab: false)
+        controller.model.openSettings(section: section)
+        controller.window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     /// Quake-style show/hide (`toggle-window`).
     func toggleAllWindows() {
         if NSApp.isActive && NSApp.windows.contains(where: { $0.isVisible && $0.windowController is MainWindowController }) {
@@ -197,8 +208,7 @@ final class RecoveryCoordinator {
 final class DockController {
     static let shared = DockController()
 
-    /// Tabby's `setAlwaysOnTop(dockAlwaysOnTop)` while docked. Settings shares it: it is a
-    /// window of its own here (a tab in Tabby), which a floating terminal would cover.
+    /// Tabby's `setAlwaysOnTop(dockAlwaysOnTop)` while docked.
     var level: NSWindow.Level {
         let config = AppServices.shared.config
         guard config.string("appearance.dock") ?? "off" != "off" else { return .normal }
@@ -224,7 +234,6 @@ final class DockController {
     func apply(followMouse: Bool = false) {
         let config = AppServices.shared.config
         let side = config.string("appearance.dock") ?? "off"
-        SettingsWindowController.shared?.window?.level = level
         guard let controller = WindowManager.shared.controllers.first, let window = controller.window else { return }
         window.level = level
         guard side != "off" else {
