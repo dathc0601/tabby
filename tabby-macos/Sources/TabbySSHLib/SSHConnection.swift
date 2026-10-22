@@ -31,8 +31,11 @@ public struct SSHConnectionOptions: Sendable {
     public var algorithms: [String: [String]] = [:]
     public var proxyCommand: String?
     public var skipBanner = false
-    /// A transport that is already connected (jump host channel, SOCKS or HTTP proxy).
+    /// A transport that is already connected (a jump host's channel).
     public var socket: Int32?
+    /// A SOCKS5 or HTTP CONNECT proxy to reach the host through (when there is no `socket`
+    /// or `proxyCommand`).
+    public var proxy: SSHProxy?
 
     public init(host: String, port: Int = 22, user: String, knownHostsFile: String = ConfigPaths.standard().knownHostsFile.path) {
         self.host = host
@@ -40,6 +43,11 @@ public struct SSHConnectionOptions: Sendable {
         self.user = user
         self.knownHostsFile = knownHostsFile
     }
+}
+
+public enum SSHProxy: Equatable, Sendable {
+    case socks5(host: String, port: Int)
+    case http(host: String, port: Int)
 }
 
 public struct HostKeyRequest: Equatable, Sendable {
@@ -260,8 +268,15 @@ public final class SSHConnection: @unchecked Sendable {
             ssh_options_set(s, SSH_OPTIONS_TIMEOUT, &seconds)
         }
         if let agent = options.agentSocket { ssh_options_set(s, SSH_OPTIONS_IDENTITY_AGENT, agent) }
-        if let command = options.proxyCommand, !command.isEmpty { ssh_options_set(s, SSH_OPTIONS_PROXYCOMMAND, command) }
-        if var fd = options.socket { ssh_options_set(s, SSH_OPTIONS_FD, &fd) }
+        // Tabby's order: a jump host's channel, else the proxy command, else SOCKS, else HTTP.
+        if var fd = options.socket {
+            ssh_options_set(s, SSH_OPTIONS_FD, &fd)
+        } else if let command = options.proxyCommand, !command.isEmpty {
+            ssh_options_set(s, SSH_OPTIONS_PROXYCOMMAND, command)
+        } else if let proxy = options.proxy {
+            var fd = try ProxyTunnel.open(proxy, to: options.host, port: options.port, timeout: options.connectTimeout ?? 30)
+            ssh_options_set(s, SSH_OPTIONS_FD, &fd)
+        }
         for (kind, list) in options.algorithms where !list.isEmpty {
             let joined = list.joined(separator: ",")
             switch kind {

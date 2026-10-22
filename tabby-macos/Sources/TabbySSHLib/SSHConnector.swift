@@ -74,7 +74,8 @@ public final class SSHConnector {
     private func open(_ profile: Profile, _ options: SSHOptions, prompter: SSHConnectionPrompter, chain: [String],
                       entry: Entry) async throws -> SSHConnection {
         var connectionOptions = LibSSHSession.connectionOptions(for: options, environment: environment)
-        if let jumpID = options.jumpHost {
+        // A proxy command wins over a jump host (Tabby).
+        if let jumpID = options.jumpHost, options.proxyCommand == nil {
             let chain = chain + [profile.id]
             guard !chain.contains(jumpID) else {
                 throw SSHConnectionError.connectFailed("Jump host loop: \((chain + [jumpID]).joined(separator: " → "))")

@@ -126,6 +126,11 @@ public final class LibSSHSession: TerminalSession {
         o.keepaliveInterval = (TimeInterval(options.keepaliveInterval) / 1000).rounded()
         o.algorithms = options.algorithms
         o.proxyCommand = options.proxyCommand
+        if let host = options.socksProxyHost {
+            o.proxy = .socks5(host: host, port: options.socksProxyPort ?? 1080)
+        } else if let host = options.httpProxyHost {
+            o.proxy = .http(host: host, port: options.httpProxyPort ?? 8080)
+        }
         o.skipBanner = options.skipBanner
         return o
     }

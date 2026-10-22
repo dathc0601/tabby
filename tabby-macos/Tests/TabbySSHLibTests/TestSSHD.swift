@@ -197,3 +197,113 @@ func roundTrip(_ fd: Int32, _ text: String) -> String {
     return String(decoding: received, as: UTF8.self)
 }
 #endif
+
+#if os(macOS)
+import TabbyCore
+
+/// A test proxy on 127.0.0.1 speaking SOCKS5 (no auth, CONNECT) or HTTP CONNECT, built on
+/// the same handshake parsers the app uses. Counts the tunnels it opened.
+final class TestProxy: @unchecked Sendable {
+    enum Kind { case socks5, http }
+    let port: Int
+    private let listener: Int32
+    private let lock = NSLock()
+    private var tunnelCount = 0
+    var tunnels: Int { lock.withLock { tunnelCount } }
+
+    init(_ kind: Kind) throws {
+        let fd = socket(AF_INET, SOCK_STREAM, 0)
+        listener = fd
+        var address = sockaddr_in()
+        address.sin_family = sa_family_t(AF_INET)
+        address.sin_addr.s_addr = inet_addr("127.0.0.1")
+        var length = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let ok = withUnsafeMutablePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { bind(fd, $0, length) == 0 && getsockname(fd, $0, &length) == 0 }
+        }
+        guard ok, listen(fd, 8) == 0 else { throw NSError(domain: "TestProxy", code: 1) }
+        port = Int(UInt16(bigEndian: address.sin_port))
+        Thread { [self] in
+            while true {
+                let client = accept(fd, nil, nil)
+                guard client >= 0 else { return }
+                Thread { self.serve(client, kind) }.start()
+            }
+        }.start()
+    }
+
+    private func serve(_ client: Int32, _ kind: Kind) {
+        var data = [UInt8]()
+        func fill() -> Bool {
+            var buffer = [UInt8](repeating: 0, count: 1024)
+            let n = read(client, &buffer, buffer.count)
+            if n <= 0 { return false }
+            data += buffer[0..<n]
+            return true
+        }
+        var target: (String, Int)?
+        switch kind {
+        case .socks5:
+            while true {
+                switch SOCKS5.parseGreeting(data) {
+                case .needMore: if !fill() { close(client); return }; continue
+                case .failure: close(client); return
+                case let .done(reply, consumed):
+                    _ = write(client, reply, reply.count)
+                    data.removeFirst(consumed)
+                }
+                break
+            }
+            while true {
+                switch SOCKS5.parseConnect(data) {
+                case .needMore: if !fill() { close(client); return }; continue
+                case .failure: close(client); return
+                case let .done(t, consumed):
+                    target = (t.host, t.port)
+                    data.removeFirst(consumed)
+                }
+                break
+            }
+        case .http:
+            while !String(decoding: data, as: UTF8.self).contains("\r\n\r\n") { if !fill() { close(client); return } }
+            let line = String(decoding: data, as: UTF8.self).split(separator: "\r\n").first ?? ""
+            let authority = line.split(separator: " ").dropFirst().first.map(String.init) ?? ""
+            if let colon = authority.lastIndex(of: ":"), let port = Int(authority[authority.index(after: colon)...]) {
+                target = (String(authority[..<colon]).trimmingCharacters(in: CharacterSet(charactersIn: "[]")), port)
+            }
+            data.removeAll()
+        }
+        guard let (host, port) = target else { close(client); return }
+        let upstream = socket(AF_INET, SOCK_STREAM, 0)
+        var address = sockaddr_in()
+        address.sin_family = sa_family_t(AF_INET)
+        address.sin_addr.s_addr = inet_addr(host == "localhost" ? "127.0.0.1" : host)
+        address.sin_port = UInt16(port).bigEndian
+        let connected = withUnsafePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { connect(upstream, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) == 0 }
+        }
+        let ok: [UInt8] = kind == .socks5 ? SOCKS5.reply(connected ? .succeeded : .connectionRefused)
+            : Array((connected ? "HTTP/1.1 200 Connection established\r\n\r\n" : "HTTP/1.1 502 Bad Gateway\r\n\r\n").utf8)
+        _ = write(client, ok, ok.count)
+        guard connected else { close(upstream); close(client); return }
+        lock.withLock { tunnelCount += 1 }
+        Thread { Self.pump(upstream, client) }.start()
+        Self.pump(client, upstream)
+    }
+
+    private static func pump(_ from: Int32, _ to: Int32) {
+        var buffer = [UInt8](repeating: 0, count: 16_384)
+        while true {
+            let n = read(from, &buffer, buffer.count)
+            if n <= 0 { break }
+            _ = write(to, buffer, n)
+        }
+        shutdown(to, SHUT_WR)
+    }
+
+    func stop() {
+        shutdown(listener, SHUT_RDWR)
+        close(listener)
+    }
+}
+#endif

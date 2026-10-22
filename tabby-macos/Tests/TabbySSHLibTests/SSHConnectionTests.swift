@@ -174,6 +174,43 @@ final class SSHConnectionTests: XCTestCase {
         await XCTAssertThrowsErrorAsync(_ = try await connection.openBridgedSocket(to: "127.0.0.1", port: closedPort))
     }
 
+    func testThroughASOCKS5Proxy() async throws {
+        let proxy = try TestProxy(.socks5)
+        defer { proxy.stop() }
+        var o = options(keys: [sshd.keyPath])
+        o.proxy = .socks5(host: "127.0.0.1", port: proxy.port)
+        let connection = SSHConnection(options: o, prompter: ScriptedPrompter(), passwords: InMemoryPasswordStore())
+        try await connection.connect()
+        connection.disconnect()
+        XCTAssertEqual(proxy.tunnels, 1)
+    }
+
+    func testThroughAnHTTPProxy() async throws {
+        let proxy = try TestProxy(.http)
+        defer { proxy.stop() }
+        var o = options(keys: [sshd.keyPath])
+        o.proxy = .http(host: "127.0.0.1", port: proxy.port)
+        let connection = SSHConnection(options: o, prompter: ScriptedPrompter(), passwords: InMemoryPasswordStore())
+        try await connection.connect()
+        connection.disconnect()
+        XCTAssertEqual(proxy.tunnels, 1)
+    }
+
+    func testAProxyThatCannotReachTheHostIsAnError() async throws {
+        let proxy = try TestProxy(.http)
+        defer { proxy.stop() }
+        var o = options(keys: [sshd.keyPath])
+        o.port = try TestSSHD.freePort()
+        o.proxy = .http(host: "127.0.0.1", port: proxy.port)
+        let connection = SSHConnection(options: o, prompter: ScriptedPrompter(), passwords: InMemoryPasswordStore())
+        do {
+            try await connection.connect()
+            XCTFail("connected through a proxy that answered 502")
+        } catch let error as SSHConnectionError {
+            XCTAssertEqual(error, .connectFailed("Proxy: the HTTP proxy answered 502 Bad Gateway"))
+        }
+    }
+
     func testNoUsableKeyIsRejected() async throws {
         let stranger = sshd.directory.appendingPathComponent("stranger").path
         try TestSSHD.keygen(stranger, passphrase: "")
