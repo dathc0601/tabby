@@ -11,6 +11,9 @@
 //   TabbyApp       macOS: AppKit window, tab bar, split panes, SwiftUI settings and modals.
 //   TabbyIPC       Unix-socket messages shared by the app and the askpass helper.
 //   tabby-askpass  Tiny helper that OpenSSH runs as SSH_ASKPASS; forwards prompts to the app.
+//   TabbySyncProtocol  Account & sync wire format shared with ../tabby-sync-server: DTOs,
+//                  SyncSnapshot, SyncMerger, VaultCrypto. Foundation + swift-crypto only (no
+//                  TabbyCore) so the server can use it; builds and is tested on Linux too.
 //
 // The .app bundle itself is produced by the Xcode project generated from Xcode/project.yml.
 
@@ -23,6 +26,7 @@ let package = Package(
     products: [
         .library(name: "TabbyCore", targets: ["TabbyCore"]),
         .library(name: "TabbyApp", targets: ["TabbyApp"]),
+        .library(name: "TabbySyncProtocol", targets: ["TabbySyncProtocol"]),
         .executable(name: "tabby-askpass", targets: ["TabbyAskpass"]),
         .executable(name: "TabbyMacDev", targets: ["TabbyMacDev"]),
     ],
@@ -31,6 +35,8 @@ let package = Package(
         // 1.99+/2.0 requires swift-tools 6.2 (Xcode 26); see docs/ARCHITECTURE.md.
         .package(url: "https://github.com/migueldeicaza/SwiftTerm.git", exact: "1.20.0"),
         .package(url: "https://github.com/jpsim/Yams.git", from: "5.1.0"),
+        // 3.x only: swift-crypto 4/5 need swift-tools 6.2, the macOS CI uses Xcode 16.4.
+        .package(url: "https://github.com/apple/swift-crypto.git", "3.0.0"..<"4.0.0"),
     ],
     targets: [
         .target(
@@ -68,6 +74,17 @@ let package = Package(
         .executableTarget(
             name: "TabbyAskpass",
             dependencies: ["TabbyIPC"]
+        ),
+        .target(
+            name: "TabbySyncProtocol",
+            dependencies: [
+                .product(name: "Crypto", package: "swift-crypto"),
+                .product(name: "_CryptoExtras", package: "swift-crypto"),
+            ]
+        ),
+        .testTarget(
+            name: "TabbySyncProtocolTests",
+            dependencies: ["TabbySyncProtocol", .product(name: "Crypto", package: "swift-crypto")]
         ),
         .testTarget(
             name: "TabbyTerminalTests",
