@@ -13,14 +13,28 @@ public protocol HTTPTransport: Sendable {
 public struct URLSessionTransport: HTTPTransport {
     let session: URLSession
 
-    public init(session: URLSession = .shared) {
+    public init(session: URLSession) {
         self.session = session
+    }
+
+    /// An ephemeral session (the vault never lands in the on-disk URL cache) that does not
+    /// follow redirects: the bearer token goes to the configured server and nowhere else, and
+    /// never over plain HTTP. A redirect comes back as its 3xx response.
+    public init(configuration: URLSessionConfiguration = .ephemeral) {
+        self.session = URLSession(configuration: configuration, delegate: RedirectRefuser(), delegateQueue: nil)
     }
 
     public func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw SyncClientError.invalidResponse }
         return (data, http)
+    }
+}
+
+final class RedirectRefuser: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
+                    newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
+        completionHandler(nil)
     }
 }
 
