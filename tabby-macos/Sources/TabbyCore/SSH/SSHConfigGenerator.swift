@@ -13,12 +13,16 @@ public struct SSHConfigGenerator {
         public var controlDirectory: String
         /// Command run by ssh after authentication succeeds (askpass helper in "connected" mode).
         public var localCommand: String?
+        /// Private keys that arrived through sync, used when a key file is missing here.
+        public var syncedKeys: SyncedKeys
 
-        public init(knownHostsFile: String, extraKnownHostsFiles: [String] = [], controlDirectory: String, localCommand: String? = nil) {
+        public init(knownHostsFile: String, extraKnownHostsFiles: [String] = [], controlDirectory: String, localCommand: String? = nil,
+                    syncedKeys: SyncedKeys = .none) {
             self.knownHostsFile = knownHostsFile
             self.extraKnownHostsFiles = extraKnownHostsFiles
             self.controlDirectory = controlDirectory
             self.localCommand = localCommand
+            self.syncedKeys = syncedKeys
         }
     }
 
@@ -86,7 +90,10 @@ public struct SSHConfigGenerator {
         add("Port", String(o.port))
         if !o.user.isEmpty { add("User", Self.quote(o.user)) }
 
-        for key in o.privateKeys {
+        let keys = o.privateKeys.isEmpty
+            ? paths.syncedKeys.identitiesForProfileWithoutKeys()
+            : o.privateKeys.map { paths.syncedKeys.resolve($0) }
+        for key in keys {
             add("IdentityFile", Self.quote(Self.normalizeKeyPath(key)))
         }
         switch o.auth {

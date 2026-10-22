@@ -11,6 +11,8 @@
 //   TabbyApp       macOS: AppKit window, tab bar, split panes, SwiftUI settings and modals.
 //   TabbyIPC       Unix-socket messages shared by the app and the askpass helper.
 //   tabby-askpass  Tiny helper that OpenSSH runs as SSH_ASKPASS; forwards prompts to the app.
+//   TabbySyncProtocol  Account and sync wire format and crypto (shared with ../tabby-sync-server).
+//   TabbyAccount   Sign-in, snapshot of this Mac's profiles/secrets/keys, sync engine.
 //   TabbySyncProtocol  Account & sync wire format shared with ../tabby-sync-server: DTOs,
 //                  SyncSnapshot, SyncMerger, VaultCrypto. Foundation + swift-crypto only (no
 //                  TabbyCore) so the server can use it; builds and is tested on Linux too.
@@ -26,6 +28,7 @@ let package = Package(
     products: [
         .library(name: "TabbyCore", targets: ["TabbyCore"]),
         .library(name: "TabbyApp", targets: ["TabbyApp"]),
+        .library(name: "TabbyAccount", targets: ["TabbyAccount"]),
         .library(name: "TabbySyncProtocol", targets: ["TabbySyncProtocol"]),
         .executable(name: "tabby-askpass", targets: ["TabbyAskpass"]),
         .executable(name: "TabbyMacDev", targets: ["TabbyMacDev"]),
@@ -64,7 +67,19 @@ let package = Package(
         ),
         .target(
             name: "TabbyApp",
-            dependencies: ["TabbyCore", "TabbyTerminal", "TabbySSH"]
+            dependencies: [
+                "TabbyCore", "TabbyTerminal", "TabbySSH",
+                // The app layer is AppKit-only; on Linux it is empty, and keeping swift-crypto's
+                // C++ out of `TabbyMacDev` avoids the Swift 6.1 libswiftObservation link error
+                // described at TabbySyncProtocolTests.
+                .target(name: "TabbyAccount", condition: .when(platforms: [.macOS])),
+            ]
+        ),
+        // Personal account and sync on this Mac: HTTP client, change tracking, snapshot of the
+        // local profiles / secrets / keys / known_hosts / settings, and the sync engine.
+        .target(
+            name: "TabbyAccount",
+            dependencies: ["TabbyCore", "TabbySSH", "TabbySyncProtocol", .product(name: "Crypto", package: "swift-crypto")]
         ),
         // `swift run TabbyMacDev` starts the app without an .app bundle (handy for development).
         .executableTarget(
@@ -89,6 +104,12 @@ let package = Package(
             // gold then checks the undefined symbols of the shared libraries it loads. Swift
             // 6.1's libswiftObservation.so (TabbyTerminal imports Observation) references
             // swift::threading::fatal, which no 6.1 runtime library exports; fixed in 6.2.
+            linkerSettings: [.unsafeFlags(["-Xlinker", "--allow-shlib-undefined"], .when(platforms: [.linux]))]
+        ),
+        .testTarget(
+            name: "TabbyAccountTests",
+            dependencies: ["TabbyAccount", "TabbySyncProtocol", .product(name: "Crypto", package: "swift-crypto")],
+            // Same Swift 6.1 Linux link quirk as TabbySyncProtocolTests.
             linkerSettings: [.unsafeFlags(["-Xlinker", "--allow-shlib-undefined"], .when(platforms: [.linux]))]
         ),
         .testTarget(

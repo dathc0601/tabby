@@ -35,6 +35,8 @@ public final class SSHSession: TerminalSession {
         public var userKnownHostsFiles: [String]
         public var verifyHostKeys: Bool
         public var configDirectory: String
+        /// Private keys that arrived through sync (read when the session starts).
+        public var syncedKeys: () -> SyncedKeys = { .none }
 
         public init(sshPath: String = "/usr/bin/ssh", askpassPath: String, server: AskpassServer, passwords: PasswordStore,
                     knownHostsFile: String, userKnownHostsFiles: [String] = [NSHomeDirectory() + "/.ssh/known_hosts"],
@@ -105,7 +107,8 @@ public final class SSHSession: TerminalSession {
         let generator = SSHConfigGenerator(
             paths: .init(knownHostsFile: env.knownHostsFile, extraKnownHostsFiles: env.userKnownHostsFiles,
                          controlDirectory: env.configDirectory,
-                         localCommand: "\(SSHConfigGenerator.shellQuote(env.askpassPath)) --connected"),
+                         localCommand: "\(SSHConfigGenerator.shellQuote(env.askpassPath)) --connected",
+                         syncedKeys: env.syncedKeys()),
             verifyHostKeys: env.verifyHostKeys
         )
         let output = try generator.generate(options, jumpHostResolver: jumpHostResolver)

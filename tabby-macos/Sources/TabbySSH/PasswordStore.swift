@@ -16,6 +16,30 @@ public protocol PasswordStore: AnyObject {
     func passphrase(keyID: String) -> String?
     func savePassphrase(_ passphrase: String, keyID: String)
     func deletePassphrase(keyID: String)
+    /// What is saved, by name only (sync uploads these; listing never reads a secret).
+    func savedSecrets() -> [SavedSecret]
+}
+
+/// A saved SSH secret, named the way Tabby's keytar names it.
+public enum SavedSecret: Hashable, Sendable {
+    case password(host: String, port: Int, user: String)
+    case passphrase(keyID: String)
+
+    /// Parses a Keychain service / account pair; nil for items that are not TabbyMac's.
+    public init?(service: String, account: String) {
+        if service.hasPrefix("ssh-private-key:") {
+            self = .passphrase(keyID: String(service.dropFirst("ssh-private-key:".count)))
+        } else if service.hasPrefix("ssh@") {
+            let rest = String(service.dropFirst(4))
+            if let colon = rest.lastIndex(of: ":"), let port = Int(rest[rest.index(after: colon)...]), !rest[..<colon].isEmpty {
+                self = .password(host: String(rest[..<colon]), port: port, user: account)
+            } else {
+                self = .password(host: rest, port: 0, user: account)
+            }
+        } else {
+            return nil
+        }
+    }
 }
 
 public extension PasswordStore {
@@ -39,6 +63,12 @@ public final class InMemoryPasswordStore: PasswordStore {
     public func passphrase(keyID: String) -> String? { items[key(Self.keyService(keyID), "user")] }
     public func savePassphrase(_ passphrase: String, keyID: String) { items[key(Self.keyService(keyID), "user")] = passphrase }
     public func deletePassphrase(keyID: String) { items[key(Self.keyService(keyID), "user")] = nil }
+    public func savedSecrets() -> [SavedSecret] {
+        items.keys.compactMap { k in
+            let parts = k.split(separator: "\u{0}", maxSplits: 1, omittingEmptySubsequences: false).map(String.init)
+            return parts.count == 2 ? SavedSecret(service: parts[0], account: parts[1]) : nil
+        }
+    }
 }
 
 #if canImport(Security)
@@ -68,6 +98,19 @@ public final class KeychainPasswordStore: PasswordStore {
     public func passphrase(keyID: String) -> String? { read(service: Self.keyService(keyID), account: "user") }
     public func savePassphrase(_ passphrase: String, keyID: String) { write(passphrase, service: Self.keyService(keyID), account: "user") }
     public func deletePassphrase(keyID: String) { delete(service: Self.keyService(keyID), account: "user") }
+
+    public func savedSecrets() -> [SavedSecret] {
+        let q: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+                                kSecMatchLimit as String: kSecMatchLimitAll,
+                                kSecReturnAttributes as String: true]
+        var out: CFTypeRef?
+        guard SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess, let items = out as? [[String: Any]] else { return [] }
+        return items.compactMap { item in
+            guard let service = item[kSecAttrService as String] as? String,
+                  service.hasPrefix("ssh@") || service.hasPrefix("ssh-private-key:") else { return nil }
+            return SavedSecret(service: service, account: item[kSecAttrAccount as String] as? String ?? "")
+        }
+    }
 
     private func baseQuery(service: String, account: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
