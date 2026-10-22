@@ -42,6 +42,8 @@ enum MainMenu {
         shell.addItem(command("Duplicate Tab", "duplicate-tab"))
         shell.addItem(command("Reopen Closed Tab", "reopen-tab"))
         shell.addItem(command("Restart Session", "restart-tab"))
+        shell.addItem(command("Disconnect", "disconnect-tab"))
+        shell.addItem(command("Reconnect", "reconnect-tab"))
         shell.addItem(command("Save Layout as Profile…", "save-layout-as-profile"))
         shell.addItem(.separator())
         shell.addItem(command("Close Pane", "close-pane"))

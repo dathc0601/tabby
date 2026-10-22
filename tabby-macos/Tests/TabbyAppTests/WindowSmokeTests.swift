@@ -73,6 +73,16 @@ final class WindowSmokeTests: XCTestCase {
         }
     }
 
+    /// Connection tabs can be disconnected and reconnected from the Shell menu, not only from
+    /// the command palette (neither command has a default shortcut).
+    func testShellMenuOffersDisconnectAndReconnect() throws {
+        MainMenu.install()
+        let shell = try XCTUnwrap(NSApp.mainMenu?.items.first { $0.title == "Shell" }?.submenu)
+        let ids = shell.items.compactMap { $0.representedObject as? String }
+        XCTAssertTrue(ids.contains("disconnect-tab"), "\(ids)")
+        XCTAssertTrue(ids.contains("reconnect-tab"), "\(ids)")
+    }
+
     func testSettingsWindowKeepsItsSize() {
         SettingsWindowController.show()
         pump(0.5)
