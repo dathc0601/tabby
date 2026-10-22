@@ -105,19 +105,7 @@ final class SSHPromptPresenter: SSHPromptHandler {
         let window = NSApp.keyWindow ?? NSApp.mainWindow
         switch prompt {
         case let .hostKey(promptHost, keyType, fingerprint, _):
-            let alert = NSAlert()
-            alert.alertStyle = .warning
-            alert.messageText = "Unknown host key for \(promptHost.isEmpty ? host : promptHost)"
-            alert.informativeText = """
-            The authenticity of this host can't be established.
-
-            \(keyType ?? "Host") key fingerprint:
-            \(fingerprint ?? "unknown")
-
-            Accept it only if you trust this host. The key will be remembered.
-            """
-            alert.addButton(withTitle: "Accept and remember")
-            alert.addButton(withTitle: "Disconnect")
+            let alert = Self.hostKeyAlert(host: promptHost.isEmpty ? host : promptHost, keyType: keyType, fingerprint: fingerprint)
             if let window, window.attachedSheet == nil {
                 alert.beginSheetModal(for: window) { r in reply(r == .alertFirstButtonReturn ? .accept : .reject) }
             } else {
@@ -145,6 +133,37 @@ final class SSHPromptPresenter: SSHPromptHandler {
             Prompts.message(in: window, title: host, message: message)
             reply(.accept)
         }
+    }
+
+    /// Tabby's `HostKeyPromptModal`: accept and remember, or disconnect. The fingerprint gets a
+    /// field of its own: AppKit hyphenates the informative text where it wraps, which put a
+    /// "-" into the fingerprint.
+    static func hostKeyAlert(host: String, keyType: String?, fingerprint: String?) -> NSAlert {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Unknown host key for \(host)"
+        alert.informativeText = """
+        The authenticity of this host can't be established. Accept it only if you trust this \
+        host. The key will be remembered.
+
+        \(keyType ?? "Host") key fingerprint:
+        """
+        let style = NSMutableParagraphStyle()
+        style.lineBreakMode = .byCharWrapping
+        style.hyphenationFactor = 0
+        let field = NSTextField(wrappingLabelWithString: "")
+        field.attributedStringValue = NSAttributedString(string: fingerprint ?? "unknown", attributes: [
+            .font: NSFont.monospacedSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .regular),
+            .paragraphStyle: style,
+        ])
+        field.lineBreakMode = .byCharWrapping
+        field.isSelectable = true
+        field.preferredMaxLayoutWidth = 230
+        field.frame.size = field.sizeThatFits(NSSize(width: 230, height: CGFloat.greatestFiniteMagnitude))
+        alert.accessoryView = field
+        alert.addButton(withTitle: "Accept and remember")
+        alert.addButton(withTitle: "Disconnect")
+        return alert
     }
 }
 #endif
