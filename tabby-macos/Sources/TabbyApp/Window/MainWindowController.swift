@@ -240,6 +240,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
         focusEngine(of: pane)
     }
 
+    /// "Process completed" banner. Only while another app is frontmost: the pane keeps focus
+    /// across app switches, and banners for the active app are not shown anyway.
     func notifyProcessEnded(_ pane: TerminalPane, code: Int32?) {
         guard !NSApp.isActive, Bundle.main.bundleIdentifier != nil else { return }
         let content = UNMutableNotificationContent()

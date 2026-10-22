@@ -58,7 +58,8 @@ public final class TerminalPane: TerminalEngineDelegate {
     @ObservationIgnored public var onRequestPasteConfirmation: ((TerminalPane, String) -> Void)?
     @ObservationIgnored public var onBell: ((TerminalPane) -> Void)?
     @ObservationIgnored public var onFocus: ((TerminalPane) -> Void)?
-    /// Fired when the session ends while the pane is not focused ("notify when done").
+    /// Fired whenever the session ends by itself; the app decides whether to notify
+    /// (it does when it is not the active app).
     @ObservationIgnored public var onProcessEnded: ((TerminalPane, Int32?) -> Void)?
     @ObservationIgnored public var onRecoveryStateChanged: (() -> Void)?
     /// Sees keyboard input before it is sent (used for broadcasting to other panes).
@@ -213,7 +214,7 @@ public final class TerminalPane: TerminalEngineDelegate {
         let behaviour = profile.behaviorOnSessionEnd
         let isLocal = profile.type == "local"
         let pause = isLocal && LocalOptions(profile.options).pauseAfterExit
-        if !isFocused { onProcessEnded?(self, code) }
+        onProcessEnded?(self, code)
 
         var shouldClose: Bool
         var autoReconnect = false

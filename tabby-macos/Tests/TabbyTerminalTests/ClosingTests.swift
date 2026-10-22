@@ -111,6 +111,21 @@ final class ClosingTests: XCTestCase {
         pane.close()
     }
 
+    // MARK: process-completed notification
+
+    /// The pane keeps focus when the user switches to another app, so the app (which knows
+    /// whether it is active) must hear about every session end, focused pane or not.
+    func testSessionEndIsReportedEvenWhenThePaneHasFocus() throws {
+        let (pane, _, factory) = try makePane(behavior: .keep)
+        var reported = false
+        pane.onProcessEnded = { _, _ in reported = true }
+        pane.isFocused = true
+        pane.start()
+        factory.sessions.first?.kill()
+        waitForEnded(pane)
+        XCTAssertTrue(reported)
+    }
+
     func testLocalPaneIgnoresSSHWarnOnClose() throws {
         let (pane, _, _) = try makePane(type: "local")
         pane.start()
