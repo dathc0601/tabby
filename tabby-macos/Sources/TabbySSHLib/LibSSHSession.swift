@@ -153,6 +153,7 @@ public final class LibSSHSession: TerminalSession {
         o.syncedKeys = environment.syncedKeys()
         if let ms = options.readyTimeout, ms > 0 { o.connectTimeout = TimeInterval(ms) / 1000 }
         o.keepaliveInterval = (TimeInterval(options.keepaliveInterval) / 1000).rounded()
+        o.keepaliveCountMax = options.keepaliveCountMax
         o.algorithms = options.algorithms
         o.proxyCommand = options.proxyCommand
         if let host = options.socksProxyHost {

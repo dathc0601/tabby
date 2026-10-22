@@ -304,6 +304,22 @@ final class SSHConnectionTests: XCTestCase {
         XCTAssertFalse(accepted.1, "X11 channel without X11 forwarding")
     }
 
+    /// Review I2: a silent peer is noticed by TCP keep-alive on the session's socket, set
+    /// from the profile's keep-alive interval and count (OpenSSH's ServerAlive* budget).
+    func testKeepAliveSettingsReachTheSocket() async throws {
+        var o = options(keys: [sshd.keyPath])
+        o.keepaliveInterval = 7
+        o.keepaliveCountMax = 3
+        let connection = SSHConnection(options: o, prompter: ScriptedPrompter(), passwords: InMemoryPasswordStore())
+        try await connection.connect()
+        defer { connection.disconnect() }
+        let settings = try await connection.debugKeepAlive()
+        XCTAssertEqual(settings.enabled, true)
+        XCTAssertEqual(settings.idle, 7)
+        XCTAssertEqual(settings.interval, 7)
+        XCTAssertEqual(settings.count, 3)
+    }
+
     func testNoUsableKeyIsRejected() async throws {
         let stranger = sshd.directory.appendingPathComponent("stranger").path
         try TestSSHD.keygen(stranger, passphrase: "")

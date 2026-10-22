@@ -27,6 +27,8 @@ public struct SSHConnectionOptions: Sendable {
     public var connectTimeout: TimeInterval?
     /// Seconds between keep-alive requests; 0 sends none.
     public var keepaliveInterval: TimeInterval = 0
+    /// Unanswered keep-alives before the connection counts as lost.
+    public var keepaliveCountMax = 10
     /// Tabby's lists by kind: `kex`, `cipher`, `hmac`, `serverHostKey`, `compression`.
     public var algorithms: [String: [String]] = [:]
     public var proxyCommand: String?
@@ -365,6 +367,7 @@ public final class SSHConnection: @unchecked Sendable {
         try verifyHostKey(s)
         try checkCancelled()
         try authenticate(s, user: user)
+        applyKeepAlive(s)
         if !options.skipBanner, let banner = ssh_get_issue_banner(s) {
             let text = String(cString: banner).trimmingCharacters(in: .whitespacesAndNewlines)
             ssh_string_free_char(banner)
@@ -390,6 +393,28 @@ public final class SSHConnection: @unchecked Sendable {
         _ = fcntl(wakeWrite, F_SETFL, O_NONBLOCK)
         ssh_event_add_fd(e, wakeRead, Int16(POLLIN), wakeCallback, Unmanaged.passUnretained(self).toOpaque())
         lock.withLock { isRunning = true }
+    }
+
+    /// A peer that went silent (Mac changed network, server gone) is noticed by TCP
+    /// keep-alive on the session's socket: idle and probe interval are the profile's
+    /// keep-alive interval, probes its count — OpenSSH's ServerAlive* budget. libssh's own
+    /// keep-alive request can't tell (it reports success either way). Blocking waits are
+    /// bounded by the same budget.
+    private func applyKeepAlive(_ s: ssh_session) {
+        guard options.keepaliveInterval > 0 else { return }
+        let interval = Int32(max(1, options.keepaliveInterval.rounded()))
+        let count = Int32(max(1, options.keepaliveCountMax))
+        let fd = ssh_get_fd(s)
+        var on: Int32 = 1
+        var idle = interval
+        var probe = interval
+        var probes = count
+        setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &on, socklen_t(MemoryLayout<Int32>.size))
+        setsockopt(fd, IPPROTO_TCP, TCP_KEEPALIVE, &idle, socklen_t(MemoryLayout<Int32>.size))
+        setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &probe, socklen_t(MemoryLayout<Int32>.size))
+        setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT, &probes, socklen_t(MemoryLayout<Int32>.size))
+        var budget = Int(interval * count)
+        ssh_options_set(s, SSH_OPTIONS_TIMEOUT, &budget)
     }
 
     // MARK: Host key
@@ -674,10 +699,10 @@ public final class SSHConnection: @unchecked Sendable {
             }
             if options.keepaliveInterval > 0, Date().timeIntervalSince(lastKeepalive) >= options.keepaliveInterval {
                 lastKeepalive = Date()
-                if ssh_send_keepalive(session) != SSH_OK {
-                    lost = .disconnected
-                    break
-                }
+                // Non-blocking: the reply is handled by the poll, never waited for here.
+                ssh_set_blocking(session, 0)
+                ssh_send_keepalive(session)
+                ssh_set_blocking(session, 1)
             }
         }
         // Work that arrived meanwhile is refused from here on.
@@ -729,6 +754,22 @@ public final class SSHConnection: @unchecked Sendable {
     // MARK: Bridges
 
     private var bridges: [Bridge] = []
+
+    /// The session socket's keep-alive settings (tests and diagnostics).
+    func debugKeepAlive() async throws -> (enabled: Bool, idle: Int32, interval: Int32, count: Int32) {
+        try await perform { [self] in
+            guard let session else { throw SSHConnectionError.disconnected }
+            let fd = ssh_get_fd(session)
+            func option(_ level: Int32, _ name: Int32) -> Int32 {
+                var value: Int32 = 0
+                var length = socklen_t(MemoryLayout<Int32>.size)
+                getsockopt(fd, level, name, &value, &length)
+                return value
+            }
+            return (option(SOL_SOCKET, SO_KEEPALIVE) != 0, option(IPPROTO_TCP, TCP_KEEPALIVE),
+                    option(IPPROTO_TCP, TCP_KEEPINTVL), option(IPPROTO_TCP, TCP_KEEPCNT))
+        }
+    }
 
     /// Open bridges and channels (tests and diagnostics).
     func debugCounts() async throws -> (bridges: Int, channels: Int) {
