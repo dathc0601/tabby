@@ -68,12 +68,13 @@ final class WindowSmokeTests: XCTestCase {
 
     /// `swift test` and `swift run` have no app bundle (the test host's main bundle is the
     /// xctest tool, which has an identifier), and UNUserNotificationCenter raises without one.
+    /// The banner path only runs while another app is frontmost; whether the test app is
+    /// depends on earlier tests (opening Settings activates it), so the test says so itself.
     func testProcessEndedNotificationNeedsAnAppBundle() throws {
         let controller = WindowManager.shared.newWindow(openDefaultTab: false)
         defer { TestApp.dispose(controller) }
         let pane = try XCTUnwrap(controller.model.openTab(profile: TestApp.profile("note", "sleep 30"))?.focusedPane)
-        XCTAssertFalse(NSApp.isActive, "the banner path only runs while another app is frontmost")
-        controller.notifyProcessEnded(pane, code: 0)
+        controller.notifyProcessEnded(pane, code: 0, appIsActive: false)
     }
 
     /// With the tab bar on a side edge, the transparent title bar still spans the whole width,
