@@ -257,33 +257,38 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
 
     // MARK: Closing
 
+    /// Reasons to confirm before closing these panes: busy processes, open SSH connections.
+    private func closeWarnings(_ panes: [TerminalPane]) -> String? {
+        let sshWarn = services.config.bool("ssh.warnOnClose")
+        let warnings = panes.compactMap { $0.closeWarning(sshWarnOnClose: sshWarn) }
+        return warnings.isEmpty ? nil : warnings.joined(separator: "\n")
+    }
+
     func requestCloseTab(_ tab: TabModel) {
-        let busy = tab.orderedPanes.compactMap(\.activeProcessName)
-        if busy.isEmpty {
+        guard let message = closeWarnings(tab.orderedPanes) else {
             model.closeTab(tab.id)
             return
         }
-        Prompts.confirm(in: window, title: "Close this tab?", message: "\(busy.joined(separator: ", ")) is still running.",
+        Prompts.confirm(in: window, title: "Close this tab?", message: message,
                         confirm: "Close", destructive: true) { [weak self] ok in
             if ok { self?.model.closeTab(tab.id) }
         }
     }
 
     func requestClosePane(_ pane: TerminalPane) {
-        guard let name = pane.activeProcessName else {
+        guard let message = closeWarnings([pane]) else {
             model.closePane(pane.id)
             return
         }
-        Prompts.confirm(in: window, title: "Close this pane?", message: "\(name) is still running.", confirm: "Close",
+        Prompts.confirm(in: window, title: "Close this pane?", message: message, confirm: "Close",
                         destructive: true) { [weak self] ok in
             if ok { self?.model.closePane(pane.id) }
         }
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
-        let busy = model.tabs.flatMap(\.orderedPanes).compactMap(\.activeProcessName)
-        if busy.isEmpty { return true }
-        Prompts.confirm(in: window, title: "Close this window?", message: "\(busy.joined(separator: ", ")) still running.",
+        guard let message = closeWarnings(model.tabs.flatMap(\.orderedPanes)) else { return true }
+        Prompts.confirm(in: window, title: "Close this window?", message: message,
                         confirm: "Close", destructive: true) { [weak self] ok in
             guard ok, let self else { return }
             self.closeAllTabsAndWindow()

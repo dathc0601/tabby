@@ -78,11 +78,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        let busy = WindowManager.shared.controllers.flatMap { $0.model.tabs.flatMap(\.orderedPanes) }.compactMap(\.activeProcessName)
+        let sshWarn = AppServices.shared.config.bool("ssh.warnOnClose")
+        let busy = WindowManager.shared.controllers.flatMap { $0.model.tabs.flatMap(\.orderedPanes) }
+            .compactMap { $0.closeWarning(sshWarnOnClose: sshWarn) }
         guard !busy.isEmpty else { return .terminateNow }
         let alert = NSAlert()
         alert.messageText = "Quit TabbyMac?"
-        alert.informativeText = "\(busy.joined(separator: ", ")) still running."
+        alert.informativeText = busy.joined(separator: "\n")
         alert.addButton(withTitle: "Quit").hasDestructiveAction = true
         alert.addButton(withTitle: "Cancel")
         return alert.runModal() == .alertFirstButtonReturn ? .terminateNow : .terminateCancel

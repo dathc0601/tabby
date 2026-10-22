@@ -159,6 +159,17 @@ public final class TerminalPane: TerminalEngineDelegate {
     /// Whether closing should ask first (a program other than the shell is running).
     public var activeProcessName: String? { session?.activeProcessName() }
 
+    /// Why closing this pane should ask first, or nil. A busy child process always asks; an
+    /// open SSH connection asks when the profile's `warnOnClose` (else the global
+    /// `ssh.warnOnClose`) is on, as in Tabby's `SSHTabComponent.canClose`.
+    public func closeWarning(sshWarnOnClose: Bool) -> String? {
+        if let name = activeProcessName { return "\(name) is still running." }
+        guard profile.type == "ssh", isRunning, session != nil else { return nil }
+        let options = SSHOptions(profile.options)
+        guard options.warnOnClose ?? sshWarnOnClose else { return nil }
+        return "Disconnect from \(options.host)?"
+    }
+
     // MARK: Output
 
     private func handleOutput(_ data: Data) {
