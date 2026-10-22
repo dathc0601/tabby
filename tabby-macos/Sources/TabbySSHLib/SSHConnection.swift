@@ -82,7 +82,7 @@ public struct KeyboardInteractiveRound: Sendable {
     public var prefilled: [String?]
 }
 
-public struct KeyboardInteractiveAnswer: Sendable {
+public struct KeyboardInteractiveAnswer: Sendable, Equatable {
     public var answers: [String]
     /// Save the answers to password-like prompts once the login works.
     public var remember: Bool

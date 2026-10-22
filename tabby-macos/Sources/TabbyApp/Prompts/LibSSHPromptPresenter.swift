@@ -47,7 +47,22 @@ final class LibSSHPromptPresenter: SSHSessionUI {
                    confirm: "Unlock")
     }
 
+    /// The pane running `session`.
+    func pane(for session: LibSSHSession) -> TerminalPane? {
+        for controller in WindowManager.shared.controllers {
+            for tab in controller.model.tabs {
+                if let pane = tab.panes.values.first(where: { $0.session === session }) { return pane }
+            }
+        }
+        return nil
+    }
+
+    /// In the pane's inline panel (design `sshAuth`); one sheet per prompt when the session
+    /// has no pane.
     func keyboardInteractive(_ round: KeyboardInteractiveRound, for session: LibSSHSession) async -> KeyboardInteractiveAnswer? {
+        if let pane = pane(for: session) {
+            return await KeyboardInteractivePanels.shared.ask(round, in: pane.id)
+        }
         var answers: [String] = []
         var remember = false
         for (index, prompt) in round.prompts.enumerated() {

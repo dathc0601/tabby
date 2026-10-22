@@ -248,6 +248,9 @@ final class PaneContainerView: NSView {
     private let hover = PaneHover()
     private var appearanceLoop: ObservationLoop?
     private var chipLoop: ObservationLoop?
+    /// The keyboard-interactive panel while a login asks something (design `sshAuth`).
+    private var authHost: NSHostingView<KeyboardInteractivePanel>?
+    private var authLoop: ObservationLoop?
     var showsFocusRing = false { didSet { if oldValue != showsFocusRing { updateRing() } } }
     /// Unfocused panes of a split dim by 25% (the design).
     var isDimmed = false { didSet { if oldValue != isDimmed { updateRing() } } }
@@ -280,6 +283,10 @@ final class PaneContainerView: NSView {
                 _ = self?.hover.isHovering
             }, apply: { [weak self] in self?.needsLayout = true })
         }
+        let paneID = pane.id
+        authLoop = ObservationLoop(track: {
+            _ = KeyboardInteractivePanels.shared.models[paneID]
+        }, apply: { [weak self] in self?.updateAuthPanel() })
         appearanceLoop = ObservationLoop(track: { [weak self] in
             guard let self else { return }
             _ = AppServices.shared.theme.revision
@@ -298,9 +305,30 @@ final class PaneContainerView: NSView {
 
     override var isFlipped: Bool { true }
 
+    private func updateAuthPanel() {
+        let model = KeyboardInteractivePanels.shared.models[pane.id]
+        if let model {
+            if let authHost, authHost.rootView.model === model { return }
+            authHost?.removeFromSuperview()
+            let host = NSHostingView(rootView: KeyboardInteractivePanel(model: model))
+            host.safeAreaRegions = []
+            addSubview(host)
+            authHost = host
+            window?.makeFirstResponder(host)
+        } else if let authHost {
+            authHost.removeFromSuperview()
+            self.authHost = nil
+            window?.makeFirstResponder(engine)
+        }
+        needsLayout = true
+    }
+
     override func layout() {
         super.layout()
-        engine.frame = bounds
+        // The keyboard-interactive panel pushes the terminal down (the PTY is resized).
+        let authHeight = authHost.map { $0.fittingSize.height } ?? 0
+        authHost?.frame = CGRect(x: 0, y: 0, width: bounds.width, height: authHeight)
+        engine.frame = CGRect(x: 0, y: authHeight, width: bounds.width, height: max(0, bounds.height - authHeight))
         dimView.frame = bounds
         if let chipHost {
             let size = chipHost.fittingSize
