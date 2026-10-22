@@ -95,6 +95,26 @@ final class SFTPClientTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: local("big.bin").path))
     }
 
+    /// Review I7: two saves of one file uploading at once never mix (each has its own temp
+    /// file); the result is one whole version and no temp files are left.
+    func testOverlappingUploadsOfOneFileNeverMix() async throws {
+        let a = sshd.directory.appendingPathComponent("a.bin")
+        let b = sshd.directory.appendingPathComponent("b.bin")
+        let contentA = Data(repeating: 0x41, count: 2_000_000)
+        let contentB = Data(repeating: 0x42, count: 2_000_000)
+        try contentA.write(to: a)
+        try contentB.write(to: b)
+        let client = sftp!
+        async let first: Void = client.upload(a, to: root + "/edited.txt", progress: { _ in }, isCancelled: { false })
+        async let second: Void = client.upload(b, to: root + "/edited.txt", progress: { _ in }, isCancelled: { false })
+        _ = try? await first
+        _ = try? await second
+        let result = try Data(contentsOf: local("edited.txt"))
+        XCTAssertTrue(result == contentA || result == contentB, "a mixed or partial file (\(result.count) bytes)")
+        let leftovers = try FileManager.default.contentsOfDirectory(atPath: root).filter { $0.contains("tabby-upload") }
+        XCTAssertEqual(leftovers, [])
+    }
+
     func testRenameChmodAndRecursiveDelete() async throws {
         try FileManager.default.createDirectory(at: local("tree/a/b"), withIntermediateDirectories: true)
         for name in ["tree/1.txt", "tree/a/2.txt", "tree/a/b/3.txt"] { try Data(name.utf8).write(to: local(name)) }

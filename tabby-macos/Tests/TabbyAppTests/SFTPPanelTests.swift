@@ -166,6 +166,27 @@ final class SFTPPanelTests: XCTestCase {
         XCTAssertNil(SFTPPanels.shared.controllers[pane])
     }
 
+    /// Review I7: Edit-locally watchers outlive the panel and end with their session.
+    func testEditWatchersEndWithTheirSessionNotThePanel() throws {
+        let watchers = LocalEditWatchers()
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("watch-\(UUID().uuidString.prefix(6))")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        // Both alive for the whole test: a freed object's address (and identifier) is reused.
+        let sessionA = NSObject()
+        let sessionB = NSObject()
+        let a = ObjectIdentifier(sessionA)
+        let b = ObjectIdentifier(sessionB)
+        defer { withExtendedLifetime((sessionA, sessionB)) {} }
+        XCTAssertTrue(watchers.watch(folder: folder, owner: a) {})
+        XCTAssertTrue(watchers.watch(folder: folder, owner: a) {})
+        XCTAssertTrue(watchers.watch(folder: folder, owner: b) {})
+        XCTAssertEqual(watchers.count(owner: a), 2)
+        watchers.cancel(owner: a)
+        XCTAssertEqual(watchers.count(owner: a), 0)
+        XCTAssertEqual(watchers.count(owner: b), 1)
+    }
+
     func testTheHotkeyNeedsAConnectedLibrarySession() throws {
         TestApp.boot()
         let c = WindowManager.shared.newWindow(openDefaultTab: false)

@@ -173,8 +173,20 @@ public final class SFTPClient: @unchecked Sendable {
 
     private final class RemoteFile: @unchecked Sendable {
         let file: sftp_file
+        private var closed = false
         init(_ file: sftp_file) { self.file = file }
+
+        /// sftp_close frees the handle: twice is a double free (connection thread only).
+        func close() {
+            guard !closed else { return }
+            closed = true
+            sftp_close(file)
+        }
     }
+
+    /// Uploads to one path run one after another (two saves of an edited file), so the later
+    /// one wins whole.
+    private let uploads = UploadQueue()
 
     /// Downloads to `local` (replaced); a cancelled or failed download removes the partial file.
     public func download(_ path: String, to local: URL, progress: (UInt64) -> Void, isCancelled: () -> Bool) async throws {
@@ -184,7 +196,7 @@ public final class SFTPClient: @unchecked Sendable {
         }
         FileManager.default.createFile(atPath: local.path, contents: nil)
         guard let output = try? FileHandle(forWritingTo: local) else {
-            _ = try? await run { _ in sftp_close(remote.file) }
+            _ = try? await run { _ in remote.close() }
             throw SSHConnectionError.channelFailed("Cannot write \(local.path)")
         }
         do {
@@ -206,24 +218,36 @@ public final class SFTPClient: @unchecked Sendable {
                 progress(UInt64(chunk.count))
             }
             try output.close()
-            _ = try await run { _ in sftp_close(remote.file) }
+            _ = try await run { _ in remote.close() }
         } catch {
             try? output.close()
             try? FileManager.default.removeItem(at: local)
-            _ = try? await run { _ in sftp_close(remote.file) }
+            _ = try? await run { _ in remote.close() }
             throw error
         }
     }
 
-    /// Uploads to `<path>.tabby-upload`, then replaces `path` with it (Tabby); a cancelled or
-    /// failed upload removes the temp file and leaves `path` as it was.
+    /// Uploads to a temp file next to `path`, then replaces `path` with it (Tabby's
+    /// `.tabby-upload`, made unique per upload); a cancelled or failed upload removes the temp
+    /// file and leaves `path` as it was. Uploads to one path are serialized.
     public func upload(_ local: URL, to path: String, mode: UInt32 = 0o644, progress: (UInt64) -> Void,
                        isCancelled: () -> Bool) async throws {
+        try await withoutActuallyEscaping(progress) { progress in
+            try await withoutActuallyEscaping(isCancelled) { isCancelled in
+                try await uploads.serialized(path) { [self] in
+                    try await uploadNow(local, to: path, mode: mode, progress: progress, isCancelled: isCancelled)
+                }
+            }
+        }
+    }
+
+    private func uploadNow(_ local: URL, to path: String, mode: UInt32, progress: (UInt64) -> Void,
+                           isCancelled: () -> Bool) async throws {
         guard let input = try? FileHandle(forReadingFrom: local) else {
             throw SSHConnectionError.channelFailed("Cannot read \(local.path)")
         }
         defer { try? input.close() }
-        let temporary = path + ".tabby-upload"
+        let temporary = path + ".tabby-upload-" + String(UInt32.random(in: 0...UInt32.max), radix: 16)
         let remote = try await run { [self] handle -> RemoteFile in
             guard let file = sftp_open(handle, temporary, O_WRONLY | O_CREAT | O_TRUNC, mode_t(mode)) else {
                 throw failure("Cannot create", temporary)
@@ -247,7 +271,7 @@ public final class SFTPClient: @unchecked Sendable {
                 progress(UInt64(chunk.count))
             }
             try await run { [self] handle in
-                sftp_close(remote.file)
+                remote.close()
                 if let existing = sftp_lstat(handle, path) {
                     sftp_attributes_free(existing)
                     guard sftp_unlink(handle, path) == 0 else { throw failure("Cannot replace", path) }
@@ -256,11 +280,30 @@ public final class SFTPClient: @unchecked Sendable {
             }
         } catch {
             _ = try? await run { handle in
-                sftp_close(remote.file)
+                remote.close()
                 sftp_unlink(handle, temporary)
             }
             throw error
         }
+    }
+}
+/// Runs operations on one key one after another.
+actor UploadQueue {
+    private var tails: [String: Task<Void, Never>] = [:]
+
+    func serialized(_ key: String, _ operation: @escaping () async throws -> Void) async throws {
+        let previous = tails[key]
+        let task = Task<Result<Void, Error>, Never> {
+            await previous?.value
+            do {
+                try await operation()
+                return .success(())
+            } catch {
+                return .failure(error)
+            }
+        }
+        tails[key] = Task { _ = await task.value }
+        try await task.value.get()
     }
 }
 #endif

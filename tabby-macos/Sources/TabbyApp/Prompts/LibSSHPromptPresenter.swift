@@ -92,6 +92,7 @@ final class LibSSHPromptPresenter: SSHSessionUI {
         let owner = ObjectIdentifier(session)
         KeyboardInteractivePanels.shared.cancel(owner: owner)
         SFTPPanels.shared.close(owner: owner)
+        LocalEditWatchers.shared.cancel(owner: owner)
     }
 
     func username(host: String, for session: LibSSHSession) async -> String? {

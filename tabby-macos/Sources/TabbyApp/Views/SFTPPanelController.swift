@@ -69,8 +69,6 @@ final class SFTPPanelController {
     let paneID: UUID
     /// The session it belongs to; the panel closes when that session ends.
     let owner: ObjectIdentifier
-    /// Files open in other apps by "Edit locally", watched for saves.
-    private var watchers: [DispatchSourceFileSystemObject] = []
 
     init(model: SFTPPanelModel, client: SFTPOperations, paneID: UUID, owner: ObjectIdentifier) {
         self.model = model
@@ -312,38 +310,57 @@ final class SFTPPanelController {
     }
 
     /// Editors save by replacing the file, so the folder is watched; changes settle for a
-    /// second before the upload.
+    /// second before the upload. The watcher belongs to the session, not this panel (which
+    /// closes on any click in the terminal): it ends when the session does.
     private func watch(folder: URL, file: URL, remote: String, mode: UInt32) {
-        let fd = open(folder.path, O_EVTONLY)
-        guard fd >= 0 else { return }
-        let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: [.write, .rename, .attrib], queue: .main)
-        var pending: DispatchWorkItem?
         var lastModified = (try? FileManager.default.attributesOfItem(atPath: file.path)[.modificationDate]) as? Date
         let client = client
-        source.setEventHandler { [weak self] in
-            pending?.cancel()
-            let work = DispatchWorkItem {
-                let modified = (try? FileManager.default.attributesOfItem(atPath: file.path)[.modificationDate]) as? Date
-                guard let modified, modified != lastModified else { return }
-                lastModified = modified
-                Task { @MainActor in
-                    let size = Self.localSize(file)
-                    await TransferCenter.shared.run(name: file.lastPathComponent, direction: .upload, host: self?.host ?? "", total: size) { report, cancelled in
-                        try await client.upload(file, to: remote, mode: mode == 0 ? 0o644 : mode, progress: report, isCancelled: cancelled)
-                    }
-                    await self?.model.refresh()
+        let host = host
+        let model = model
+        LocalEditWatchers.shared.watch(folder: folder, owner: owner) {
+            let modified = (try? FileManager.default.attributesOfItem(atPath: file.path)[.modificationDate]) as? Date
+            guard let modified, modified != lastModified else { return }
+            lastModified = modified
+            Task { @MainActor in
+                let size = Self.localSize(file)
+                await TransferCenter.shared.run(name: file.lastPathComponent, direction: .upload, host: host, total: size) { report, cancelled in
+                    try await client.upload(file, to: remote, mode: mode == 0 ? 0o644 : mode, progress: report, isCancelled: cancelled)
                 }
+                await model.refresh()
             }
+        }
+    }
+}
+/// "Edit locally" folders watched for saves, by the session they belong to.
+@MainActor
+final class LocalEditWatchers {
+    static let shared = LocalEditWatchers()
+    private var sources: [ObjectIdentifier: [DispatchSourceFileSystemObject]] = [:]
+
+    /// Calls `changed` (main queue) a second after the folder's contents settle.
+    @discardableResult
+    func watch(folder: URL, owner: ObjectIdentifier, changed: @escaping @MainActor () -> Void) -> Bool {
+        let fd = open(folder.path, O_EVTONLY)
+        guard fd >= 0 else { return false }
+        let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: [.write, .rename, .attrib], queue: .main)
+        var pending: DispatchWorkItem?
+        source.setEventHandler {
+            pending?.cancel()
+            let work = DispatchWorkItem { MainActor.assumeIsolated { changed() } }
             pending = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
         }
         source.setCancelHandler { close(fd) }
         source.resume()
-        watchers.append(source)
+        sources[owner, default: []].append(source)
+        return true
     }
 
-    deinit {
-        for watcher in watchers { watcher.cancel() }
+    func count(owner: ObjectIdentifier) -> Int { sources[owner]?.count ?? 0 }
+
+    /// Stops watching for a session that ended.
+    func cancel(owner: ObjectIdentifier) {
+        for source in sources.removeValue(forKey: owner) ?? [] { source.cancel() }
     }
 }
 #endif

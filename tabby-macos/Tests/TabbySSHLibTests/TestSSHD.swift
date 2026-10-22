@@ -53,7 +53,11 @@ final class TestSSHD {
         try config.write(toFile: configPath, atomically: true, encoding: .utf8)
         process.executableURL = URL(fileURLWithPath: "/usr/sbin/sshd")
         process.arguments = ["-D", "-e", "-f", configPath]
-        process.standardError = FileHandle(forWritingAtPath: "/dev/null")
+        // Not the test runner's pipes: an sshd left over by a crashed test would keep them open
+        // and swift test would wait forever.
+        process.standardInput = FileHandle.nullDevice
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
         try process.run()
         try waitUntilListening()
     }
