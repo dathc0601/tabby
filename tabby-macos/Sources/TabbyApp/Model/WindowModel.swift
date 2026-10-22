@@ -148,19 +148,42 @@ public final class WindowModel {
         if let prev = previousTabID { select(prev) }
     }
 
+    /// Moves the active tab one place within its group, wrapping around when `cycleTabs` is on
+    /// (Tabby's `moveSelectedTabLeft/Right`).
     public func moveActiveTab(by delta: Int) {
-        guard let active = activeTab, let i = tabs.firstIndex(where: { $0 === active }) else { return }
-        let j = i + delta
-        guard tabs.indices.contains(j) else { return }
-        tabs.swapAt(i, j)
+        guard let active = activeTab, let i = tabs.firstIndex(where: { $0 === active }), tabs.count > 1 else { return }
+        let bounds = reorderBounds(of: active)
+        if bounds.contains(i + delta) {
+            tabs.swapAt(i, i + delta)
+            onRecoveryStateChanged?()
+        } else if services.config.value("appearance.cycleTabs")?.boolValue ?? true, bounds.count > 1 {
+            moveTab(active.id, to: delta < 0 ? bounds.upperBound : bounds.lowerBound)
+        }
+    }
+
+    /// Moves a tab, keeping it inside its group (pinned or not).
+    public func moveTab(_ id: UUID, to index: Int) {
+        guard let i = tabs.firstIndex(where: { $0.id == id }) else { return }
+        let bounds = reorderBounds(of: tabs[i])
+        let tab = tabs.remove(at: i)
+        tabs.insert(tab, at: min(max(index, bounds.lowerBound), bounds.upperBound))
         onRecoveryStateChanged?()
     }
 
-    public func moveTab(_ id: UUID, to index: Int) {
-        guard let i = tabs.firstIndex(where: { $0.id == id }) else { return }
-        let tab = tabs.remove(at: i)
-        tabs.insert(tab, at: min(max(index, 0), tabs.count))
-        onRecoveryStateChanged?()
+    // MARK: Pinned tabs
+
+    /// Pinned tabs stay together at the front (Tabby's `getTabReorderBounds`).
+    private func reorderBounds(of tab: TabModel) -> ClosedRange<Int> {
+        let pinned = tabs.filter(\.isPinned).count
+        return tab.isPinned ? 0...max(pinned - 1, 0) : pinned...max(tabs.count - 1, 0)
+    }
+
+    /// Pinning moves a tab to the end of the pinned group, unpinning to the start of the rest.
+    public func togglePinned(_ id: UUID) {
+        guard let tab = tabs.first(where: { $0.id == id }) else { return }
+        tab.isPinned.toggle()
+        let pinned = tabs.filter(\.isPinned).count
+        moveTab(id, to: tab.isPinned ? pinned - 1 : pinned)
     }
 
     /// Closes a tab, remembering it for "Reopen last tab".
@@ -183,14 +206,16 @@ public final class WindowModel {
         if tabs.isEmpty { ui?.modelDidBecomeEmpty() }
     }
 
-    public func closeOtherTabs(_ id: UUID) {
-        for t in tabs where t.id != id && !t.isPinned { closeTab(t.id) }
+    /// The tabs "Close other tabs" closes (pinned tabs stay).
+    public func tabs(otherThan id: UUID) -> [TabModel] {
+        tabs.filter { $0.id != id && !$0.isPinned }
     }
 
-    public func closeTabs(toThe side: SplitDirection, of id: UUID) {
-        guard let i = tabs.firstIndex(where: { $0.id == id }) else { return }
+    /// The tabs "Close tabs to the left/right" closes (pinned tabs stay).
+    public func tabs(toThe side: SplitDirection, of id: UUID) -> [TabModel] {
+        guard let i = tabs.firstIndex(where: { $0.id == id }) else { return [] }
         let victims = side == .left ? Array(tabs[..<i]) : Array(tabs[(i + 1)...])
-        for t in victims where !t.isPinned { closeTab(t.id) }
+        return victims.filter { !$0.isPinned }
     }
 
     /// Reopens the last closed tab right after the active one, as Tabby does.

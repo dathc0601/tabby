@@ -30,9 +30,7 @@ extension MainWindowController {
         case "reopen-tab": model.reopenLastTab()
         case "rename-tab": renameActiveTab()
         case "duplicate-tab": if let t = model.activeTab { model.duplicateTab(t.id) }
-        case "pin-tab":
-            if let t = model.activeTab { t.isPinned.toggle() }
-            RecoveryCoordinator.shared.scheduleSave()
+        case "pin-tab": if let t = model.activeTab { model.togglePinned(t.id) }
         case "restart-tab", "reconnect-tab", "restart-ssh-session": pane?.restart()
         case "disconnect-tab": pane?.disconnect()
         case "toggle-last-tab": model.toggleLastTab()
@@ -44,9 +42,9 @@ extension MainWindowController {
         case "move-tab-right": model.moveActiveTab(by: 1)
         case "explode-tab": model.explodeActiveTab()
         case "combine-tabs": model.combineTabs()
-        case "close-other-tabs": if let t = model.activeTab { model.closeOtherTabs(t.id) }
-        case "close-tabs-left": if let t = model.activeTab { model.closeTabs(toThe: .left, of: t.id) }
-        case "close-tabs-right": if let t = model.activeTab { model.closeTabs(toThe: .right, of: t.id) }
+        case "close-other-tabs": if let t = model.activeTab { requestCloseTabs(model.tabs(otherThan: t.id)) }
+        case "close-tabs-left": if let t = model.activeTab { requestCloseTabs(model.tabs(toThe: .left, of: t.id)) }
+        case "close-tabs-right": if let t = model.activeTab { requestCloseTabs(model.tabs(toThe: .right, of: t.id)) }
         case "save-layout-as-profile": saveLayoutAsProfile()
 
         // Panes

@@ -57,6 +57,72 @@ final class TabManagementTests: XCTestCase {
         XCTAssertEqual(names(model), ["a", "b", "b"], "launch recovery and saved layouts keep appending")
     }
 
+    // MARK: Pinned tabs (`AppService.pinTab` / `getTabReorderBounds` / `closeTab`)
+
+    func testPinningMovesTheTabToThePinnedGroup() {
+        let (model, tabs) = makeModel("a", "b", "c", "d")
+        model.togglePinned(tabs[2].id)
+        XCTAssertEqual(names(model), ["c", "a", "b", "d"])
+        model.togglePinned(tabs[1].id)
+        XCTAssertEqual(names(model), ["c", "b", "a", "d"], "pinned tabs keep their pin order")
+        model.togglePinned(tabs[2].id)
+        XCTAssertEqual(names(model), ["b", "c", "a", "d"], "unpinning moves to the start of the unpinned tabs")
+        XCTAssertFalse(tabs[2].isPinned)
+    }
+
+    func testTabsMoveOnlyWithinTheirGroup() {
+        let (model, tabs) = makeModel("a", "b", "c", "d")
+        model.togglePinned(tabs[0].id)
+        model.togglePinned(tabs[1].id)
+        model.moveTab(tabs[3].id, to: 0)
+        XCTAssertEqual(names(model), ["a", "b", "d", "c"], "dragging an unpinned tab stops after the pinned ones")
+        model.moveTab(tabs[0].id, to: 3)
+        XCTAssertEqual(names(model), ["b", "a", "d", "c"], "dragging a pinned tab stops at the last pinned slot")
+        model.select(tabs[3].id)
+        model.moveActiveTab(by: -1)
+        XCTAssertEqual(names(model), ["b", "a", "c", "d"], "⌘⇧← past the boundary wraps within the group (cycleTabs)")
+    }
+
+    func testCloseTabIgnoresPinnedTabs() throws {
+        let controller = WindowManager.shared.newWindow(openDefaultTab: false)
+        defer { TestApp.dispose(controller) }
+        let pinned = try XCTUnwrap(controller.model.openTab(profile: TestApp.profile("pin", "sleep 30")))
+        controller.runCommand("pin-tab")
+        XCTAssertTrue(pinned.isPinned)
+        controller.runCommand("close-tab")
+        controller.requestCloseTab(pinned)
+        XCTAssertEqual(controller.model.tabs.count, 1, "⌘W and the tab's Close do nothing on a pinned tab")
+    }
+
+    /// Tabby's bulk closes run each tab through `canClose`: idle tabs close, busy ones ask.
+    func testCloseOtherTabsAsksBeforeClosingBusyTabs() throws {
+        let controller = WindowManager.shared.newWindow(openDefaultTab: false)
+        defer {
+            if let sheet = controller.window?.attachedSheet { controller.window?.endSheet(sheet) }
+            TestApp.dispose(controller)
+        }
+        let model = controller.model
+        let busy = try XCTUnwrap(model.openTab(profile: TestApp.profile("busy", "set -m; sleep 30; :")))
+        let idle = try XCTUnwrap(model.openTab(profile: TestApp.profile("idle", "sleep 30")))
+        let pinned = try XCTUnwrap(model.openTab(profile: TestApp.profile("pinned", "sleep 30")))
+        model.togglePinned(pinned.id)
+        let keep = try XCTUnwrap(model.openTab(profile: TestApp.profile("keep", "sleep 30")))
+        for tab in model.tabs { model.select(tab.id); pump(0.6) }
+        XCTAssertNotNil(busy.focusedPane?.activeProcessName, "precondition: the busy tab has a foreground child")
+
+        model.select(keep.id)
+        controller.runCommand("close-other-tabs")
+        pump(0.3)
+        XCTAssertFalse(model.tabs.contains { $0 === idle }, "idle tabs close at once")
+        XCTAssertTrue(model.tabs.contains { $0 === busy }, "the busy tab waits for the answer")
+        XCTAssertTrue(model.tabs.contains { $0 === pinned }, "pinned tabs stay")
+        let sheet = try XCTUnwrap(controller.window?.attachedSheet, "a confirmation is shown")
+        controller.window?.endSheet(sheet, returnCode: .alertFirstButtonReturn)
+        pump(0.3)
+        XCTAssertFalse(model.tabs.contains { $0 === busy }, "confirming closes it")
+        XCTAssertEqual(names(model), ["pinned", "keep"])
+    }
+
     // MARK: Broadcast (`pane-focus-all`)
 
     /// Tabby marks every pane focused while broadcasting (`_allFocusMode || child === focusedTab`).

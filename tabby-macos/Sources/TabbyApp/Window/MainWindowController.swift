@@ -266,14 +266,21 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
         return warnings.isEmpty ? nil : warnings.joined(separator: "\n")
     }
 
+    /// ⌘W and the tab's Close. Pinned tabs ignore them, as in Tabby's `AppService.closeTab`.
     func requestCloseTab(_ tab: TabModel) {
-        guard let message = closeWarnings(tab.orderedPanes) else {
-            model.closeTab(tab.id)
-            return
-        }
-        Prompts.confirm(in: window, title: "Close this tab?", message: message,
-                        confirm: "Close", destructive: true) { [weak self] ok in
-            if ok { self?.model.closeTab(tab.id) }
+        guard !tab.isPinned else { return }
+        requestCloseTabs([tab])
+    }
+
+    /// Closes idle tabs at once and asks once before closing the busy ones.
+    func requestCloseTabs(_ tabs: [TabModel]) {
+        let busy = tabs.filter { closeWarnings($0.orderedPanes) != nil }
+        for tab in tabs where !busy.contains(where: { $0 === tab }) { model.closeTab(tab.id) }
+        guard let message = closeWarnings(busy.flatMap(\.orderedPanes)) else { return }
+        Prompts.confirm(in: window, title: busy.count == 1 ? "Close this tab?" : "Close \(busy.count) tabs?",
+                        message: message, confirm: "Close", destructive: true) { [weak self] ok in
+            guard ok, let self else { return }
+            for tab in busy { self.model.closeTab(tab.id) }
         }
     }
 
