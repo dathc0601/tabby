@@ -102,6 +102,28 @@ final class ClosingTests: XCTestCase {
         }
     }
 
+    /// Same as above over a real PTY child: SIGHUP, the waiter thread and `onClosed` on main.
+    func testDisconnectOverARealProcessKeepsThePane() throws {
+        let profile = Profile(id: "ssh:pty", type: "ssh", name: "pty",
+                              options: LocalOptions(command: "/bin/sleep", args: ["30"]).configValue,
+                              behaviorOnSessionEnd: .close)
+        let settings = TerminalSettings(config: ConfigStore(defaults: try ConfigStore.bundledDefaults()))
+        let pane = TerminalPane(profile: profile, factory: LocalSessionFactory(), context: SessionContext(),
+                                settings: settings, scheme: .tabbyDefault)
+        let engine = FakeEngine()
+        pane.attach(engine: engine)
+        var closeRequested = false
+        pane.onRequestClose = { _ in closeRequested = true }
+        pane.start()
+        XCTAssertEqual(pane.state, .running)
+        pane.disconnect()
+        waitForEnded(pane)
+        guard case .ended(_, true) = pane.state else { return XCTFail("state \(pane.state)") }
+        XCTAssertFalse(closeRequested)
+        XCTAssertTrue(engine.text.contains("Press any key"))
+        pane.close()
+    }
+
     func testDisconnectIgnoresLocalShells() throws {
         let (pane, _, factory) = try makePane(type: "local")
         pane.start()
