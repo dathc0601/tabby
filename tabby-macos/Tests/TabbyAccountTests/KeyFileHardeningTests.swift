@@ -7,7 +7,8 @@ import TabbySyncProtocol
 /// are written.
 @MainActor
 final class KeyFileHardeningTests: XCTestCase {
-    func testKeyFilesWhoseIDDoesNotMatchTheirContentsAreSkipped() throws {
+    // async: Linux XCTest cannot discover synchronous tests on a @MainActor class.
+    func testKeyFilesWhoseIDDoesNotMatchTheirContentsAreSkipped() async throws {
         let mac = try TestMac(name: "keys")
         let good = Data("-----GOOD-----".utf8)
         let goodID = LocalSyncData.keyID(good)
