@@ -40,5 +40,20 @@ final class DockingTests: XCTestCase {
         XCTAssertEqual(window.level, .normal)
         XCTAssertFalse(window.collectionBehavior.contains(.canJoinAllSpaces), "an undocked window stays on its own Space")
     }
+
+    /// Settings is a window of its own (a tab of the docked window in Tabby), so it floats with
+    /// an always-on-top docked terminal. It stayed normal, and the terminal covered it as soon
+    /// as a side was picked and whenever Settings was opened while docked.
+    func testSettingsFloatsWithTheDockedWindow() throws {
+        let window = try dockedWindow()
+        SettingsWindowController.show()
+        let settings = try XCTUnwrap(NSApp.windows.first { $0.title == "Settings" })
+        defer { settings.orderOut(nil) }
+        dock("top")
+        XCTAssertEqual(settings.level, window.level, "picking a side in Settings")
+        XCTAssertEqual(SettingsWindowController().window?.level, .floating, "opening Settings while docked")
+        dock("top", alwaysOnTop: false)
+        XCTAssertEqual(settings.level, .normal)
+    }
 }
 #endif

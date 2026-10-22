@@ -198,8 +198,8 @@ final class RecoveryCoordinator {
 final class DockController {
     static let shared = DockController()
 
-    /// Tabby's `setAlwaysOnTop(dockAlwaysOnTop)`, applied every time so turning it off while
-    /// docked lowers the window again.
+    /// Tabby's `setAlwaysOnTop(dockAlwaysOnTop)` while docked. Settings shares it: it is a
+    /// window of its own here (a tab in Tabby), which a floating terminal would cover.
     var level: NSWindow.Level {
         let config = AppServices.shared.config
         guard config.string("appearance.dock") ?? "off" != "off" else { return .normal }
@@ -209,6 +209,7 @@ final class DockController {
     func apply() {
         let config = AppServices.shared.config
         let side = config.string("appearance.dock") ?? "off"
+        SettingsWindowController.shared?.window?.level = level
         guard let controller = WindowManager.shared.controllers.first, let window = controller.window else { return }
         window.level = level
         guard side != "off" else {

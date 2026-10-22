@@ -41,7 +41,7 @@ final class SettingsNavigation {
 /// The Settings window (Tabby shows Settings as a tab; a separate window is the macOS norm).
 @MainActor
 final class SettingsWindowController: NSWindowController {
-    private static var shared: SettingsWindowController?
+    private(set) static var shared: SettingsWindowController?
     let navigation = SettingsNavigation()
 
     static func show(section: SettingsSection? = nil) {
@@ -60,6 +60,7 @@ final class SettingsWindowController: NSWindowController {
         window.title = "Settings"
         window.isReleasedWhenClosed = false
         window.contentMinSize = CGSize(width: 720, height: 460)
+        window.level = DockController.shared.level
         window.center()
         super.init(window: window)
         let hosting = NSHostingController(rootView: SettingsRootView(navigation: navigation))
