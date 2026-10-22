@@ -15,6 +15,7 @@ modules with plain protocols and registries instead.
 | `TabbyApp` | macOS | Window, tab bar, split views, hotkeys, menus, selector, settings, prompts | `tabby-core` components, `tabby-settings`, `tabby-electron` |
 | `tabby-askpass` | macOS, Linux | `SSH_ASKPASS` helper | none |
 | `TabbySyncProtocol` | macOS, Linux | Account and sync wire format: key derivation and vault encryption (`VaultCrypto`, swift-crypto), `SyncSnapshot`, `SyncMerger`, the HTTP API types | `tabby-settings` config sync, reworked |
+| `TabbyAccount` | macOS, Linux | Sign-in flows, `SyncClient`, `ChangeTracker`, `LocalSyncData`, `SyncEngine`, session storage; see [SYNC-PROTOCOL.md](SYNC-PROTOCOL.md) | none |
 | `../tabby-sync-server` | Linux (Docker), macOS | Hummingbird 2 + Fluent server for accounts, devices and the encrypted vault (its own package) | tabby-web's sync API, reworked |
 
 Everything except the AppKit and SwiftUI views compiles and is tested on Linux.

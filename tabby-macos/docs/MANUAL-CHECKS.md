@@ -211,6 +211,37 @@ window shows (traffic lights, hover, drag and drop, sheets, animation).
 - [ ] Docked: no traffic lights, the global hotkey slides it in and out, dragging its free
       edge changes the size kept for next time.
 
+## M7 Personal account and sync
+
+Needs the server: `docker compose -f ../tabby-sync-server/compose.yaml up` (or `swift run` in
+`tabby-sync-server`), then launch two copies of the app with different
+`TABBYMAC_CONFIG_DIRECTORY` folders and `TABBYMAC_SYNC_URL=http://localhost:8080` to act as two
+Macs. `TABBYMAC_SYNC_URL=memory:` runs one app against an in-memory server for UI-only checks.
+`AppClientEndToEndTests` in `tabby-sync-server` runs the same flow without a UI.
+
+- [ ] Toolbar person button opens Sign in; "Create account" → step 1 (strength meter, the
+      passwords must match) → step 2 recovery key: Copy, Save as file…, Print work; Start
+      syncing stays disabled until the checkbox is ticked; the avatar shows a check after the
+      upload.
+- [ ] Private key prompt: a profile with a key file and an `~/.ssh/id_*` default identity
+      are listed once; declined keys are not asked about again.
+- [ ] Second Mac: Sign in with the same email and password → "Welcome back" with the counts;
+      profiles, groups, settings, known hosts appear; an SSH profile with a saved password
+      and a key that only exists on the first Mac connects without a prompt.
+- [ ] Edit a profile on one Mac: within a minute the other shows it and a "Synced" toast.
+- [ ] Settings › Account & sync: Auto off stops automatic syncs; Sync now works; turning a
+      part off keeps it out of both directions; Devices lists both Macs and Remove signs the
+      other one out at its next sync.
+- [ ] Recovery key View… asks for the password; Regenerate… shows a new key and the old one
+      no longer works with "Forgot password?"; Change password keeps the other Mac signed in.
+- [ ] "Forgot password?" with the recovery key sets a new password and restores the data.
+- [ ] Sign out → Keep a local copy leaves everything usable; Remove synced data deletes only
+      what came from the account (`<config>/keys` emptied, `~/.ssh` untouched).
+- [ ] Wrong password, no network and a stopped server show readable errors (sheet or toast),
+      never a hang.
+- [ ] Settings › Vault lists saved passwords; Show reveals one (may ask for the Mac
+      password), Remove deletes it here and, after a sync, on the other Mac.
+
 ## Findings
 
 | Date | Milestone | Finding | Fix |

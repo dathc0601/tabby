@@ -57,6 +57,8 @@ let package = Package(
             dependencies: [
                 "SyncServer",
                 .product(name: "HummingbirdTesting", package: "hummingbird"),
+                // The app's own client and sync engine, for the client ↔ server end-to-end test.
+                .product(name: "TabbyAccount", package: "tabby-macos"),
                 .product(name: "Crypto", package: "swift-crypto"),
                 .product(name: "HTTPTypes", package: "swift-http-types"),
             ]

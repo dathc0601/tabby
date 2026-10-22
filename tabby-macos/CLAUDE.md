@@ -15,8 +15,13 @@ Read `README.md` and `docs/ARCHITECTURE.md` before larger changes.
   on the test Mac.
 - Phase 2 (started 2026-10-22, spec `docs/superpowers/specs/2026-10-22-phase-2-design.md`):
   2a redesign is in code (tokens, tab bar, content tabs, settings, cards, chip, toasts,
-  splits, docking); its on-screen checks are M6. 2b personal account + sync: protocol target
-  and `../tabby-sync-server` done, app side in progress.
+  splits, docking); its on-screen checks are M6. 2b personal account + sync is in code
+  (`TabbySyncProtocol`, `TabbyAccount`, `TabbyApp/Account`, `../tabby-sync-server`; see
+  `docs/SYNC-PROTOCOL.md`); its on-screen checks are M7. The server still has to be deployed
+  at https://sync.dcstyle.info (see `../tabby-sync-server/README.md`).
+- Tests never touch the real Keychain, server or `~/.ssh`: `TestApp.boot` sets
+  `TABBYMAC_SYNC_URL=memory:`, `TABBYMAC_KEYCHAIN=memory`, `TABBYMAC_SYNC_HOME`. Keep it so;
+  a sync reads every saved SSH password.
 - Roadmap after phase 2: phase 3 SSH library backend + SFTP, phase 4 serial/telnet, phase 5
   URL/CLI, localization, per-tab "notify when done".
 - Screens can be checked without a display:
