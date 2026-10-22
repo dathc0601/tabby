@@ -16,6 +16,47 @@ final class TabManagementTests: XCTestCase {
 
     func pump(_ seconds: Double) { TestApp.pump(seconds) }
 
+    /// A window model with tabs named `names`, in that order. Panes never start: no view is attached.
+    func makeModel(_ names: String...) -> (WindowModel, [TabModel]) {
+        let model = WindowModel()
+        let tabs = names.compactMap { model.openTab(profile: TestApp.profile($0, "sleep 30")) }
+        addTeardownBlock { @MainActor in
+            for tab in model.tabs { for pane in tab.orderedPanes { pane.close() } }
+        }
+        return (model, tabs)
+    }
+
+    func names(_ model: WindowModel) -> [String] {
+        model.tabs.map { $0.focusedPane?.profile.name ?? "?" }
+    }
+
+    // MARK: Placement (`AppService.duplicateTab` / `reopenLastTab`)
+
+    func testDuplicateOpensRightAfterTheOriginal() {
+        let (model, tabs) = makeModel("a", "b", "c")
+        model.duplicateTab(tabs[0].id)
+        XCTAssertEqual(names(model), ["a", "a", "b", "c"])
+        XCTAssertFalse(model.tabs[1] === tabs[0])
+        XCTAssertTrue(model.activeTab === model.tabs[1], "the copy is selected")
+    }
+
+    func testReopenedTabOpensRightAfterTheActiveTab() {
+        let (model, tabs) = makeModel("a", "b", "c")
+        model.closeTab(tabs[2].id)
+        model.select(tabs[0].id)
+        model.reopenLastTab()
+        XCTAssertEqual(names(model), ["a", "c", "b"])
+        XCTAssertTrue(model.activeTab === model.tabs[1])
+    }
+
+    func testRestoredTabsAppendInOrder() throws {
+        let (model, tabs) = makeModel("a", "b")
+        let token = try XCTUnwrap(tabs[1].recoveryToken())
+        model.select(tabs[0].id)
+        model.restore(token)
+        XCTAssertEqual(names(model), ["a", "b", "b"], "launch recovery and saved layouts keep appending")
+    }
+
     // MARK: Broadcast (`pane-focus-all`)
 
     /// Tabby marks every pane focused while broadcasting (`_allFocusMode || child === focusedTab`).

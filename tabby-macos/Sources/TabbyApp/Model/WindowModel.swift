@@ -193,14 +193,16 @@ public final class WindowModel {
         for t in victims where !t.isPinned { closeTab(t.id) }
     }
 
+    /// Reopens the last closed tab right after the active one, as Tabby does.
     public func reopenLastTab() {
         guard let token = closedTabs.popLast() else { return }
-        restore(token)
+        restore(token, at: activeTab.flatMap { t in tabs.firstIndex { $0 === t } }.map { $0 + 1 })
     }
 
+    /// Opens a copy of a tab right after it.
     public func duplicateTab(_ id: UUID) {
-        guard let tab = tabs.first(where: { $0.id == id }), let token = tab.recoveryToken() else { return }
-        restore(token, includeBuffer: false)
+        guard let i = tabs.firstIndex(where: { $0.id == id }), let token = tabs[i].recoveryToken() else { return }
+        restore(token, includeBuffer: false, at: i + 1)
     }
 
     // MARK: Panes
@@ -304,7 +306,8 @@ public final class WindowModel {
         tabs.compactMap { $0.recoveryToken(includeBuffer: includeBuffers) }
     }
 
-    public func restore(_ token: RecoveryToken, includeBuffer: Bool = true) {
+    /// Recreates a tab from a token, at `index` or after the last tab.
+    public func restore(_ token: RecoveryToken, includeBuffer: Bool = true, at index: Int? = nil) {
         let (layout, map) = token.makeLayout()
         var panes: [UUID: TerminalPane] = [:]
         var idMap: [UUID: UUID] = [:]
@@ -325,7 +328,7 @@ public final class WindowModel {
             tab.customTitle = title
             tab.color = color
         }
-        insertTab(tab, at: tabs.count)
+        insertTab(tab, at: index ?? tabs.count)
     }
 }
 #endif
