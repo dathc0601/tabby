@@ -36,6 +36,8 @@ public struct SSHConnectionOptions: Sendable {
     /// A SOCKS5 or HTTP CONNECT proxy to reach the host through (when there is no `socket`
     /// or `proxyCommand`).
     public var proxy: SSHProxy?
+    /// Where forwarded X11 connections go (`ssh.x11Display`, else `$DISPLAY`).
+    public var x11Display: String?
 
     public init(host: String, port: Int = 22, user: String, knownHostsFile: String = ConfigPaths.standard().knownHostsFile.path) {
         self.host = host
@@ -163,6 +165,8 @@ public final class SSHConnection: @unchecked Sendable {
 
     private var session: ssh_session?
     private var event: ssh_event?
+    /// libssh keeps a pointer to the session's callback table.
+    private let sessionCallbacks = UnsafeMutablePointer<ssh_callbacks_struct>.allocate(capacity: 1)
     private var wakeRead: Int32 = -1
     private var wakeWrite: Int32 = -1
     private let lock = NSLock()
@@ -179,6 +183,12 @@ public final class SSHConnection: @unchecked Sendable {
         self.options = options
         self.prompter = prompter
         self.passwords = passwords
+        sessionCallbacks.initialize(to: ssh_callbacks_struct())
+    }
+
+    deinit {
+        sessionCallbacks.deinitialize(count: 1)
+        sessionCallbacks.deallocate()
     }
 
     /// Connects, checks the host key and logs in; afterwards the connection serves channels
@@ -304,6 +314,13 @@ public final class SSHConnection: @unchecked Sendable {
             ssh_string_free_char(banner)
             if !text.isEmpty { say(text) }
         }
+
+        sessionCallbacks.pointee = ssh_callbacks_struct()
+        sessionCallbacks.pointee.size = MemoryLayout<ssh_callbacks_struct>.size
+        sessionCallbacks.pointee.userdata = Unmanaged.passUnretained(self).toOpaque()
+        sessionCallbacks.pointee.channel_open_request_auth_agent_function = agentChannelRequested
+        sessionCallbacks.pointee.channel_open_request_x11_function = x11ChannelRequested
+        ssh_set_callbacks(s, sessionCallbacks)
 
         guard let e = ssh_event_new() else { throw SSHConnectionError.connectFailed("libssh could not poll") }
         event = e
@@ -656,7 +673,7 @@ public final class SSHConnection: @unchecked Sendable {
         let bridge = Bridge(fd: fd, box: box)
         bridges.append(bridge)
         register(box)
-        reapChannels()
+        // Its poll registration happens after the current poll (see reapChannels).
     }
 
     /// Opens a direct-tcpip channel to `host:port` (seen from the server) and returns a local
@@ -669,6 +686,7 @@ public final class SSHConnection: @unchecked Sendable {
             do {
                 let box = try openDirectTCPIP(host: host, port: port, deliverTo: mine)
                 bridge(box, fd: mine)
+                reapChannels()
                 var yes: Int32 = 1
                 setsockopt(theirs, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout<Int32>.size))
                 return theirs
@@ -719,9 +737,42 @@ public final class SSHConnection: @unchecked Sendable {
         }
     }
 
+    // MARK: Channels the server opens
+
+    /// An `auth-agent@openssh.com` channel: joined to a new connection to the agent.
+    fileprivate func acceptAgentChannel() -> ssh_channel? {
+        guard let session, let path = options.agentSocket, let fd = LocalSocket.unix(path) else { return nil }
+        return acceptBridged(session, fd: fd)
+    }
+
+    /// An `x11` channel: joined to the local X server.
+    fileprivate func acceptX11Channel() -> ssh_channel? {
+        guard let session else { return nil }
+        let display = X11Display.resolve(options.x11Display, environment: ProcessInfo.processInfo.environment["DISPLAY"])
+        let fd: Int32?
+        switch display {
+        case let .socket(path): fd = LocalSocket.unix(path)
+        case let .tcp(host, port): fd = try? ProxyTunnel.connect(host: host, port: port, timeout: 5)
+        }
+        guard let fd else {
+            say("Could not connect to the X server: \(display)")
+            return nil
+        }
+        return acceptBridged(session, fd: fd)
+    }
+
+    private func acceptBridged(_ session: ssh_session, fd: Int32) -> ssh_channel? {
+        guard let channel = ssh_channel_new(session) else {
+            close(fd)
+            return nil
+        }
+        bridge(ChannelBox(channel: channel, handlers: SSHChannelHandlers(data: { _ in }, closed: { _ in })), fd: fd)
+        return channel
+    }
+
     /// Opens an interactive shell with a PTY (and agent forwarding when asked).
     public func openShell(term: String, columns: Int, rows: Int, handlers: SSHChannelHandlers,
-                          forwardAgent: Bool = false) async throws -> SSHShellChannel {
+                          forwardAgent: Bool = false, forwardX11: Bool = false) async throws -> SSHShellChannel {
         try await perform { [self] in
             guard let session, let channel = ssh_channel_new(session) else { throw SSHConnectionError.channelFailed(lastError()) }
             let box = ChannelBox(channel: channel, handlers: handlers)
@@ -735,6 +786,13 @@ public final class SSHConnection: @unchecked Sendable {
             }
             if forwardAgent, ssh_channel_request_auth_agent(channel) != SSH_OK {
                 say("Agent forwarding was refused")
+            }
+            if forwardX11 {
+                // Tabby: MIT-MAGIC-COOKIE-1 with a random cookie, screen 0.
+                let cookie = (0..<16).map { _ in String(format: "%02x", UInt8.random(in: 0...255)) }.joined()
+                if ssh_channel_request_x11(channel, 0, "MIT-MAGIC-COOKIE-1", cookie, 0) != SSH_OK {
+                    say("X11 forwarding was refused. Make sure `xauth` is installed on the remote side")
+                }
             }
             guard ssh_channel_request_shell(channel) == SSH_OK else {
                 box.free()
@@ -985,6 +1043,41 @@ final class Bridge {
 private let bridgeEvent: ssh_event_callback = { _, revents, userdata in
     Unmanaged<Bridge>.fromOpaque(userdata!).takeUnretainedValue().handle(revents)
     return 0
+}
+
+private let agentChannelRequested: ssh_channel_open_request_auth_agent_callback = { _, userdata in
+    Unmanaged<SSHConnection>.fromOpaque(userdata!).takeUnretainedValue().acceptAgentChannel()
+}
+
+private let x11ChannelRequested: ssh_channel_open_request_x11_callback = { _, _, _, userdata in
+    Unmanaged<SSHConnection>.fromOpaque(userdata!).takeUnretainedValue().acceptX11Channel()
+}
+
+/// Connects to a local Unix socket (the agent, an X server).
+enum LocalSocket {
+    static func unix(_ path: String) -> Int32? {
+        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        guard fd >= 0 else { return nil }
+        var address = sockaddr_un()
+        address.sun_family = sa_family_t(AF_UNIX)
+        let bytes = Array(path.utf8)
+        guard bytes.count < MemoryLayout.size(ofValue: address.sun_path) else {
+            close(fd)
+            return nil
+        }
+        withUnsafeMutableBytes(of: &address.sun_path) { raw in
+            raw.copyBytes(from: bytes)
+            raw[bytes.count] = 0
+        }
+        let connected = withUnsafePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size)) == 0 }
+        }
+        guard connected else {
+            close(fd)
+            return nil
+        }
+        return fd
+    }
 }
 
 private let wakeCallback: ssh_event_callback = { _, _, userdata in

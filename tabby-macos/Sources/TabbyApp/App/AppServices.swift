@@ -100,6 +100,9 @@ public final class AppServices {
             },
             syncedKeys: { keyFiles.syncedKeys() },
             passwords: passwords))
+        libSSHFactory.environment.x11Display = {
+            MainActor.assumeIsolated { config.value("ssh.x11Display")?.stringValue }.flatMap { $0.isEmpty ? nil : $0 }
+        }
         factories["local"] = LocalSessionFactory()
         factories["ssh"] = SSHBackendFactory(openSSH: sshFactory, library: libSSHFactory,
                                              configuredBackend: { MainActor.assumeIsolated { config.value("ssh.backend")?.stringValue } })

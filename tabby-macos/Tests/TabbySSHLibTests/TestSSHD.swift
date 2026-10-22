@@ -307,3 +307,32 @@ final class TestProxy: @unchecked Sendable {
     }
 }
 #endif
+
+#if os(macOS)
+/// A throwaway ssh-agent on a temp socket holding the given keys (never the user's agent).
+final class TestAgent {
+    let socketPath: String
+    private let process = Process()
+
+    init(directory: URL, keys: [String]) throws {
+        socketPath = directory.appendingPathComponent("agent.sock").path
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/ssh-agent")
+        process.arguments = ["-D", "-a", socketPath]
+        process.standardOutput = FileHandle(forWritingAtPath: "/dev/null")
+        process.standardError = FileHandle(forWritingAtPath: "/dev/null")
+        try process.run()
+        let deadline = Date().addingTimeInterval(5)
+        while !FileManager.default.fileExists(atPath: socketPath), Date() < deadline { Thread.sleep(forTimeInterval: 0.05) }
+        for key in keys {
+            TestSSHD.run("/usr/bin/ssh-add", [key], environment: ["SSH_AUTH_SOCK": socketPath])
+        }
+    }
+
+    func stop() {
+        if process.isRunning { process.terminate() }
+        process.waitUntilExit()
+    }
+
+    deinit { stop() }
+}
+#endif

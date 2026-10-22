@@ -211,6 +211,41 @@ final class SSHConnectionTests: XCTestCase {
         }
     }
 
+    func testTheAgentLogsIn() async throws {
+        let agent = try TestAgent(directory: sshd.directory, keys: [sshd.keyPath])
+        defer { agent.stop() }
+        var o = options(keys: [])
+        o.auth = .agent
+        o.agentSocket = agent.socketPath
+        let connection = SSHConnection(options: o, prompter: ScriptedPrompter(), passwords: InMemoryPasswordStore())
+        try await connection.connect()
+        connection.disconnect()
+    }
+
+    func testWithoutAnAgentAgentAuthFails() async throws {
+        var o = options(keys: [])
+        o.auth = .agent
+        o.agentSocket = nil
+        let connection = SSHConnection(options: o, prompter: ScriptedPrompter(), passwords: InMemoryPasswordStore())
+        await XCTAssertThrowsErrorAsync(try await connection.connect())
+    }
+
+    /// With forwarding, programs on the server reach this Mac's agent.
+    func testAgentForwarding() async throws {
+        let agent = try TestAgent(directory: sshd.directory, keys: [sshd.keyPath])
+        defer { agent.stop() }
+        var o = options(keys: [sshd.keyPath])
+        o.agentSocket = agent.socketPath
+        let connection = SSHConnection(options: o, prompter: ScriptedPrompter(), passwords: InMemoryPasswordStore())
+        try await connection.connect()
+        defer { connection.disconnect() }
+        let output = OutputCollector()
+        let shell = try await connection.openShell(term: "xterm", columns: 200, rows: 24, handlers: output.handlers, forwardAgent: true)
+        shell.write(Data("ssh-add -l; exit\n".utf8))
+        _ = try await output.waitForClose(timeout: 10)
+        XCTAssertTrue(output.text.contains("tabby-test (ED25519)"), output.text)
+    }
+
     func testNoUsableKeyIsRejected() async throws {
         let stranger = sshd.directory.appendingPathComponent("stranger").path
         try TestSSHD.keygen(stranger, passphrase: "")

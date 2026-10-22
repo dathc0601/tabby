@@ -27,6 +27,8 @@ public final class LibSSHSession: TerminalSession {
         public var homeDirectory: String
         public var syncedKeys: () -> SyncedKeys
         public var passwords: PasswordStore
+        /// `ssh.x11Display`; nil uses `$DISPLAY`.
+        public var x11Display: () -> String? = { nil }
 
         public init(knownHostsFile: String, globalKnownHostsFile: String? = NSHomeDirectory() + "/.ssh/known_hosts",
                     verifyHostKeys: Bool = true,
@@ -95,7 +97,8 @@ public final class LibSSHSession: TerminalSession {
                         DispatchQueue.main.async { self?.shellClosed(status: status) }
                     })
                 let shell = try await connection.openShell(term: self.options.term, columns: self.size.columns, rows: self.size.rows,
-                                                           handlers: handlers, forwardAgent: self.options.agentForward)
+                                                           handlers: handlers, forwardAgent: self.options.agentForward,
+                                                           forwardX11: self.options.x11)
                 self.shell = shell
                 guard !self.cancelled else { return shell.close() }
                 self.onStatus?(.connected)
@@ -119,7 +122,9 @@ public final class LibSSHSession: TerminalSession {
         o.profilePassword = options.password
         o.globalKnownHostsFile = environment.globalKnownHostsFile
         o.verifyHostKeys = environment.verifyHostKeys
-        if options.auth == nil || options.auth == .agent { o.agentSocket = environment.agentSocket() }
+        // Forwarding needs the agent even when it is not used to log in.
+        if options.auth == nil || options.auth == .agent || options.agentForward { o.agentSocket = environment.agentSocket() }
+        o.x11Display = environment.x11Display()
         o.homeDirectory = environment.homeDirectory
         o.syncedKeys = environment.syncedKeys()
         if let ms = options.readyTimeout, ms > 0 { o.connectTimeout = TimeInterval(ms) / 1000 }
