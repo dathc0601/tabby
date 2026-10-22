@@ -53,7 +53,10 @@ public struct KDFParams: Codable, Hashable, Sendable {
 
 /// The keys a password yields: `authKey` signs in (the server keeps a salted hash),
 /// `wrapKey` unwraps the encryption key and never leaves the device.
-public struct PasswordKeys: Sendable {
+///
+/// `@unchecked`: swift-crypto 3.x does not mark `SymmetricKey` `Sendable` on Linux; it is
+/// an immutable value.
+public struct PasswordKeys: @unchecked Sendable {
     public let authKey: Data
     public let wrapKey: SymmetricKey
 }

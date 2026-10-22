@@ -84,7 +84,12 @@ let package = Package(
         ),
         .testTarget(
             name: "TabbySyncProtocolTests",
-            dependencies: ["TabbySyncProtocol", .product(name: "Crypto", package: "swift-crypto")]
+            dependencies: ["TabbySyncProtocol", .product(name: "Crypto", package: "swift-crypto")],
+            // swift-crypto's BoringSSL is C++, so the Linux test bundle links libstdc++, and
+            // gold then checks the undefined symbols of the shared libraries it loads. Swift
+            // 6.1's libswiftObservation.so (TabbyTerminal imports Observation) references
+            // swift::threading::fatal, which no 6.1 runtime library exports; fixed in 6.2.
+            linkerSettings: [.unsafeFlags(["-Xlinker", "--allow-shlib-undefined"], .when(platforms: [.linux]))]
         ),
         .testTarget(
             name: "TabbyTerminalTests",
