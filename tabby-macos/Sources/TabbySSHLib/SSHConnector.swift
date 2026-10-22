@@ -122,8 +122,14 @@ public final class SSHConnector {
 
     /// Tabby's key: host, port, user, proxy settings, and the jump host's own key.
     private func sharingKey(_ o: SSHOptions, depth: Int) -> String {
-        var key = [o.host, String(o.port), o.user, o.proxyCommand ?? "", o.socksProxyHost ?? "", o.socksProxyPort.map(String.init) ?? "",
-                   o.httpProxyHost ?? "", o.httpProxyPort.map(String.init) ?? ""].joined(separator: ":")
+        // Built in steps: as one array literal it was too much for Xcode 16's type checker.
+        var parts: [String] = [o.host, String(o.port), o.user]
+        parts.append(o.proxyCommand ?? "")
+        parts.append(o.socksProxyHost ?? "")
+        parts.append(o.socksProxyPort.map { String($0) } ?? "")
+        parts.append(o.httpProxyHost ?? "")
+        parts.append(o.httpProxyPort.map { String($0) } ?? "")
+        var key = parts.joined(separator: ":")
         if let jumpID = o.jumpHost {
             if depth < 8, let jump = resolveProfile(jumpID) {
                 key += "$" + sharingKey(SSHOptions(jump.options), depth: depth + 1)
