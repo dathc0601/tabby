@@ -61,7 +61,7 @@ final class LibSSHPromptPresenter: SSHSessionUI {
     /// has no pane.
     func keyboardInteractive(_ round: KeyboardInteractiveRound, for session: LibSSHSession) async -> KeyboardInteractiveAnswer? {
         if let pane = pane(for: session) {
-            return await KeyboardInteractivePanels.shared.ask(round, in: pane.id)
+            return await KeyboardInteractivePanels.shared.ask(round, in: pane.id, owner: ObjectIdentifier(session))
         }
         return await keyboardInteractive(round, in: window(for: session))
     }
@@ -86,6 +86,12 @@ final class LibSSHPromptPresenter: SSHSessionUI {
         let controller = WindowManager.shared.controllers.first { $0.window === window } ?? WindowManager.shared.activeController
         controller?.toasts.show(ToastCenter.Toast(symbol: "point.3.connected.trianglepath.dotted", tint: isError ? .danger : .success,
                                                   title: title, detail: detail))
+    }
+
+    func sessionEnded(_ session: LibSSHSession) {
+        let owner = ObjectIdentifier(session)
+        KeyboardInteractivePanels.shared.cancel(owner: owner)
+        SFTPPanels.shared.close(owner: owner)
     }
 
     func username(host: String, for session: LibSSHSession) async -> String? {

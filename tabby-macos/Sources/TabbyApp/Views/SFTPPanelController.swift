@@ -27,7 +27,8 @@ final class SFTPPanels {
         Task {
             do {
                 let client = try await connection.sftp()
-                let controller = SFTPPanelController(model: SFTPPanelModel(host: host, client: client), client: client, paneID: pane.id)
+                let controller = SFTPPanelController(model: SFTPPanelModel(host: host, client: client), client: client, paneID: pane.id,
+                                                     owner: ObjectIdentifier(session))
                 controllers[pane.id] = controller
                 await controller.model.navigate(to: start)
             } catch {
@@ -47,6 +48,13 @@ final class SFTPPanels {
         lastPaths[controller.model.host] = controller.model.path
     }
 
+    /// Closes the panels of a session that ended.
+    func close(owner: ObjectIdentifier) {
+        for (paneID, controller) in controllers where controller.owner == owner {
+            close(paneID)
+        }
+    }
+
     func toggle(for pane: TerminalPane) {
         if controllers[pane.id] != nil { close(pane.id) } else { open(for: pane) }
     }
@@ -59,13 +67,16 @@ final class SFTPPanelController {
     let model: SFTPPanelModel
     let client: SFTPOperations
     let paneID: UUID
+    /// The session it belongs to; the panel closes when that session ends.
+    let owner: ObjectIdentifier
     /// Files open in other apps by "Edit locally", watched for saves.
     private var watchers: [DispatchSourceFileSystemObject] = []
 
-    init(model: SFTPPanelModel, client: SFTPOperations, paneID: UUID) {
+    init(model: SFTPPanelModel, client: SFTPOperations, paneID: UUID, owner: ObjectIdentifier) {
         self.model = model
         self.client = client
         self.paneID = paneID
+        self.owner = owner
     }
 
     var host: String { model.host }

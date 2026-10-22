@@ -112,6 +112,22 @@ public protocol SSHConnectionPrompter: AnyObject, Sendable {
     @MainActor func username(host: String) async -> String?
     /// A service line for the terminal ("Using saved password", …).
     @MainActor func message(_ text: String)
+    /// Set when whoever asked for the connection gave up (its tab closed): an unanswered
+    /// question is abandoned and the connect ends. Read from the connection's thread.
+    nonisolated var isCancelled: Bool { get }
+}
+
+public extension SSHConnectionPrompter {
+    nonisolated var isCancelled: Bool { false }
+}
+
+/// A thread-safe flag (prompters are main-actor objects; the connection thread reads it).
+public final class CancelFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+    public init() {}
+    public var isSet: Bool { lock.withLock { value } }
+    public func set() { lock.withLock { value = true } }
 }
 
 public enum SSHConnectionError: Error, Equatable, LocalizedError {
@@ -230,15 +246,22 @@ public final class SSHConnection: @unchecked Sendable {
     // MARK: Main-actor bridge
 
     /// Runs `body` on the main actor and waits for it (the connection thread may block).
-    func ask<T>(_ body: @escaping @MainActor () async -> T) -> T {
+    /// Gives up with `.cancelled` once the prompter is cancelled (the tab closed mid-question).
+    func ask<T>(_ body: @escaping @MainActor () async -> T) throws -> T {
         let box = ResultBox<T>()
         let semaphore = DispatchSemaphore(value: 0)
         Task { @MainActor in
             box.value = await body()
             semaphore.signal()
         }
-        semaphore.wait()
+        while semaphore.wait(timeout: .now() + 0.1) == .timedOut {
+            if prompter.isCancelled { throw SSHConnectionError.cancelled }
+        }
         return box.value!
+    }
+
+    private func checkCancelled() throws {
+        if prompter.isCancelled { throw SSHConnectionError.cancelled }
     }
 
     func onMain<T>(_ body: () -> T) -> T {
@@ -267,7 +290,7 @@ public final class SSHConnection: @unchecked Sendable {
         if user.isEmpty {
             let host = options.host
             let prompter = prompter
-            guard let answer = ask({ await prompter.username(host: host) }), !answer.isEmpty else { throw SSHConnectionError.noUsername }
+            guard let answer = try ask({ await prompter.username(host: host) }), !answer.isEmpty else { throw SSHConnectionError.noUsername }
             user = answer
         }
         resolvedUser = user
@@ -316,8 +339,11 @@ public final class SSHConnection: @unchecked Sendable {
         }
         ssh_set_blocking(s, 1)
 
+        try checkCancelled()
         guard ssh_connect(s) == SSH_OK else { throw SSHConnectionError.connectFailed(lastError()) }
+        try checkCancelled()
         try verifyHostKey(s)
+        try checkCancelled()
         try authenticate(s, user: user)
         if !options.skipBanner, let banner = ssh_get_issue_banner(s) {
             let text = String(cString: banner).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -389,7 +415,7 @@ public final class SSHConnection: @unchecked Sendable {
         let request = HostKeyRequest(host: options.host, port: options.port, keyType: type, fingerprint: fingerprint,
                                      previousFingerprint: previous)
         let prompter = prompter
-        switch ask({ await prompter.verifyHostKey(request) }) {
+        switch try ask({ await prompter.verifyHostKey(request) }) {
         case .reject:
             throw SSHConnectionError.hostKeyRejected
         case .acceptOnce:
@@ -442,6 +468,7 @@ public final class SSHConnection: @unchecked Sendable {
         var triedAgent = false
 
         while let step = plan.next() {
+            try checkCancelled()
             let result: Int32
             switch step {
             case .none:
@@ -465,7 +492,7 @@ public final class SSHConnection: @unchecked Sendable {
                 result = try keyboardInteractive(s, savedPassword: saved, user: user)
             case .promptPassword:
                 let prompter = prompter
-                guard let answer = ask({ await prompter.password(user: user, host: host) }) else { throw SSHConnectionError.cancelled }
+                guard let answer = try ask({ await prompter.password(user: user, host: host) }) else { throw SSHConnectionError.cancelled }
                 result = ssh_userauth_password(s, nil, answer.value)
                 if answer.remember, result == SSH_AUTH_SUCCESS.rawValue {
                     afterLogin.append { [passwords] in passwords.savePassword(answer.value, host: host, port: port, user: user) }
@@ -526,7 +553,7 @@ public final class SSHConnection: @unchecked Sendable {
             while key == nil, attempts < 3 {
                 attempts += 1
                 let prompter = prompter
-                guard let answer = ask({ await prompter.passphrase(keyPath: path) }) else { throw SSHConnectionError.cancelled }
+                guard let answer = try ask({ await prompter.passphrase(keyPath: path) }) else { throw SSHConnectionError.cancelled }
                 if ssh_pki_import_privkey_file(path, answer.value, nil, nil, &key) == SSH_OK, answer.remember, let id {
                     afterLogin.append { [passwords] in passwords.savePassphrase(answer.value, keyID: id) }
                 } else if key == nil {
@@ -557,7 +584,7 @@ public final class SSHConnection: @unchecked Sendable {
                 let round = KeyboardInteractiveRound(host: options.host, name: name, instruction: instruction, prompts: prompts,
                                                      prefilled: prompts.map { $0.isPasswordLike ? savedPassword : nil })
                 let prompter = prompter
-                guard let answer = ask({ await prompter.keyboardInteractive(round) }) else { throw SSHConnectionError.cancelled }
+                guard let answer = try ask({ await prompter.keyboardInteractive(round) }) else { throw SSHConnectionError.cancelled }
                 for (index, value) in answer.answers.enumerated() where index < prompts.count {
                     ssh_userauth_kbdint_setanswer(s, UInt32(index), value)
                     if answer.remember, prompts[index].isPasswordLike { remembered = value }

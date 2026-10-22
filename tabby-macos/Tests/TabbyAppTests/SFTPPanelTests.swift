@@ -137,7 +137,7 @@ final class SFTPPanelTests: XCTestCase {
         TestApp.pump(until: { self.views(window.contentView!).contains { $0 is PaneContainerView } })
         let container = try XCTUnwrap(views(window.contentView!).compactMap { $0 as? PaneContainerView }.first)
         let controller = SFTPPanelController(model: SFTPPanelModel(host: "prod", client: makeServer()), client: makeServer(),
-                                             paneID: container.pane.id)
+                                             paneID: container.pane.id, owner: ObjectIdentifier(self))
         SFTPPanels.shared.present(controller)
         TestApp.pump(until: { container.subviews.contains { $0 is NSHostingView<SFTPPanelView> } })
         container.layoutSubtreeIfNeeded()
@@ -151,6 +151,19 @@ final class SFTPPanelTests: XCTestCase {
         TestApp.pump(until: { SFTPPanels.shared.controllers[container.pane.id] == nil })
         TestApp.pump(until: { !container.subviews.contains { $0 is NSHostingView<SFTPPanelView> } })
         XCTAssertFalse(container.subviews.contains { $0 is SFTPDismissCatcher })
+    }
+
+    /// Review C2/C3: a session's panel closes when the session ends.
+    func testASessionsPanelClosesWhenItEnds() {
+        let owner = NSObject()
+        let pane = UUID()
+        let controller = SFTPPanelController(model: SFTPPanelModel(host: "prod", client: makeServer()), client: makeServer(),
+                                             paneID: pane, owner: ObjectIdentifier(owner))
+        SFTPPanels.shared.present(controller)
+        SFTPPanels.shared.close(owner: ObjectIdentifier(NSObject()))
+        XCTAssertNotNil(SFTPPanels.shared.controllers[pane])
+        SFTPPanels.shared.close(owner: ObjectIdentifier(owner))
+        XCTAssertNil(SFTPPanels.shared.controllers[pane])
     }
 
     func testTheHotkeyNeedsAConnectedLibrarySession() throws {

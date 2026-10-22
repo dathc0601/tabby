@@ -15,10 +15,13 @@ public protocol SSHSessionUI: AnyObject {
     func username(host: String, for session: LibSSHSession) async -> String?
     /// A toast on the session's window (e.g. a forward that could not start).
     func notify(title: String, detail: String, isError: Bool, for session: LibSSHSession)
+    /// The session ended or its tab closed: questions and panels for it go away.
+    func sessionEnded(_ session: LibSSHSession)
 }
 
 public extension SSHSessionUI {
     func notify(title: String, detail: String, isError: Bool, for session: LibSSHSession) {}
+    func sessionEnded(_ session: LibSSHSession) {}
 }
 
 /// An SSH terminal session on the library backend: one shell channel on an `SSHConnection`.
@@ -65,6 +68,8 @@ public final class LibSSHSession: TerminalSession {
     private var shell: SSHShellChannel?
     private var size = (columns: 80, rows: 24)
     private var cancelled = false
+    /// Abandons this session's unanswered questions when it is killed.
+    private var cancelFlag = CancelFlag()
     private var ended = false
     private let output = OutputCoalescer()
 
@@ -90,9 +95,11 @@ public final class LibSSHSession: TerminalSession {
         let connector = MainActor.assumeIsolated { self.connector ?? SSHConnector(environment: environment) }
         self.connector = connector
         let profile = profile
+        let flag = CancelFlag()
+        cancelFlag = flag
         Task { @MainActor in
             do {
-                let connection = try await connector.acquire(profile: profile, prompter: SessionPrompter(self))
+                let connection = try await connector.acquire(profile: profile, prompter: SessionPrompter(self, cancel: flag))
                 self.connection = connection
                 guard !self.cancelled else { return self.releaseConnection() }
                 let handlers = SSHChannelHandlers(
@@ -174,6 +181,8 @@ public final class LibSSHSession: TerminalSession {
 
     public func kill() {
         cancelled = true
+        cancelFlag.set()
+        MainActor.assumeIsolated { ui?.sessionEnded(self) }
         shell?.close()
         // Released here, not when the close is reported: the pane lets go of this session
         // right after kill(), so a handler holding it weakly would never run.
@@ -212,6 +221,7 @@ public final class LibSSHSession: TerminalSession {
         ended = true
         isRunning = false
         shell = nil
+        MainActor.assumeIsolated { ui?.sessionEnded(self) }
         onStatus?(.disconnected)
         onClosed?(status)
     }
@@ -226,10 +236,14 @@ public final class LibSSHSession: TerminalSession {
 @MainActor
 final class SessionPrompter: SSHConnectionPrompter {
     private weak var session: LibSSHSession?
+    private let cancel: CancelFlag
 
-    init(_ session: LibSSHSession) {
+    init(_ session: LibSSHSession, cancel: CancelFlag) {
         self.session = session
+        self.cancel = cancel
     }
+
+    nonisolated var isCancelled: Bool { cancel.isSet }
 
     func verifyHostKey(_ request: HostKeyRequest) async -> HostKeyDecision {
         guard let session, let ui = session.ui else { return .reject }

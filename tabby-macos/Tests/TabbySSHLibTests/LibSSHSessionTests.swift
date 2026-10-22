@@ -26,6 +26,22 @@ final class AcceptingUI: SSHSessionUI {
     func username(host: String, for session: LibSSHSession) async -> String? { nil }
 }
 
+/// Accepts host keys but never answers a passphrase question (a tab closed mid-prompt).
+@MainActor
+final class SilentUI: SSHSessionUI {
+    var asked = false
+    private var parked: [CheckedContinuation<SecretAnswer?, Never>] = []
+
+    func verifyHostKey(_ request: HostKeyRequest, for session: LibSSHSession) async -> HostKeyDecision { .acceptAndRemember }
+    func password(user: String, host: String, for session: LibSSHSession) async -> SecretAnswer? { nil }
+    func passphrase(keyPath: String, for session: LibSSHSession) async -> SecretAnswer? {
+        asked = true
+        return await withCheckedContinuation { parked.append($0) }
+    }
+    func keyboardInteractive(_ round: KeyboardInteractiveRound, for session: LibSSHSession) async -> KeyboardInteractiveAnswer? { nil }
+    func username(host: String, for session: LibSSHSession) async -> String? { nil }
+}
+
 /// The library backend as a terminal session: status, service lines, output, exit.
 @MainActor
 final class LibSSHSessionTests: XCTestCase {
@@ -182,6 +198,28 @@ final class LibSSHSessionTests: XCTestCase {
         session!.kill()
         session = nil
         try await waitUntil { connector.sharedCount == 0 }
+    }
+
+    /// Review C2: a question nobody answers because the tab closed must not leave the
+    /// connect (and every later tab to that host) stuck.
+    func testClosingATabDuringAPromptEndsItsConnect() async throws {
+        let silent = SilentUI()
+        let connector = SSHConnector(environment: makeSession().environment)
+        let waiting = makeSession(key: sshd.encryptedKeyPath)
+        waiting.ui = silent
+        waiting.connector = connector
+        let r1 = attach(waiting)
+        try waiting.start(cols: 80, rows: 24)
+        try await waitUntil { silent.asked }
+        waiting.kill()
+        try await waitUntil(10) { r1.closed != nil }
+
+        let next = makeSession()
+        next.connector = connector
+        let r2 = attach(next)
+        try next.start(cols: 80, rows: 24)
+        try await waitUntil(10) { r2.statuses.contains(.connected) }
+        next.kill()
     }
 
     func testKillWhileConnectedClosesTheSession() async throws {

@@ -146,16 +146,27 @@ private struct KeyboardInteractiveContent: View {
 final class KeyboardInteractivePanels {
     static let shared = KeyboardInteractivePanels()
     private(set) var models: [UUID: KeyboardInteractiveModel] = [:]
+    /// Which session asked, so its end can cancel the question (its pane may be gone by then).
+    @ObservationIgnored private var owners: [UUID: ObjectIdentifier] = [:]
 
     /// Shows the round in the pane and waits for the answer (nil: cancelled).
-    func ask(_ round: KeyboardInteractiveRound, in paneID: UUID) async -> KeyboardInteractiveAnswer? {
+    func ask(_ round: KeyboardInteractiveRound, in paneID: UUID, owner: ObjectIdentifier) async -> KeyboardInteractiveAnswer? {
         await withCheckedContinuation { continuation in
             models[paneID]?.cancel()
             let model = KeyboardInteractiveModel(round: round) { [weak self] answer in
                 self?.models[paneID] = nil
+                self?.owners[paneID] = nil
                 continuation.resume(returning: answer)
             }
             models[paneID] = model
+            owners[paneID] = owner
+        }
+    }
+
+    /// Cancels the questions of a session that ended.
+    func cancel(owner: ObjectIdentifier) {
+        for (paneID, id) in owners where id == owner {
+            models[paneID]?.cancel()
         }
     }
 }

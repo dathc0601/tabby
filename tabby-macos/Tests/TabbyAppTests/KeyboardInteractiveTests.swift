@@ -73,7 +73,7 @@ final class KeyboardInteractiveTests: XCTestCase {
         let container = try XCTUnwrap(views(window.contentView!).compactMap { $0 as? PaneContainerView }.first)
         let pane = container.pane
         var result: KeyboardInteractiveAnswer??
-        Task { result = .some(await KeyboardInteractivePanels.shared.ask(self.round(), in: pane.id)) }
+        Task { result = .some(await KeyboardInteractivePanels.shared.ask(self.round(), in: pane.id, owner: ObjectIdentifier(self))) }
         TestApp.pump(until: { container.subviews.contains { $0 is NSHostingView<KeyboardInteractivePanel> } })
         let panel = try XCTUnwrap(container.subviews.first { $0 is NSHostingView<KeyboardInteractivePanel> })
         container.layoutSubtreeIfNeeded()
@@ -88,6 +88,21 @@ final class KeyboardInteractiveTests: XCTestCase {
         TestApp.pump(until: { !container.subviews.contains { $0 is NSHostingView<KeyboardInteractivePanel> } })
         container.layoutSubtreeIfNeeded()
         XCTAssertEqual(container.engine.frame, container.bounds)
+    }
+
+    /// Review C2: when the session ends (its tab closed), its question is cancelled.
+    func testASessionsQuestionIsCancelledWhenItEnds() {
+        let owner = NSObject()
+        let pane = UUID()
+        var result: KeyboardInteractiveAnswer??
+        Task { result = .some(await KeyboardInteractivePanels.shared.ask(self.round(), in: pane, owner: ObjectIdentifier(owner))) }
+        TestApp.pump(until: { KeyboardInteractivePanels.shared.models[pane] != nil })
+        KeyboardInteractivePanels.shared.cancel(owner: ObjectIdentifier(NSObject()))
+        XCTAssertNotNil(KeyboardInteractivePanels.shared.models[pane], "another session's end leaves it")
+        KeyboardInteractivePanels.shared.cancel(owner: ObjectIdentifier(owner))
+        TestApp.pump(until: { result != nil })
+        XCTAssertEqual(result, .some(nil))
+        XCTAssertNil(KeyboardInteractivePanels.shared.models[pane])
     }
 
     func testLinksInTheInstruction() {
