@@ -54,7 +54,7 @@ M0 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1).
 - [ ] Drag a tab to reorder; the active tab keeps its content.
 - [ ] Settings → Window → tab bar position top / bottom / left / right: the strip moves and the
       terminal stays below / beside it without overlap.
-- [ ] ⌘1…⌘9 switch by index. Bind "Next MRU tab" in Settings → Hotkeys (no default): it
+- [ ] ⌘1…⌘9 switch by index. Bind "Next tab (MRU order)" in Settings → Hotkeys (no default): it
       switches to the most recently used tab.
 - [ ] Split right / bottom / left / top (⌘D, ⌘⇧D and the others): the new pane gets focus and
       starts in the current directory.
@@ -87,8 +87,8 @@ M0 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1).
 Needs a reachable sshd (a local one via System Settings → Sharing → Remote Login is fine).
 
 - [ ] Quick connect `user@localhost` (first `ssh-keygen -R localhost` so the host is unknown):
-      the host key sheet shows host, key type and SHA256 fingerprint. Accept writes the key to
-      the app's `known_hosts`; Reject ends with "Connection failed" and any key retries.
+      the host key sheet shows host, key type and SHA256 fingerprint. "Accept and remember" writes the
+      key to the app's `known_hosts`; "Disconnect" ends with "Connection failed" and any key retries.
 - [ ] Password prompt appears as a native sheet; with "Remember in Keychain" a login keychain
       item `ssh@localhost:22` for that user exists after a successful login. The next
       connection does not prompt.
@@ -105,10 +105,11 @@ Needs a reachable sshd (a local one via System Settings → Sharing → Remote L
 - [ ] Local port forward `8080 → localhost:22` in the profile: `nc -z localhost 8080` succeeds
       while connected and fails about 10 s after disconnect (the shared connection lingers
       for `ControlPersist 10s`).
-- [ ] Type `~.` or use Shell → Disconnect tab: the tab stays, shows "Session closed. Press
+- [ ] Type `~.` or use Shell → Disconnect: the tab stays, shows "Session closed. Press
       any key to restart.", and any key reconnects. `exit` in the remote shell closes the tab.
 - [ ] With Settings → SSH → "Warn when closing an open connection" on, ⌘W on a connected tab
-      asks "Disconnect from localhost?"; a profile's own setting overrides it.
+      asks "Disconnect from localhost?". A profile overrides it with `warnOnClose: false` in its
+      `options` (Config file page; the profile editor has no control for it yet).
 - [ ] Opening a second tab to the same host reuses the connection (no second prompt).
 
 ## M5 Settings and persistence
