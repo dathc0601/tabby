@@ -52,7 +52,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         if Bundle.main.bundleIdentifier != nil {
-            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, error in
+                if let error { NSLog("TabbyMac: notifications unavailable: \(error.localizedDescription)") }
+            }
         }
 
         let controller = WindowManager.shared.newWindow(openDefaultTab: false)
