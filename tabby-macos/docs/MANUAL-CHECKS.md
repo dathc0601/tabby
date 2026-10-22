@@ -104,31 +104,39 @@ M3 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1).
 
 Needs a reachable sshd (a local one via System Settings → Sharing → Remote Login is fine).
 
-- [ ] Quick connect `user@localhost` (first `ssh-keygen -R localhost` so the host is unknown):
-      the host key sheet shows host, key type and SHA256 fingerprint. "Accept and remember" writes the
-      key to the app's `known_hosts`; "Disconnect" ends with "Connection failed" and any key retries.
-- [ ] Password prompt appears as a native sheet; with "Remember in Keychain" a login keychain
+- [x] Quick connect `user@localhost` (first `ssh-keygen -R localhost -f <app known_hosts>` so the
+      host is unknown): the host key sheet shows host, key type and the SHA256 fingerprint exactly
+      as `ssh-keygen -l` prints it. "Accept and remember" writes the key to the app's
+      `known_hosts` only; "Disconnect" ends with "Connection failed" and any key retries.
+- [x] Password prompt appears as a native sheet; with "Remember in Keychain" a login keychain
       item `ssh@localhost:22` for that user exists after a successful login. The next
-      connection does not prompt.
-- [ ] Wrong password: the prompt comes back; the remembered one is not overwritten by a
-      failed attempt.
-- [ ] Key auth with a passphrase-protected key: the passphrase prompt appears once.
-- [ ] Agent auth (`ssh-add -l` lists a key): connects without a prompt.
-- [ ] Keyboard-interactive: each server prompt shows as a sheet in order.
-- [ ] Jump host: a profile with a jump host connects through it (`who am i` on the target
-      shows the jump host's address).
-- [ ] Hosts from `~/.ssh/config` appear in the selector and Settings → Profiles under
-      "Imported from .ssh/config", with user, port, identity file and ProxyJump carried over.
-      They are read-only; Duplicate one to edit it.
-- [ ] Local port forward `8080 → localhost:22` in the profile: `nc -z localhost 8080` succeeds
-      while connected and fails about 10 s after disconnect (the shared connection lingers
-      for `ControlPersist 10s`).
-- [ ] Type `~.` or use Shell → Disconnect: the tab stays, shows "Session closed. Press
+      connection says "Using saved password" and does not prompt. (A rebuilt app asks macOS for
+      Keychain access again: ad-hoc signing.)
+- [x] Wrong password: the prompt comes back; nothing is saved for a failed attempt. Cancel ends
+      the attempt with "Authentication cancelled" (no empty password is sent).
+- [x] Key auth with a passphrase-protected key: the passphrase prompt appears once.
+- [x] Agent auth (`ssh-add -l` lists a key): connects without a prompt.
+- [x] Keyboard-interactive: server prompts show as sheets (macOS sshd asks a single "Password:";
+      several prompts in order need another server).
+- [x] Jump host: a profile with a jump host connects through it (`ProxyJump`, the hop runs as
+      `ssh -W`). `who am i` shows the jump host's address when it is a different machine.
+- [x] Hosts from `~/.ssh/config` appear in the selector (under Built-in, as in Tabby) and in
+      Settings → Profiles under "Imported from .ssh/config", with user, port, identity file and
+      ProxyJump carried over. They are read-only; Duplicate one to edit it.
+- [x] Local port forward `<free port> → localhost:22` in the profile (8080 may be taken, e.g. by
+      a local httpd): `nc -z 127.0.0.1 <port>` succeeds while connected and fails about 10 s
+      after disconnect once nothing uses it (the shared connection lingers for
+      `ControlPersist 10s`, and each probe through the forward restarts that wait).
+- [x] Type `~.` or use Shell → Disconnect: the tab stays, shows "Session closed. Press
       any key to restart.", and any key reconnects. `exit` in the remote shell closes the tab.
-- [ ] With Settings → SSH → "Warn when closing an open connection" on, ⌘W on a connected tab
-      asks "Disconnect from localhost?". A profile overrides it with `warnOnClose: false` in its
-      `options` (Config file page; the profile editor has no control for it yet).
-- [ ] Opening a second tab to the same host reuses the connection (no second prompt).
+- [x] With Settings → SSH → "Warn when closing an open connection" on, ⌘W on a connected tab
+      asks "Disconnect from localhost?" (Quit asks too). A profile overrides it with
+      `warnOnClose: false` in its `options` (Config file page; the profile editor has no control
+      for it yet).
+- [x] Opening a second tab to the same host reuses the connection (no second prompt); ending
+      that tab is not reported as "Connection failed".
+
+M4 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1).
 
 ## M5 Settings and persistence
 
@@ -172,5 +180,9 @@ Needs a reachable sshd (a local one via System Settings → Sharing → Remote L
 | 2026-10-22 | M2 | Under `swift test` the "process completed" banner raised (`bundleProxyForCurrentProcess is nil`): xctest's main bundle has an identifier but is no app. | `97ef7449` |
 | 2026-10-22 | M2 | The tab colour was drawn along the top, where it looked like the active-tab marker; Tabby draws it along the bottom. | `f4104929` |
 | 2026-10-22 | M3 | macOS added greyed window-tab items (Show Tab Bar, Merge All Windows, …) next to TabbyMac's own tab commands, and a second "Enter Full Screen", to the menus. | `1d4d0152` |
+| 2026-10-22 | M4 | The host key sheet hyphenated the SHA256 fingerprint where it wrapped, so it no longer matched `ssh-keygen -l`. | `19219298` |
+| 2026-10-22 | M4 | Cancelling a password prompt made ssh send an empty password (a failed login on the server, then the prompt again, until "Too many authentication failures"); and ssh ignored the SIGHUP meant to end it. | `00929404`, `30e3cd37` |
+| 2026-10-22 | M4 | A tab on a shared (ControlMaster) connection printed "Connection failed" when it closed normally. | `00929404` |
+| 2026-10-22 | M2 | With ten or more tabs the tab index wrapped and titles turned into stray glyphs. | `d86a27ea` |
 
 Open: none.
