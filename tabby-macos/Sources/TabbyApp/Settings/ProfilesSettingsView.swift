@@ -148,7 +148,8 @@ struct ProfilesSettingsView: View {
 
     private func delete(_ p: Profile, registry: ProfileRegistry) {
         guard !p.isBuiltin else { return }
-        Prompts.confirm(in: NSApp.keyWindow, title: "Delete “\(p.name)”?", message: "The profile is removed from config.yaml.",
+        Prompts.confirm(in: NSApp.keyWindow, title: "Delete “\(p.name)”?",
+                        message: "The profile is removed here and, when profiles sync, on your other Macs. A password saved for it stays in the Keychain (Settings › Vault).",
                         confirm: "Delete", destructive: true) { ok in
             guard ok else { return }
             registry.delete(profileId: p.id)
@@ -553,8 +554,13 @@ struct ProfileEditorSheet: View {
 
     private func forgetPassword() {
         let k = keyFor
-        AppServices.shared.passwords.deletePassword(host: k.host, port: k.port, user: k.user)
-        refreshPasswordState()
+        Prompts.confirm(in: NSApp.keyWindow, title: "Forget the password for \(k.user)@\(k.host)?",
+                        message: "It is removed from the Keychain here and, when passwords sync, on your other Macs.",
+                        confirm: "Forget", destructive: true) { ok in
+            guard ok else { return }
+            AppServices.shared.passwords.deletePassword(host: k.host, port: k.port, user: k.user)
+            refreshPasswordState()
+        }
     }
 
     private func finalProfile() -> Profile {

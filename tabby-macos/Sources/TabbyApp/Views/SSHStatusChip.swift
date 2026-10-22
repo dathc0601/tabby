@@ -36,7 +36,7 @@ private struct ChipContent: View {
                 Text("\(options.user)@\(options.host):\(options.port)").font(.custom("Menlo", size: 12)).lineLimit(1)
                 Text(Self.label(state)).font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
                 if state == .disconnected || state == .connected {
-                    Button { pane.restart() } label: {
+                    Button { reconnect(state, options) } label: {
                         Label("Reconnect", systemImage: "arrow.clockwise").font(ChromeFont.caption)
                     }
                     .buttonStyle(.plain)
@@ -51,6 +51,15 @@ private struct ChipContent: View {
             .shadow(color: .black.opacity(0.18), radius: 6, y: 2)
             .padding(8)
             .fixedSize()
+        }
+    }
+
+    /// A live session is restarted only after asking: whatever runs in it ends.
+    private func reconnect(_ state: TerminalPane.ConnectionState, _ options: SSHOptions) {
+        guard state == .connected else { return pane.restart() }
+        Prompts.confirm(in: NSApp.keyWindow, title: "Reconnect to \(options.host)?",
+                        message: "The session is restarted; anything running in it ends.", confirm: "Reconnect") { ok in
+            if ok { pane.restart() }
         }
     }
 

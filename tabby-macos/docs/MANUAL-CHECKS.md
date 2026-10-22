@@ -191,7 +191,8 @@ window shows (traffic lights, hover, drag and drop, sheets, animation).
       change the scheme and Save as… adds a custom scheme.
 - [ ] Hotkeys: capturing ⌘T for "Split right" warns "Also used by New tab".
 - [ ] Profiles: the outline, the bottom bar and the editor sheet (all five pages) work; the
-      password row says "Saved in Keychain" for a saved password without a Keychain prompt.
+      password row says "Saved in Keychain" for a saved password without a Keychain prompt;
+      Forget asks before deleting it; deleting a profile says its password stays.
 - [ ] Config file: line numbers and colours; typing a stray word shows the error and
       disables Save.
 - [ ] First launch with an empty config folder shows the Welcome tab; "Close and never show
@@ -202,8 +203,9 @@ window shows (traffic lights, hover, drag and drop, sheets, animation).
 - [ ] Search bar (⌘F): counter, Aa / .* / W toggles, ⇧↩ previous.
 - [ ] Paste of several lines shows the card; Esc cancels, ↩ pastes; host key and password
       prompts are cards too.
-- [ ] SSH tab: hovering the pane shows the status chip; stopping sshd shows Disconnected with
-      Reconnect; a "Reconnect" profile shows Reconnecting n/5 and gives up after five.
+- [ ] SSH tab: hovering the pane shows the status chip; Reconnect on a connected session asks
+      first; stopping sshd shows Disconnected with Reconnect (no question); a "Reconnect"
+      profile shows Reconnecting n/5 and gives up after five.
 - [ ] A command that ends in a background tab shows the "Process completed" toast with Show.
 - [ ] Split panes: divider grip on hover, focused pane ring, others dimmed; ⌥⌘↩ maximises
       with the chip and Restore. Dragging a tab onto a pane shows the four targets and drops
