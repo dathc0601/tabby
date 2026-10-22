@@ -140,24 +140,33 @@ M4 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1).
 
 ## M5 Settings and persistence
 
-- [ ] Settings → Color scheme: picking a scheme recolours the terminal and the chrome (tab
+- [x] Settings → Color scheme: picking a scheme recolours the terminal and the chrome (tab
       bar, start page, selector) live; the preview swatches show all 16 colours.
-- [ ] Mode System / Dark / Light: switching macOS appearance swaps between the chosen dark
+- [x] Mode System / Dark / Light: switching macOS appearance swaps between the chosen dark
       and light schemes.
-- [ ] Appearance: font family and size, cursor shape and blink, bold-as-bright apply live.
-- [ ] Window: opacity, vibrancy and title bar style apply live.
-- [ ] Docking: each side (top, bottom, left, right) positions the first window at the
-      configured size; always-on-top keeps it above other windows; the global hotkey toggles it.
-- [ ] Application → Import Tabby's `config.yaml`: profiles, hotkeys and scheme appear; the
+- [x] Appearance: font family and size, cursor shape and blink, bold-as-bright apply live.
+- [x] Window: opacity, vibrancy and title bar style apply live.
+- [x] Docking: each side (top, bottom, left, right) positions the first window at the
+      configured size on the display under the mouse; always-on-top keeps it (and Settings)
+      above other windows and turning it off lowers them; the global hotkey toggles it.
+      ⌃Space is also macOS's "previous input source" shortcut: add a second binding to test.
+- [x] Application → Import Tabby's `config.yaml`: profiles, hotkeys and scheme appear; the
       Electron files in `~/Library/Application Support/tabby/` are not modified
       (compare timestamps).
-- [ ] `config.yaml` after changing one setting contains only that key and `version`
+- [x] `config.yaml` after changing one setting contains only that key and `version`
       (diff-only save); unknown keys from an imported file survive a save.
-- [ ] Config file page: editing YAML and ⌘S applies it; invalid YAML is rejected with a message.
-- [ ] Open three tabs with splits, custom titles and some output, quit, relaunch: tabs,
+- [x] Config file page: editing YAML and ⌘S applies it; invalid YAML, or YAML that is not a
+      map, is rejected with a message.
+- [x] Open three tabs with splits, custom titles and some output, quit, relaunch: tabs,
       split layout, titles and the last screen of each buffer are restored.
 - [ ] Run `sleep 5; exit` in a tab, switch to another app before it finishes: a "process
       completed" notification appears (needs the `.app` and notification permission).
+      Blocked on the M5 Mac: macOS answers the permission request with UNErrorDomain 1 ("not
+      allowed for this application") for every locally built app, a minimal probe app too,
+      so nothing can be shown. TabbyMac logs that reason to stderr.
+
+M5 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1), except the notification item, which macOS
+blocks on that Mac.
 
 ## Findings
 
@@ -184,5 +193,11 @@ M4 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1).
 | 2026-10-22 | M4 | Cancelling a password prompt made ssh send an empty password (a failed login on the server, then the prompt again, until "Too many authentication failures"); and ssh ignored the SIGHUP meant to end it. | `00929404`, `30e3cd37` |
 | 2026-10-22 | M4 | A tab on a shared (ControlMaster) connection printed "Connection failed" when it closed normally. | `00929404` |
 | 2026-10-22 | M2 | With ten or more tabs the tab index wrapped and titles turned into stray glyphs. | `d86a27ea` |
+| 2026-10-22 | M5 | The Config file page and the Tabby import accepted YAML that is not a map (a stray word, a list), which wiped every setting and profile. | `84a11b96` |
+| 2026-10-22 | M5 | Turning off "Always on top" while docked left the window above every other window until it was undocked. | `359419e4` |
+| 2026-10-22 | M5 | The always-on-top docked window covered the Settings window as soon as a side was picked, and whenever Settings was opened while docked. | `7887307e` |
+| 2026-10-22 | M5 | The window docked on whichever display it was on, not on the one under the mouse (Tabby's `dockScreen: current`); `dockScreen` ids from Tabby configs were ignored. | `9e97a6ba` |
+| 2026-10-22 | M5 | Only the first `toggle-window` binding was registered, so a second one did nothing while macOS keeps ⌃Space; `hacks.globalHotkey: true` from a Tabby config registered a key named "True". | `29a0819b` |
+| 2026-10-22 | M5 | The notification permission error was dropped, so a missing "process completed" banner gave no reason. | `bce4ebf9` |
 
-Open: none.
+Open: the M5 notification item, blocked by macOS on the test Mac (see the item).
