@@ -98,4 +98,16 @@ public enum HotkeyCatalog {
     public static func name(for id: String) -> String {
         byId[id]?.name ?? id
     }
+
+    /// Entries whose bindings clash with `binding`: the same keys, or one chord starting with
+    /// the other (the shorter one would fire first).
+    public static func conflicts(with binding: HotkeyBinding, excluding id: String, config: ConfigStore) -> [Entry] {
+        func clash(_ a: [Keystroke], _ b: [Keystroke]) -> Bool {
+            let n = min(a.count, b.count)
+            return n > 0 && Array(a.prefix(n)) == Array(b.prefix(n))
+        }
+        return entries.filter { entry in
+            entry.id != id && HotkeyBinding.bindings(from: config.value("hotkeys.\(entry.id)")).contains { clash($0.strokes, binding.strokes) }
+        }
+    }
 }

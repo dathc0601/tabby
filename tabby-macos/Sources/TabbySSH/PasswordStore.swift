@@ -9,6 +9,8 @@ import Security
 /// account = user name; key passphrases use service `ssh-private-key:<id>`.
 public protocol PasswordStore: AnyObject {
     func password(host: String, port: Int, user: String) -> String?
+    /// Whether a password is saved, without reading it (reading can raise a Keychain prompt).
+    func hasPassword(host: String, port: Int, user: String) -> Bool
     func savePassword(_ password: String, host: String, port: Int, user: String)
     func deletePassword(host: String, port: Int, user: String)
     func passphrase(keyID: String) -> String?
@@ -31,6 +33,7 @@ public final class InMemoryPasswordStore: PasswordStore {
     private func key(_ s: String, _ a: String) -> String { s + "\u{0}" + a }
 
     public func password(host: String, port: Int, user: String) -> String? { items[key(Self.service(host: host, port: port), user)] }
+    public func hasPassword(host: String, port: Int, user: String) -> Bool { password(host: host, port: port, user: user) != nil }
     public func savePassword(_ password: String, host: String, port: Int, user: String) { items[key(Self.service(host: host, port: port), user)] = password }
     public func deletePassword(host: String, port: Int, user: String) { items[key(Self.service(host: host, port: port), user)] = nil }
     public func passphrase(keyID: String) -> String? { items[key(Self.keyService(keyID), "user")] }
@@ -45,6 +48,13 @@ public final class KeychainPasswordStore: PasswordStore {
 
     public func password(host: String, port: Int, user: String) -> String? {
         read(service: Self.service(host: host, port: port), account: user)
+    }
+
+    public func hasPassword(host: String, port: Int, user: String) -> Bool {
+        var q = baseQuery(service: Self.service(host: host, port: port), account: user)
+        q[kSecReturnAttributes as String] = true
+        q[kSecMatchLimit as String] = kSecMatchLimitOne
+        return SecItemCopyMatching(q as CFDictionary, nil) == errSecSuccess
     }
 
     public func savePassword(_ password: String, host: String, port: Int, user: String) {

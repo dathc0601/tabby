@@ -411,6 +411,9 @@ enum ProfileIcons {
                    "linux": "terminal", "apple": "apple.logo", "docker": "shippingbox", "code": "chevron.left.forwardslash.chevron.right"]
         return map[name] ?? "terminal"
     }
+
+    /// Icons the profile editor offers (Tabby's Font Awesome names, shown as SF Symbols).
+    static let choices = ["terminal", "server", "desktop", "laptop", "globe", "cloud", "database", "bolt", "code", "docker", "apple", "linux", "network"]
 }
 
 /// Empty space in the tab bar that drags the window (and zooms on double click).

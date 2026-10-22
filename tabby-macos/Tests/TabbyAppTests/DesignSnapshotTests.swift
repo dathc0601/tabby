@@ -1,6 +1,7 @@
 #if canImport(AppKit)
 import XCTest
 import AppKit
+import SwiftUI
 @testable import TabbyCore
 @testable import TabbyApp
 
@@ -8,6 +9,16 @@ import AppKit
 /// display (works while the Mac is locked). Skipped unless `TABBYMAC_SNAPSHOT_DIR` is set:
 ///
 ///     TABBYMAC_SNAPSHOT_DIR=/tmp/shots swift test --filter DesignSnapshotTests
+/// The editor sheet on a given page, for snapshots.
+private struct ProfileEditorSnapshot: View {
+    let profile: Profile
+    let page: ProfileEditorSheet.Page
+
+    var body: some View {
+        ProfileEditorSheet(item: EditableProfile(profile, isNew: false), initialPage: page) { _ in }
+    }
+}
+
 @MainActor
 final class DesignSnapshotTests: XCTestCase {
     private var directory: URL!
@@ -85,6 +96,21 @@ final class DesignSnapshotTests: XCTestCase {
         defer { TestApp.dispose(c) }
         TestApp.pump(0.5)
         try save(try XCTUnwrap(c.window?.contentView), "start")
+    }
+
+    func testProfileEditor() throws {
+        var ssh = Profile(type: "ssh", name: "prod-web-01",
+                          options: ["host": "prod-web-01.acme.internal", "port": 22, "user": "deploy",
+                                    "privateKeys": ["~/.ssh/id_ed25519"], "forwardedPorts": [["type": "local", "host": "127.0.0.1", "port": 5432, "targetAddress": "db.internal", "targetPort": 5432]]])
+        ssh.color = "#ff615a"
+        for page in ProfileEditorSheet.Page.allCases {
+            let view = NSHostingView(rootView: ProfileEditorSnapshot(profile: ssh, page: page).chromeEnvironment())
+            view.frame = NSRect(x: 0, y: 0, width: 640, height: 660)
+            let window = NSWindow(contentRect: view.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+            window.contentView = view
+            TestApp.pump(0.3)
+            try save(view, "editor-\(page.rawValue.replacingOccurrences(of: " ", with: "-"))")
+        }
     }
 
     func testContentTabs() throws {

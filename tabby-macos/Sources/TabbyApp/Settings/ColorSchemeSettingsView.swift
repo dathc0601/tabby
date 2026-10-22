@@ -1,51 +1,109 @@
 #if canImport(AppKit)
+import AppKit
 import SwiftUI
 import TabbyCore
 
-/// Scheme mode plus dark and light scheme pickers with previews (Tabby's
-/// `ColorSchemeSettingsTabComponent`).
+/// Colour scheme page (Tabby's `ColorSchemeSettingsTabComponent`, phase 2 design): a card per
+/// appearance with a live preview, a filterable grid of every scheme, and an editor for the
+/// background, foreground, cursor, selection and the 16 ANSI colours.
 struct ColorSchemeSettingsView: View {
     @State private var filter = ""
     @State private var editingLight = false
+    @Environment(\.chrome) private var chrome
+
+    private static let darkKey = "terminal.colorScheme"
+    private static let lightKey = "terminal.lightColorScheme"
 
     var body: some View {
         let services = AppServices.shared
         let _ = services.configRevision
         let config = services.config
         let all = services.schemes.all(custom: ColorSchemeCatalog.customSchemes(from: config))
-        let currentDark = ColorScheme(config: config.value("terminal.colorScheme")) ?? .tabbyDefault
-        let currentLight = ColorScheme(config: config.value("terminal.lightColorScheme")) ?? .tabbyDefaultLight
-        let selected = editingLight ? currentLight : currentDark
+        let dark = ColorScheme(config: config.value(Self.darkKey)) ?? .tabbyDefault
+        let light = ColorScheme(config: config.value(Self.lightKey)) ?? .tabbyDefaultLight
+        let current = editingLight ? light : dark
         let shown = FuzzyMatcher.filter(all, query: filter) { $0.name }
-        VStack(alignment: .leading, spacing: 12) {
-            Picker("Mode", selection: ConfigBinding.string("appearance.colorSchemeMode")) {
-                Text("Dark").tag("dark")
-                Text("Light").tag("light")
-                Text("Follow system").tag("auto")
+        SettingsPage("Color scheme") {
+            HStack(spacing: 14) {
+                ModeCard(title: "Dark appearance", symbol: "moon", scheme: dark, isEditing: !editingLight) { editingLight = false }
+                ModeCard(title: "Light appearance", symbol: "sun.max", scheme: light, isEditing: editingLight) { editingLight = true }
             }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 360)
-            Picker("Editing", selection: $editingLight) {
-                Text("Dark scheme: \(currentDark.name)").tag(false)
-                Text("Light scheme: \(currentLight.name)").tag(true)
-            }
-            .pickerStyle(.radioGroup)
-            SchemePreview(scheme: selected)
-            TextField("Filter \(all.count) schemes", text: $filter).textFieldStyle(.roundedBorder).frame(maxWidth: 300)
-            ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 10)], spacing: 10) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Schemes").font(ChromeFont.headline)
+                    Text("for the \(editingLight ? "light" : "dark") appearance").foregroundStyle(chrome.textMuted.color)
+                    Spacer()
+                    HStack(spacing: 6) {
+                        Image(systemName: "magnifyingglass").foregroundStyle(chrome.textMuted.color)
+                        TextField("Filter \(all.count) schemes", text: $filter).textFieldStyle(.plain)
+                    }
+                    .padding(.horizontal, 8)
+                    .frame(width: 220, height: 26)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(chrome.fill.color))
+                }
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
                     ForEach(shown, id: \.name) { scheme in
-                        SchemeTile(scheme: scheme, isSelected: scheme.name == selected.name)
-                            .onTapGesture {
-                                var value = scheme.configValue
-                                value[ConfigValue.nonStructuralKey] = nil
-                                config.set(editingLight ? "terminal.lightColorScheme" : "terminal.colorScheme", value)
-                            }
+                        SchemeTile(scheme: scheme, isSelected: scheme.name == current.name)
+                            .onTapGesture { select(scheme) }
                     }
                 }
             }
+            CustomSchemeEditor(scheme: current, original: all.first { $0.name == current.name }, write: write, saveAs: saveAs)
         }
-        .padding()
+    }
+
+    private var key: String { editingLight ? Self.lightKey : Self.darkKey }
+
+    private func select(_ scheme: ColorScheme) { write(scheme) }
+
+    private func write(_ scheme: ColorScheme) {
+        var value = scheme.configValue
+        value[ConfigValue.nonStructuralKey] = nil
+        AppServices.shared.config.set(key, value)
+    }
+
+    /// Adds the scheme to `terminal.customColorSchemes` under a new name and selects it.
+    private func saveAs(_ scheme: ColorScheme) {
+        Prompts.text(in: NSApp.keyWindow, title: "Save colour scheme as", value: "\(scheme.name) (custom)", confirm: "Save") { name, _ in
+            guard let name = name?.trimmingCharacters(in: .whitespaces), !name.isEmpty else { return }
+            let config = AppServices.shared.config
+            var custom = (config.value("terminal.customColorSchemes")?.arrayValue ?? []).filter { $0["name"]?.stringValue != name }
+            var copy = scheme
+            copy.name = name
+            custom.append(copy.configValue)
+            config.set("terminal.customColorSchemes", .array(custom))
+            write(copy)
+        }
+    }
+}
+
+/// One appearance: icon, title, the scheme name and a small live terminal.
+private struct ModeCard: View {
+    let title: String
+    let symbol: String
+    let scheme: ColorScheme
+    let isEditing: Bool
+    let select: () -> Void
+    @Environment(\.chrome) private var chrome
+
+    var body: some View {
+        Button(action: select) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: symbol).foregroundStyle(chrome.textMuted.color)
+                    Text(title).font(ChromeFont.bodyEmphasised)
+                    Spacer()
+                    Text(scheme.name).foregroundStyle(chrome.textMuted.color).lineLimit(1)
+                }
+                SchemePreview(scheme: scheme)
+            }
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 10).fill(chrome.surfaceRaised.color))
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(isEditing ? chrome.accent.color : chrome.border.color, lineWidth: isEditing ? 2 : 0.5))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(isEditing ? "The scheme grid and editor change this appearance" : "Edit the \(title.lowercased())")
     }
 }
 
@@ -54,50 +112,120 @@ struct SchemePreview: View {
 
     var body: some View {
         let fg = scheme.foregroundRGB.color
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 0) {
-                Text("user@host").foregroundStyle(scheme.paletteRGB[2].color)
-                Text(":").foregroundStyle(fg)
-                Text("~/projects").foregroundStyle(scheme.paletteRGB[4].color)
-                Text("$ ls -la").foregroundStyle(fg)
-            }
-            HStack(spacing: 0) {
-                Text("drwxr-xr-x ").foregroundStyle(fg)
-                Text("src").foregroundStyle(scheme.paletteRGB[12].color)
-                Text("  error: ").foregroundStyle(scheme.paletteRGB[1].color)
-                Text("warning ").foregroundStyle(scheme.paletteRGB[3].color)
-                Text("info").foregroundStyle(scheme.paletteRGB[6].color)
-            }
+        let p = scheme.paletteRGB
+        VStack(alignment: .leading, spacing: 3) {
+            (Text("alex@mbp").foregroundColor(p[2].color).bold() + Text(" ~/Projects").foregroundColor(p[4].color)
+                + Text(" % swift build").foregroundColor(fg))
+            (Text("error:").foregroundColor(p[1].color).bold() + Text(" missing return in closure").foregroundColor(fg))
+            (Text("warning:").foregroundColor(p[3].color) + Text(" unused variable ").foregroundColor(fg) + Text("x").foregroundColor(p[6].color))
             HStack(spacing: 2) {
-                ForEach(0..<16, id: \.self) { i in
-                    Rectangle().fill(scheme.paletteRGB[i].color).frame(width: 22, height: 14)
-                }
+                ForEach(0..<8, id: \.self) { i in RoundedRectangle(cornerRadius: 2).fill(p[i].color).frame(width: 14, height: 8) }
             }
+            .padding(.top, 2)
         }
-        .font(.system(.body, design: .monospaced))
-        .padding(12)
+        .font(.custom("Menlo", size: 11))
+        .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(scheme.backgroundRGB.color, in: RoundedRectangle(cornerRadius: 8))
+        .background(scheme.backgroundRGB.color, in: RoundedRectangle(cornerRadius: 7))
     }
 }
 
+/// A scheme in the grid: its background with "Aa", six ANSI dots and the name.
 struct SchemeTile: View {
     let scheme: ColorScheme
     let isSelected: Bool
+    @Environment(\.chrome) private var chrome
+    @State private var hovering = false
 
     var body: some View {
+        let p = scheme.paletteRGB
         VStack(alignment: .leading, spacing: 6) {
-            Text(scheme.name).font(.caption).foregroundStyle(scheme.foregroundRGB.color).lineLimit(1)
-            HStack(spacing: 1) {
-                ForEach(0..<8, id: \.self) { i in
-                    Rectangle().fill(scheme.paletteRGB[i].color).frame(height: 10)
+            HStack(spacing: 6) {
+                Text("Aa").font(.system(size: 13, weight: .semibold)).foregroundStyle(scheme.foregroundRGB.color)
+                Spacer()
+                HStack(spacing: 3) {
+                    ForEach([1, 2, 3, 4, 5, 6], id: \.self) { i in Circle().fill(p[i].color).frame(width: 7, height: 7) }
                 }
             }
+            .padding(.horizontal, 8)
+            .frame(height: 34)
+            .background(scheme.backgroundRGB.color, in: RoundedRectangle(cornerRadius: 6))
+            HStack(spacing: 4) {
+                Text(scheme.name).font(ChromeFont.caption).lineLimit(1).truncationMode(.tail)
+                Spacer(minLength: 0)
+                if isSelected { Image(systemName: "checkmark.circle.fill").foregroundStyle(chrome.accent.color).font(.system(size: 11)) }
+            }
+            .padding(.horizontal, 2)
         }
-        .padding(8)
-        .background(scheme.backgroundRGB.color, in: RoundedRectangle(cornerRadius: 6))
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.3), lineWidth: isSelected ? 2 : 1))
+        .padding(6)
+        .background(RoundedRectangle(cornerRadius: 8).fill(hovering ? chrome.fill.color : .clear))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(isSelected ? chrome.accent.color : chrome.border.color, lineWidth: isSelected ? 2 : 0.5))
         .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+        .help(scheme.name)
+    }
+}
+
+/// Colour wells for the scheme of the appearance being edited. Edits go straight into the
+/// selected scheme, as Tabby's editor does; Reset brings back the named scheme and Save as…
+/// keeps the result as a custom scheme.
+private struct CustomSchemeEditor: View {
+    let scheme: ColorScheme
+    let original: ColorScheme?
+    let write: (ColorScheme) -> Void
+    let saveAs: (ColorScheme) -> Void
+    @Environment(\.chrome) private var chrome
+
+    var body: some View {
+        let edited = original.map { $0 != scheme } ?? true
+        SettingsGroup(edited ? "Custom scheme · “\(scheme.name) (edited)”" : "Edit “\(scheme.name)”") {
+            HStack(spacing: 18) {
+                well("Background", \.background)
+                well("Foreground", \.foreground)
+                well("Cursor", \.cursor)
+                well("Selection", Binding(get: { scheme.selection ?? "#80808066" }, set: { var s = scheme; s.selection = $0; write(s) }))
+                Spacer()
+                Button("Reset") { if let original { write(original) } }.buttonStyle(ChromeButtonStyle()).disabled(!edited || original == nil)
+                Button("Save as…") { saveAs(scheme) }.buttonStyle(ChromeButtonStyle())
+            }
+            .padding(14)
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach([0, 8], id: \.self) { row in
+                    HStack(spacing: 6) {
+                        ForEach(row..<(row + 8), id: \.self) { i in
+                            VStack(spacing: 3) {
+                                ColorPicker("", selection: color(index: i), supportsOpacity: false).labelsHidden()
+                                Text("\(i)").font(.custom("Menlo", size: 10)).foregroundStyle(chrome.textFaint.color)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(14)
+        }
+    }
+
+    private func well(_ label: String, _ path: WritableKeyPath<ColorScheme, String>) -> some View {
+        well(label, Binding(get: { scheme[keyPath: path] }, set: { var s = scheme; s[keyPath: path] = $0; write(s) }))
+    }
+
+    private func well(_ label: String, _ hex: Binding<String>) -> some View {
+        VStack(spacing: 3) {
+            ColorPicker("", selection: Binding(get: { (RGBColor(hex: hex.wrappedValue) ?? .black).color },
+                                               set: { hex.wrappedValue = Self.hex($0) }), supportsOpacity: false)
+                .labelsHidden()
+            Text(label).font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
+        }
+    }
+
+    private func color(index i: Int) -> Binding<Color> {
+        Binding(get: { (RGBColor(hex: scheme.colors[i]) ?? .black).color },
+                set: { var s = scheme; s.colors[i] = Self.hex($0); write(s) })
+    }
+
+    static func hex(_ color: Color) -> String {
+        let c = NSColor(color).usingColorSpace(.sRGB) ?? .black
+        return RGBColor(r: Double(c.redComponent), g: Double(c.greenComponent), b: Double(c.blueComponent)).hex
     }
 }
 #endif
