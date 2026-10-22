@@ -14,8 +14,12 @@ modules with plain protocols and registries instead.
 | `TabbyIPC` | macOS, Linux | Unix-socket messages between the app and `tabby-askpass` | none |
 | `TabbyApp` | macOS | Window, tab bar, split views, hotkeys, menus, selector, settings, prompts | `tabby-core` components, `tabby-settings`, `tabby-electron` |
 | `tabby-askpass` | macOS, Linux | `SSH_ASKPASS` helper | none |
+| `TabbySyncProtocol` | macOS, Linux | Account and sync wire format: key derivation and vault encryption (`VaultCrypto`, swift-crypto), `SyncSnapshot`, `SyncMerger`, the HTTP API types | `tabby-settings` config sync, reworked |
+| `../tabby-sync-server` | Linux (Docker), macOS | Hummingbird 2 + Fluent server for accounts, devices and the encrypted vault (its own package) | tabby-web's sync API, reworked |
 
 Everything except the AppKit and SwiftUI views compiles and is tested on Linux.
+`TabbyCore` stays Foundation + Yams; crypto lives in `TabbySyncProtocol` so the core does not
+pick up swift-crypto.
 
 ## Key decisions
 
@@ -50,9 +54,13 @@ That backend will sit behind the same `TerminalSession` protocol, so the UI won'
 
 **UI separation.** Views are SwiftUI over `@Observable` models (`WindowModel`, `TabModel`,
 `TerminalPane`, `ThemeManager`). AppKit hosts the window, split tree and terminal view.
-`ObservationLoop` bridges model changes to AppKit layout. Chrome colours come from
-`ChromeTheme`, derived from the active terminal scheme as in Tabby's `ThemesService`. A
-redesign can start by changing that token mapping.
+`ObservationLoop` bridges model changes to AppKit layout. The phase 2 design's tokens
+(`docs/DESIGN-TOKENS.md`) come from `ChromeTheme` (colours mixed in OKLab from the active
+terminal scheme) and `ChromeMetrics` (sizes × spaciness); every SwiftUI root applies
+`chromeEnvironment()` and views read `@Environment(\.chrome)` / `\.metrics`. Shared controls
+live in `Views/Components`; prompts are SwiftUI cards shown as window sheets
+(`ChromeSheet`). Settings and Welcome are content tabs (`TabModel.content`), not windows.
+`DesignSnapshotTests` renders the screens to PNG when `TABBYMAC_SNAPSHOT_DIR` is set.
 
 **Commands.** Hotkey ids, menu items, context menus and the command palette all dispatch
 through `MainWindowController.runCommand(_:)` using Tabby's hotkey ids.
@@ -81,8 +89,10 @@ through `MainWindowController.runCommand(_:)` using Tabby's hotkey ids.
 1. **Phase 1 (this code).** Local shell, SSH, tabs, splits, hotkeys, settings, recovery.
    Verified by hand against [MANUAL-CHECKS.md](MANUAL-CHECKS.md): milestones M0–M5 passed on
    2026-10-22, except the notification check, which macOS blocked for local builds.
-2. **Redesign.** Apply the Claude Design output (`docs/claude-design-prompt.md`) to
-   `Views/` and `Settings/`.
+2. **Redesign and personal account (phase 2).** 2a: the Claude Design output
+   (`docs/superpowers/specs/2026-10-22-phase-2-design.md`) applied to every view; on-screen
+   checks in M6. 2b: account, end-to-end encrypted sync of profiles, passwords, keys,
+   known hosts and settings through `tabby-sync-server`.
 3. **SSH library backend.** libssh2 or russh behind `TerminalSession`. Adds the SFTP panel,
    live port-forward editor and in-app keyboard-interactive panel.
 4. **Serial and telnet.** New `ProfileProvider`s and `SessionFactory`s, using ORSSerialPort

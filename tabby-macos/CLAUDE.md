@@ -13,8 +13,16 @@ Read `README.md` and `docs/ARCHITECTURE.md` before larger changes.
   that list passed by hand; every fix is in its Findings table. The "process completed"
   notification check stays open: macOS refused notification permission to every local build
   on the test Mac.
-- Roadmap: phase 2 redesign (Claude Design, `docs/claude-design-prompt.md`), phase 3 SSH
-  library backend + SFTP, phase 4 serial/telnet, phase 5 vault, sync, URL/CLI, localization.
+- Phase 2 (started 2026-10-22, spec `docs/superpowers/specs/2026-10-22-phase-2-design.md`):
+  2a redesign is in code (tokens, tab bar, content tabs, settings, cards, chip, toasts,
+  splits, docking); its on-screen checks are M6. 2b personal account + sync: protocol target
+  and `../tabby-sync-server` done, app side in progress.
+- Roadmap after phase 2: phase 3 SSH library backend + SFTP, phase 4 serial/telnet, phase 5
+  URL/CLI, localization, per-tab "notify when done".
+- Screens can be checked without a display:
+  `TABBYMAC_SNAPSHOT_DIR=/tmp/shots swift test --filter DesignSnapshotTests`.
+- Linux: run `docker run --rm -v "$PWD/..":/src -w /src/tabby-macos swift:6.1-noble swift test
+  --scratch-path /tmp/linux-build` before pushing test changes (Linux XCTest differs).
 - Tooling quirk: shells spawned by the Xcode coding assistant cannot allocate PTYs
   (`forkpty: Operation not permitted`), so PTY-backed tests fail there. Run them from
   Terminal, the Claude Code CLI, or Xcode's test runner.

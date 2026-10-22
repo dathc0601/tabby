@@ -168,6 +168,49 @@ M4 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1).
 M5 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1), except the notification item, which macOS
 blocks on that Mac.
 
+## M6 Phase 2 redesign
+
+Compare with the Claude Design canvases (`Tabby Design Canvas.zip`, not in git) and
+`docs/DESIGN-TOKENS.md`. `TABBYMAC_SNAPSHOT_DIR=<dir> swift test --filter DesignSnapshotTests`
+renders the main screens to PNG without a display; these items cover what only the real
+window shows (traffic lights, hover, drag and drop, sheets, animation).
+
+- [ ] Tab bar: 38 pt bar on the chrome colour, rounded 28 pt tabs, traffic lights centred in
+      the bar; hover shows ⋯ and ×; pinned tabs are 92 pt; a tab colour is a 2 pt bar at the
+      bottom; progress fills the tab and shows a percentage; activity shows a dot.
+- [ ] Twelve tabs in a narrow window: tabs shrink to 120 pt, then the strip scrolls, the
+      active tab stays in view and "+N" lists the hidden ones. With Flex tabs on they shrink
+      to 64 pt first.
+- [ ] Dragging a tab along the strip shows an accent slot where it lands; Esc cancels.
+- [ ] Tabs on the left: a 200 pt column, "New tab ⌘T" row, toolbar in the footer.
+- [ ] Spaciness 0.8 / 1.5 scales the bar (30.4 / 57 pt), the tabs and the settings rows.
+- [ ] Vibrancy: the window turns translucent; the active tab stays readable.
+- [ ] ⌘, opens Settings as a tab (a second ⌘, focuses it); the sidebar search finds "dock"
+      on the Window page; every page matches the canvas; nothing is cut off at 960 × 620.
+- [ ] Color scheme: clicking a tile recolours terminal and chrome live; the editor's wells
+      change the scheme and Save as… adds a custom scheme.
+- [ ] Hotkeys: capturing ⌘T for "Split right" warns "Also used by New tab".
+- [ ] Profiles: the outline, the bottom bar and the editor sheet (all five pages) work; the
+      password row says "Saved in Keychain" for a saved password without a Keychain prompt.
+- [ ] Config file: line numbers and colours; typing a stray word shows the error and
+      disables Save.
+- [ ] First launch with an empty config folder shows the Welcome tab; "Close and never show
+      again" keeps it away after a relaunch.
+- [ ] Start page (close every tab): ↑ ↓ ↩ work, ⌘1–⌘3 open the recent profiles.
+- [ ] ⌘E selector: 660 pt wide under the tab bar, group headers, accent row with "↩ open",
+      footer hints; an unknown host offers quick connect.
+- [ ] Search bar (⌘F): counter, Aa / .* / W toggles, ⇧↩ previous.
+- [ ] Paste of several lines shows the card; Esc cancels, ↩ pastes; host key and password
+      prompts are cards too.
+- [ ] SSH tab: hovering the pane shows the status chip; stopping sshd shows Disconnected with
+      Reconnect; a "Reconnect" profile shows Reconnecting n/5 and gives up after five.
+- [ ] A command that ends in a background tab shows the "Process completed" toast with Show.
+- [ ] Split panes: divider grip on hover, focused pane ring, others dimmed; ⌥⌘↩ maximises
+      with the chip and Restore. Dragging a tab onto a pane shows the four targets and drops
+      it as a split.
+- [ ] Docked: no traffic lights, the global hotkey slides it in and out, dragging its free
+      edge changes the size kept for next time.
+
 ## Findings
 
 | Date | Milestone | Finding | Fix |
