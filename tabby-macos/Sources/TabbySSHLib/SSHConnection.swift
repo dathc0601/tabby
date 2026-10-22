@@ -174,6 +174,8 @@ public final class SSHConnection: @unchecked Sendable {
     private var isRunning = false
     private var stopRequested = false
     private var channels: [ChannelBox] = []
+    /// The connection's SFTP session, opened on first use (connection thread).
+    var sftpClient: SFTPClient?
     /// Forwards by id (connection thread) and their published list (any thread, under `lock`).
     var forwardRuntimes: [UUID: ForwardRuntime] = [:]
     var forwardList: [ForwardStatus] = []
@@ -719,6 +721,8 @@ public final class SSHConnection: @unchecked Sendable {
 
     private func teardown() {
         closeForwards()
+        sftpClient?.free()
+        sftpClient = nil
         for bridge in bridges {
             if bridge.registeredEvents != 0, let event { ssh_event_remove_fd(event, bridge.fd) }
             close(bridge.fd)
