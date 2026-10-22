@@ -79,9 +79,10 @@ through `MainWindowController.runCommand(_:)` using Tabby's hotkey ids.
 ## Roadmap
 
 1. **Phase 1 (this code).** Local shell, SSH, tabs, splits, hotkeys, settings, recovery.
-   Verified by hand against [MANUAL-CHECKS.md](MANUAL-CHECKS.md) (milestones M0–M5).
+   Verified by hand against [MANUAL-CHECKS.md](MANUAL-CHECKS.md): milestones M0–M5 passed on
+   2026-10-22, except the notification check, which macOS blocked for local builds.
 2. **Redesign.** Apply the Claude Design output (`docs/claude-design-prompt.md`) to
-   `Views/` and `Settings/`, and add an app icon.
+   `Views/` and `Settings/`.
 3. **SSH library backend.** libssh2 or russh behind `TerminalSession`. Adds the SFTP panel,
    live port-forward editor and in-app keyboard-interactive panel.
 4. **Serial and telnet.** New `ProfileProvider`s and `SessionFactory`s, using ORSSerialPort

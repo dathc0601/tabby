@@ -9,8 +9,10 @@ Read `README.md` and `docs/ARCHITECTURE.md` before larger changes.
 - Phase 1 (local shell + SSH, tabs, splits, hotkeys, settings, recovery) is written, builds
   on macOS (Xcode 27) and Linux, and `swift test` passes on both.
 - Phase 1b done (app icon, green CI on `.github/workflows/tabby-macos.yml`, macos-15 +
-  Xcode 16.4, M0 of `docs/MANUAL-CHECKS.md` passed). Phase 1c (in progress): walk M1–M5 of
-  that list by hand; fixes found by reading the code beforehand are in its Findings table.
+  Xcode 16.4, M0 of `docs/MANUAL-CHECKS.md` passed). Phase 1c done 2026-10-22: M1–M5 of
+  that list passed by hand; every fix is in its Findings table. The "process completed"
+  notification check stays open: macOS refused notification permission to every local build
+  on the test Mac.
 - Roadmap: phase 2 redesign (Claude Design, `docs/claude-design-prompt.md`), phase 3 SSH
   library backend + SFTP, phase 4 serial/telnet, phase 5 vault, sync, URL/CLI, localization.
 - Tooling quirk: shells spawned by the Xcode coding assistant cannot allocate PTYs
