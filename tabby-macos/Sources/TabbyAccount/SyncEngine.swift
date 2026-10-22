@@ -14,11 +14,18 @@ public struct SyncReport: Equatable, Sendable {
     public var pendingKeyFiles: [KeyFileCandidate] = []
 }
 
-public enum SyncEngineError: Error, LocalizedError {
+public enum SyncEngineError: Error, LocalizedError, Equatable {
     case tooManyConflicts
+    /// The vault was written by a newer TabbyMac; merging it here could drop what it added.
+    case newerVaultFormat
 
     public var errorDescription: String? {
-        "Another Mac kept changing the account while this one synced. Try again in a moment."
+        switch self {
+        case .tooManyConflicts:
+            return "Another Mac kept changing the account while this one synced. Try again in a moment."
+        case .newerVaultFormat:
+            return "Another Mac synced with a newer TabbyMac. Update TabbyMac to keep syncing on this Mac."
+        }
     }
 }
 
@@ -138,6 +145,7 @@ public final class SyncEngine {
             var needsUpload = true
             if let remote {
                 let theirs = try VaultCrypto.openSnapshot(remote.ciphertext, using: key)
+                guard theirs.formatVersion <= SyncSnapshot.currentFormatVersion else { throw SyncEngineError.newerVaultFormat }
                 // Parts that are off here: keep the server's copy and leave this Mac alone.
                 if !parts.profiles { mine.profiles = theirs.profiles; mine.groups = theirs.groups }
                 if !parts.secrets { mine.secrets = theirs.secrets; mine.keyFiles = theirs.keyFiles }
