@@ -68,10 +68,26 @@ public final class LocalSyncData {
         var settings: String?
         var secrets: [(String, JSONValue)] = []
         var keyFiles: [(String, JSONValue)] = []
-        var knownHosts: String?
+        var knownHostLines: [(String, JSONValue)] = []
         /// Every key file found here, approved or not, by id (so a synced copy isn't stored twice).
         var localKeyIDs: Set<String> = []
         var pendingKeyFiles: [KeyFileCandidate] = []
+        /// Sections that could not be read completely (a locked keychain, a denied prompt, an
+        /// unreadable file). Their missing items must not become deletions.
+        var incomplete: Set<String> = []
+
+        func ids(_ section: String) -> [String: JSONValue] {
+            let list: [(String, JSONValue)]
+            switch section {
+            case "profiles": list = profiles
+            case "groups": list = groups
+            case "secrets": list = secrets
+            case "keyFiles": list = keyFiles
+            case "knownHostLines": list = knownHostLines
+            default: list = []
+            }
+            return Dictionary(list, uniquingKeysWith: { a, _ in a })
+        }
     }
 
     // MARK: Conversions
@@ -92,7 +108,9 @@ public final class LocalSyncData {
 
     // MARK: Collect
 
-    func collect(recoveryKey: String?) -> Collected {
+    /// - Parameter accountKeyIDs: key files already in the account; a local copy of one of
+    ///   them is included even if the user declined uploading it from here.
+    func collect(recoveryKey: String?, accountKeyIDs: Set<String> = []) -> Collected {
         var c = Collected()
         func list(_ key: String) -> [(String, JSONValue)] {
             (config.user[key]?.arrayValue ?? []).compactMap { item in item["id"]?.stringValue.map { ($0, Self.json(item)) } }
@@ -104,16 +122,29 @@ public final class LocalSyncData {
         for path in Self.localOnlySettings { settings.setValue(nil, at: path) }
         c.settings = Self.canonicalJSON(Self.json(settings))
 
-        for secret in passwords.savedSecrets() {
+        let saved: [SavedSecret]
+        do {
+            saved = try passwords.savedSecrets()
+        } catch {
+            saved = []
+            c.incomplete.insert("secrets")
+        }
+        for secret in saved {
             switch secret {
             case let .password(host, port, user):
-                guard let value = passwords.password(host: host, port: port, user: user) else { continue }
+                guard let value = passwords.password(host: host, port: port, user: user) else {
+                    c.incomplete.insert("secrets")
+                    continue
+                }
                 c.secrets.append(("ssh:password|\(host)|\(port)|\(user)", .object([
                     "type": .string("ssh:password"), "host": .string(host), "port": .number(Double(port)),
                     "user": .string(user), "value": .string(value),
                 ])))
             case let .passphrase(keyID):
-                guard let value = passwords.passphrase(keyID: keyID) else { continue }
+                guard let value = passwords.passphrase(keyID: keyID) else {
+                    c.incomplete.insert("secrets")
+                    continue
+                }
                 c.secrets.append(("ssh:key-passphrase|\(keyID)", .object([
                     "type": .string("ssh:key-passphrase"), "keyID": .string(keyID), "value": .string(value),
                 ])))
@@ -124,9 +155,36 @@ public final class LocalSyncData {
         }
         c.secrets.sort { $0.0 < $1.0 }
 
-        collectKeyFiles(into: &c)
-        c.knownHosts = try? String(contentsOf: knownHostsFile, encoding: .utf8)
+        collectKeyFiles(into: &c, accountKeyIDs: accountKeyIDs)
+        if FileManager.default.fileExists(atPath: knownHostsFile.path) {
+            if let text = try? String(contentsOf: knownHostsFile, encoding: .utf8) {
+                c.knownHostLines = Self.lines(text).map { (Self.lineID($0), .string($0)) }
+            } else {
+                c.incomplete.insert("knownHostLines")
+            }
+        }
         return c
+    }
+
+    static func lines(_ text: String) -> [String] {
+        var seen = Set<String>()
+        return text.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
+            .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty && seen.insert($0).inserted }
+    }
+
+    static func lineID(_ line: String) -> String {
+        SHA256.hash(data: Data(line.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// A cheap summary of what `collect` would read (no secret values), to notice a change made
+    /// while a sync waits for the server.
+    func fingerprint() -> String {
+        var parts = [Self.canonicalJSON(Self.json(config.user))]
+        parts.append((try? String(contentsOf: knownHostsFile, encoding: .utf8)) ?? "")
+        parts.append(keyStore.records().map(\.id).sorted().joined(separator: ","))
+        let names = ((try? passwords.savedSecrets()) ?? []).map { "\($0)" }.sorted()
+        parts.append(names.joined(separator: ","))
+        return ChangeTracker.hash(parts.joined(separator: "\u{0}"))
     }
 
     private func expand(_ path: String) -> String {
@@ -134,7 +192,7 @@ public final class LocalSyncData {
         return SyncedKeys.normalize(path)
     }
 
-    private func collectKeyFiles(into c: inout Collected) {
+    private func collectKeyFiles(into c: inout Collected, accountKeyIDs: Set<String>) {
         let approved = Set(config.value("account.approvedKeyFiles")?.stringArrayValue ?? [])
         let declined = Set(config.value("account.declinedKeyFiles")?.stringArrayValue ?? [])
         var candidates: [(path: String, isDefault: Bool)] = []
@@ -156,7 +214,7 @@ public final class LocalSyncData {
             guard let contents = FileManager.default.contents(atPath: expand(path)) else { continue }
             let id = Self.keyID(contents)
             c.localKeyIDs.insert(id)
-            if approved.contains(id) {
+            if approved.contains(id) || accountKeyIDs.contains(id) {
                 add(id: id, originalPath: path, isDefault: isDefault, contents: contents)
             } else if !declined.contains(id), !c.pendingKeyFiles.contains(where: { $0.id == id }) {
                 c.pendingKeyFiles.append(KeyFileCandidate(id: id, originalPath: path, isDefaultIdentity: isDefault))
@@ -164,14 +222,20 @@ public final class LocalSyncData {
         }
         // Keys that arrived through sync stay in the vault while they are here.
         for record in keyStore.records() {
-            guard let contents = FileManager.default.contents(atPath: keyStore.path(for: record.id)) else { continue }
+            guard let contents = FileManager.default.contents(atPath: keyStore.path(for: record.id)) else {
+                c.incomplete.insert("keyFiles")
+                continue
+            }
             add(id: record.id, originalPath: record.originalPath, isDefault: record.isDefaultIdentity, contents: contents)
         }
     }
 
     // MARK: Apply
 
+    /// Writes what other Macs changed. Sections that could not be read completely here, and
+    /// parts that are off, are left alone.
     func apply(_ merged: SyncSnapshot, over local: Collected, parts: SyncParts) {
+        let skip = local.incomplete
         if parts.profiles {
             applyList("profiles", merged.profiles, local.profiles)
             applyList("groups", merged.groups, local.groups)
@@ -186,12 +250,15 @@ public final class LocalSyncData {
             try? config.replaceUser(user)
         }
         if parts.secrets {
-            applySecrets(merged.secrets, local.secrets)
-            applyKeyFiles(merged.keyFiles, localIDs: local.localKeyIDs)
+            if !skip.contains("secrets") { applySecrets(merged.secrets, local.secrets) }
+            if !skip.contains("keyFiles") { applyKeyFiles(merged.keyFiles, localIDs: local.localKeyIDs) }
         }
-        if parts.knownHosts, let text = merged.knownHosts?.text, text != local.knownHosts {
-            try? FileManager.default.createDirectory(at: knownHostsFile.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try? text.write(to: knownHostsFile, atomically: true, encoding: .utf8)
+        if parts.knownHosts, !skip.contains("knownHostLines") {
+            let lines = merged.knownHostLines.items.compactMap(\.value.stringValue)
+            if lines != local.knownHostLines.compactMap(\.1.stringValue) {
+                try? FileManager.default.createDirectory(at: knownHostsFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try? (lines.isEmpty ? "" : lines.joined(separator: "\n") + "\n").write(to: knownHostsFile, atomically: true, encoding: .utf8)
+            }
         }
     }
 
@@ -207,8 +274,9 @@ public final class LocalSyncData {
         for item in merged.items where localValues[item.id] != item.value {
             write(secret: item.value)
         }
-        let mergedIDs = Set(merged.items.map(\.id))
-        for (id, value) in local where !mergedIDs.contains(id) {
+        // Only what the account deleted (a tombstone) is deleted here.
+        let deleted = Set(merged.deleted.map(\.id))
+        for (id, value) in local where deleted.contains(id) {
             delete(secret: value)
         }
     }
@@ -254,15 +322,26 @@ public final class LocalSyncData {
 
     /// Removes everything that came from the account (sign out › "Remove synced data").
     func remove(_ snapshot: SyncSnapshot) {
-        let profileIDs = Set(snapshot.profiles.items.map(\.id))
-        let groupIDs = Set(snapshot.groups.items.map(\.id))
+        remove(profileIDs: Set(snapshot.profiles.items.map(\.id)), groupIDs: Set(snapshot.groups.items.map(\.id)),
+               secretIDs: snapshot.secrets.items.map(\.id))
+    }
+
+    /// The same by ids, as the change tracker remembers them after a relaunch.
+    func remove(profileIDs: Set<String>, groupIDs: Set<String>, secretIDs: [String]) {
         let keep = { (key: String, ids: Set<String>) in
             let list = (self.config.user[key]?.arrayValue ?? []).filter { !ids.contains($0["id"]?.stringValue ?? "") }
             self.config.set(key, list.isEmpty ? nil : .array(list))
         }
         keep("profiles", profileIDs)
         keep("groups", groupIDs)
-        for item in snapshot.secrets.items { delete(secret: item.value) }
+        for id in secretIDs {
+            let parts = id.split(separator: "|", omittingEmptySubsequences: false).map(String.init)
+            if parts.first == "ssh:password", parts.count == 4, let port = Int(parts[2]) {
+                passwords.deletePassword(host: parts[1], port: port, user: parts[3])
+            } else if parts.first == "ssh:key-passphrase", parts.count == 2 {
+                passwords.deletePassphrase(keyID: parts[1])
+            }
+        }
         keyStore.removeAll()
     }
 }

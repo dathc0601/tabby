@@ -43,11 +43,16 @@ final class AccountService {
     @ObservationIgnored private let pollInterval: TimeInterval
     @ObservationIgnored private var debounce: DispatchWorkItem?
     @ObservationIgnored private var pollTimer: Timer?
+    /// A change arrived while a sync was running; sync again when it ends.
+    @ObservationIgnored private var changedDuringSync = false
+    /// Scrypt parameters for new passwords (tests pass small ones).
+    @ObservationIgnored private let kdf: KDFParams?
     /// Called after every sync with what happened (the window shows toasts).
     @ObservationIgnored var onSyncFinished: ((SyncReport?, Error?) -> Void)?
 
     init(local: LocalSyncData, stateFile: URL, transport: HTTPTransport, baseURL: URL, persistentStore: SessionStore,
-         debounceInterval: TimeInterval = 5, pollInterval: TimeInterval = 60) {
+         debounceInterval: TimeInterval = 5, pollInterval: TimeInterval = 60, kdf: KDFParams? = nil) {
+        self.kdf = kdf
         self.local = local
         self.stateFile = stateFile
         self.transport = transport
@@ -59,15 +64,23 @@ final class AccountService {
     }
 
     /// The app's account service: the fixed server over HTTPS, the session in the Keychain.
-    /// `TABBYMAC_SYNC_URL=memory:` runs against an in-memory server (tests, development).
+    /// `TABBYMAC_SYNC_URL=memory:` runs against an in-memory server, and it or
+    /// `TABBYMAC_KEYCHAIN=memory` keeps the session out of the login keychain (tests, and the
+    /// two-instance M7 check).
     static func standard(local: LocalSyncData, paths: ConfigPaths) -> AccountService {
+        let environment = ProcessInfo.processInfo.environment
         let stateFile = paths.root.appendingPathComponent("sync-state.json")
-        if ProcessInfo.processInfo.environment["TABBYMAC_SYNC_URL"] == "memory:" {
+        let store: SessionStore = usesMemoryStores(environment: environment) ? MemorySessionStore() : KeychainSessionStore()
+        if environment["TABBYMAC_SYNC_URL"] == "memory:" {
             return AccountService(local: local, stateFile: stateFile, transport: InMemorySyncServer(),
-                                  baseURL: URL(string: "https://memory.invalid")!, persistentStore: MemorySessionStore())
+                                  baseURL: URL(string: "https://memory.invalid")!, persistentStore: store)
         }
         return AccountService(local: local, stateFile: stateFile, transport: URLSessionTransport(), baseURL: SyncClient.configuredURL,
-                              persistentStore: KeychainSessionStore())
+                              persistentStore: store)
+    }
+
+    static func usesMemoryStores(environment: [String: String]) -> Bool {
+        environment["TABBYMAC_SYNC_URL"] == "memory:" || environment["TABBYMAC_KEYCHAIN"] == "memory"
     }
 
     static var deviceInfo: DeviceInfo {
@@ -106,7 +119,8 @@ final class AccountService {
     /// Step 1 of creating an account. The first upload waits for `finishRegistration()`, after
     /// the recovery key has been saved.
     func register(email: String, password: String, keepSignedIn: Bool) async throws -> RecoveryKey {
-        let (s, recovery) = try await AccountFlows.register(client: try client(), email: email, password: password, device: Self.deviceInfo)
+        let (s, recovery) = try await AccountFlows.register(client: try client(), email: email, password: password, device: Self.deviceInfo,
+                                                            kdf: kdf ?? .generate())
         try? FileManager.default.removeItem(at: stateFile)
         activate(s, keepSignedIn: keepSignedIn)
         return recovery
@@ -128,7 +142,7 @@ final class AccountService {
     func recover(email: String, recoveryKey: String, newPassword: String, keepSignedIn: Bool) async throws {
         let key = try RecoveryKey(parsing: recoveryKey)
         let s = try await AccountFlows.recover(client: try client(), email: email, recoveryKey: key, newPassword: newPassword,
-                                               device: Self.deviceInfo)
+                                               device: Self.deviceInfo, kdf: kdf ?? .generate())
         try? FileManager.default.removeItem(at: stateFile)
         activate(s, keepSignedIn: keepSignedIn)
         isRestoring = true
@@ -139,12 +153,16 @@ final class AccountService {
     /// Signs out here. With `removeSyncedData`, what came from the account is deleted from this
     /// Mac only; otherwise it stays, unsynced.
     func signOut(removeSyncedData: Bool) async {
-        if removeSyncedData { engine?.removeSyncedData() }
-        try? await engine?.client.signOut()
+        guard let engine else { return }
+        // An in-flight sync must not write anything after this point.
+        engine.cancel()
+        if removeSyncedData { engine.removeSyncedData() }
         endSession()
+        try? await engine.client.signOut()
     }
 
     private func endSession() {
+        engine?.cancel()
         persistentStore.clear()
         store.clear()
         pollTimer?.invalidate()
@@ -166,9 +184,12 @@ final class AccountService {
     func syncNow() async {
         guard let engine, status != .syncing else { return }
         debounce?.cancel()
+        changedDuringSync = false
         status = .syncing
         do {
             let report = try await engine.sync()
+            // Signed out (or in again) while this sync ran: its result belongs to nobody.
+            guard self.engine === engine else { return }
             pendingKeyFiles = report.pendingKeyFiles
             counts = engine.syncedCounts
             lastSyncAt = Date()
@@ -179,12 +200,20 @@ final class AccountService {
             }
             status = .upToDate
             onSyncFinished?(report, nil)
+            if changedDuringSync {
+                changedDuringSync = false
+                localDataChanged()
+            }
+        } catch is CancellationError {
+            return
         } catch let error as SyncClientError where error.code == ErrorDTO.Code.unauthorized {
+            guard self.engine === engine else { return }
             // The device was removed from another Mac, or the account was deleted.
             endSession()
             status = .failed(error.localizedDescription)
             onSyncFinished?(nil, error)
         } catch {
+            guard self.engine === engine else { return }
             status = .failed(error.localizedDescription)
             onSyncFinished?(nil, error)
         }
@@ -192,8 +221,12 @@ final class AccountService {
 
     /// A change here (config, Keychain): sync a few seconds later, unless it came from a sync.
     func localDataChanged() {
-        guard engine != nil, status != .syncing else { return }
+        guard engine != nil else { return }
         hasLocalChanges = true
+        guard status != .syncing else {
+            changedDuringSync = true
+            return
+        }
         guard local.config.value("account.auto")?.boolValue ?? true else { return }
         debounce?.cancel()
         let work = DispatchWorkItem { [weak self] in
@@ -207,9 +240,16 @@ final class AccountService {
         pollTimer?.invalidate()
         pollTimer = Timer.scheduledTimer(withTimeInterval: pollInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                guard let self, let engine = self.engine, self.status != .syncing,
-                      (try? await engine.remoteHasChanged()) == true else { return }
-                await self.syncNow()
+                guard let self, let engine = self.engine, self.status != .syncing else { return }
+                // Retry a failed sync and push changes that are still waiting; otherwise only
+                // sync when another Mac uploaded.
+                if case .failed = self.status {
+                    await self.syncNow()
+                } else if self.hasLocalChanges {
+                    await self.syncNow()
+                } else if (try? await engine.remoteHasChanged()) == true {
+                    await self.syncNow()
+                }
             }
         }
     }

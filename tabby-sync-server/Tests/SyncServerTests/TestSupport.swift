@@ -7,11 +7,13 @@ import TabbySyncProtocol
 import XCTest
 
 /// A fixed configuration for in-process tests: SQLite in memory, a known secret.
-func testConfig(rateLimitPerMinute: Int = 10) -> ServerConfig {
+func testConfig(rateLimitPerMinute: Int = 10, registrationsPerDay: Int = 1000, minimumScryptN: Int = 1024) -> ServerConfig {
     ServerConfig(
         database: .sqliteMemory,
         serverSecret: Data("test-secret".utf8),
         rateLimitPerMinute: rateLimitPerMinute,
+        registrationsPerDay: registrationsPerDay,
+        minimumScryptN: minimumScryptN,
         logLevel: .error
     )
 }

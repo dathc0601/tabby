@@ -10,14 +10,16 @@ import TabbySyncProtocol
 struct SyncAPI: Sendable {
     let fluent: Fluent
     let serverSecret: Data
+    let minimumScryptN: Int
 
     var db: any Database { fluent.db() }
 
-    func addRoutes(to router: Router<SyncRequestContext>, rateLimiter: RateLimiter) {
+    func addRoutes(to router: Router<SyncRequestContext>, rateLimiter: RateLimiter, registrationLimiter: RateLimiter) {
         router.group("v1").get("account/kdf") { request, _ in try await kdf(request) }
 
         let rateLimited = router.group("v1").add(middleware: RateLimitMiddleware(limiter: rateLimiter))
-        rateLimited.post("account") { request, context in try await register(request, context) }
+        rateLimited.add(middleware: RateLimitMiddleware(limiter: registrationLimiter))
+            .post("account") { request, context in try await register(request, context) }
         rateLimited.post("session") { request, context in try await signIn(request, context) }
         rateLimited.post("session/recovery") { request, context in try await recoverySignIn(request, context) }
 
@@ -349,6 +351,9 @@ struct SyncAPI: Sendable {
     private func validateKDF(_ kdf: KDFParams) throws {
         guard kdf.isSupported, kdf.salt.count <= 64 else {
             throw APIError.badRequest("Unsupported key-derivation parameters.")
+        }
+        guard kdf.n >= minimumScryptN, kdf.r >= KDFParams.minimumR else {
+            throw APIError.badRequest("The key-derivation parameters are too weak.")
         }
     }
 

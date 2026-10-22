@@ -91,5 +91,5 @@ public final class NotifyingPasswordStore: PasswordStore {
         base.deletePassphrase(keyID: keyID)
         changed()
     }
-    public func savedSecrets() -> [SavedSecret] { base.savedSecrets() }
+    public func savedSecrets() throws -> [SavedSecret] { try base.savedSecrets() }
 }

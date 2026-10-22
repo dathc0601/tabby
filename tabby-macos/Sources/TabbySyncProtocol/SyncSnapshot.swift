@@ -67,7 +67,11 @@ public struct SyncSnapshot: Codable, Hashable, Sendable {
     public var groups: ItemSection
     public var secrets: ItemSection
     public var keyFiles: ItemSection
+    /// Unused since known_hosts became `knownHostLines`; decoded so older vaults still read.
     public var knownHosts: TextSection?
+    /// TabbyMac's known_hosts, one item per line (id = SHA-256 of the line), so a removed host
+    /// key stays removed on every Mac.
+    public var knownHostLines: ItemSection
 
     public init(
         formatVersion: Int = SyncSnapshot.currentFormatVersion,
@@ -78,7 +82,8 @@ public struct SyncSnapshot: Codable, Hashable, Sendable {
         groups: ItemSection = ItemSection(),
         secrets: ItemSection = ItemSection(),
         keyFiles: ItemSection = ItemSection(),
-        knownHosts: TextSection? = nil
+        knownHosts: TextSection? = nil,
+        knownHostLines: ItemSection = ItemSection()
     ) {
         self.formatVersion = formatVersion
         self.createdAt = createdAt
@@ -89,6 +94,7 @@ public struct SyncSnapshot: Codable, Hashable, Sendable {
         self.secrets = secrets
         self.keyFiles = keyFiles
         self.knownHosts = knownHosts
+        self.knownHostLines = knownHostLines
     }
 
     public init(from decoder: Decoder) throws {
@@ -102,5 +108,6 @@ public struct SyncSnapshot: Codable, Hashable, Sendable {
         secrets = try container.decodeIfPresent(ItemSection.self, forKey: .secrets) ?? ItemSection()
         keyFiles = try container.decodeIfPresent(ItemSection.self, forKey: .keyFiles) ?? ItemSection()
         knownHosts = try container.decodeIfPresent(TextSection.self, forKey: .knownHosts)
+        knownHostLines = try container.decodeIfPresent(ItemSection.self, forKey: .knownHostLines) ?? ItemSection()
     }
 }

@@ -16,8 +16,9 @@ public protocol PasswordStore: AnyObject {
     func passphrase(keyID: String) -> String?
     func savePassphrase(_ passphrase: String, keyID: String)
     func deletePassphrase(keyID: String)
-    /// What is saved, by name only (sync uploads these; listing never reads a secret).
-    func savedSecrets() -> [SavedSecret]
+    /// What is saved, by name only (sync uploads these; listing never reads a secret). Throws
+    /// when the list can't be read (a locked keychain), which is not the same as "nothing".
+    func savedSecrets() throws -> [SavedSecret]
 }
 
 /// A saved SSH secret, named the way Tabby's keytar names it.
@@ -63,7 +64,7 @@ public final class InMemoryPasswordStore: PasswordStore {
     public func passphrase(keyID: String) -> String? { items[key(Self.keyService(keyID), "user")] }
     public func savePassphrase(_ passphrase: String, keyID: String) { items[key(Self.keyService(keyID), "user")] = passphrase }
     public func deletePassphrase(keyID: String) { items[key(Self.keyService(keyID), "user")] = nil }
-    public func savedSecrets() -> [SavedSecret] {
+    public func savedSecrets() throws -> [SavedSecret] {
         items.keys.compactMap { k in
             let parts = k.split(separator: "\u{0}", maxSplits: 1, omittingEmptySubsequences: false).map(String.init)
             return parts.count == 2 ? SavedSecret(service: parts[0], account: parts[1]) : nil
@@ -99,12 +100,18 @@ public final class KeychainPasswordStore: PasswordStore {
     public func savePassphrase(_ passphrase: String, keyID: String) { write(passphrase, service: Self.keyService(keyID), account: "user") }
     public func deletePassphrase(keyID: String) { delete(service: Self.keyService(keyID), account: "user") }
 
-    public func savedSecrets() -> [SavedSecret] {
+    public struct KeychainError: Error, Equatable {
+        public let status: OSStatus
+    }
+
+    public func savedSecrets() throws -> [SavedSecret] {
         let q: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
                                 kSecMatchLimit as String: kSecMatchLimitAll,
                                 kSecReturnAttributes as String: true]
         var out: CFTypeRef?
-        guard SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess, let items = out as? [[String: Any]] else { return [] }
+        let status = SecItemCopyMatching(q as CFDictionary, &out)
+        if status == errSecItemNotFound { return [] }
+        guard status == errSecSuccess, let items = out as? [[String: Any]] else { throw KeychainError(status: status) }
         return items.compactMap { item in
             guard let service = item[kSecAttrService as String] as? String,
                   service.hasPrefix("ssh@") || service.hasPrefix("ssh-private-key:") else { return nil }

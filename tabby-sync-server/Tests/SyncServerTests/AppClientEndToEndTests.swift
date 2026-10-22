@@ -66,6 +66,7 @@ final class SimulatedMac {
 
 final class AppClientEndToEndTests: XCTestCase {
     func testTwoMacsSyncThroughTheServer() async throws {
+        AccountFlows.allowWeakKDFForTesting = true
         try await withApp { client in
             try await Self.scenario(TestClientTransport(client: client))
         }

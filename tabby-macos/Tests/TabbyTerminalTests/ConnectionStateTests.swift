@@ -93,3 +93,13 @@ final class ProcessEndedTests: XCTestCase {
         XCTAssertTrue(reported)
     }
 }
+
+/// Automatic reconnects wait longer each time (1, 2, 4, 8, 16 s), so five attempts outlast a
+/// short Wi-Fi drop or a sleep/wake instead of burning out in a few seconds.
+final class ReconnectBackoffTests: XCTestCase {
+    func testDelaysDoubleUpToACap() {
+        XCTAssertEqual((1...5).map { TerminalPane.reconnectDelay(base: 1, attempt: $0) }, [1, 2, 4, 8, 16])
+        XCTAssertEqual(TerminalPane.reconnectDelay(base: 1, attempt: 9), 30)
+        XCTAssertEqual(TerminalPane.reconnectDelay(base: 0.05, attempt: 3), 0.2, accuracy: 1e-9)
+    }
+}

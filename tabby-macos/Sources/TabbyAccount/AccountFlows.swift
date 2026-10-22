@@ -27,6 +27,15 @@ public struct AccountSession: Codable, Equatable, Sendable {
 /// Account operations on the client side of `VaultCrypto`'s key hierarchy. They run scrypt,
 /// so call them off the main actor (they are nonisolated async functions).
 public enum AccountFlows {
+    /// Tests use tiny scrypt parameters to run fast. Never set outside tests: the minimum is
+    /// what stops a server from choosing parameters it can brute-force.
+    nonisolated(unsafe) public static var allowWeakKDFForTesting = false
+
+    /// Refuses KDF parameters from the server (or a caller) below `KDFParams.minimumN/R`.
+    static func checkStrength(_ kdf: KDFParams) throws {
+        guard kdf.isStrongEnough || (allowWeakKDFForTesting && kdf.isSupported) else { throw VaultCryptoError.kdf }
+    }
+
     static func normalize(_ email: String) -> String {
         email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
@@ -35,6 +44,7 @@ public enum AccountFlows {
     public static func register(client: SyncClient, email rawEmail: String, password: String, device: DeviceInfo,
                                 kdf: KDFParams = .generate()) async throws -> (AccountSession, RecoveryKey) {
         let email = normalize(rawEmail)
+        try checkStrength(kdf)
         let keys = try VaultCrypto.passwordKeys(password: password, kdf: kdf)
         let encryptionKey = VaultCrypto.generateEncryptionKey()
         let recovery = RecoveryKey.generate()
@@ -53,6 +63,7 @@ public enum AccountFlows {
     public static func signIn(client: SyncClient, email rawEmail: String, password: String, device: DeviceInfo) async throws -> AccountSession {
         let email = normalize(rawEmail)
         let kdf = try await client.kdf(email: email)
+        try checkStrength(kdf)
         let keys = try VaultCrypto.passwordKeys(password: password, kdf: kdf)
         let response = try await client.signIn(SessionRequest(email: email, authKey: keys.authKey, device: device))
         client.token = response.token
@@ -68,6 +79,7 @@ public enum AccountFlows {
         let response = try await client.recoverySignIn(RecoverySessionRequest(email: email, recoveryAuthKey: recoveryKey.authKey, device: device))
         client.token = response.token
         let encryptionKey = try VaultCrypto.unwrap(response.wrappedByRecovery, with: recoveryKey.wrapKey)
+        try checkStrength(kdf)
         let keys = try VaultCrypto.passwordKeys(password: newPassword, kdf: kdf)
         try await client.changePassword(PasswordChangeRequest(
             recoveryAuthKey: recoveryKey.authKey, newAuthKey: keys.authKey, newKdf: kdf,
@@ -81,6 +93,8 @@ public enum AccountFlows {
     public static func changePassword(client: SyncClient, email rawEmail: String, oldPassword: String, newPassword: String,
                                       kdf: KDFParams = .generate()) async throws {
         let account = try await client.account()
+        try checkStrength(account.kdf)
+        try checkStrength(kdf)
         let old = try VaultCrypto.passwordKeys(password: oldPassword, kdf: account.kdf)
         let encryptionKey = try VaultCrypto.unwrap(account.wrappedByPassword, with: old.wrapKey)
         let new = try VaultCrypto.passwordKeys(password: newPassword, kdf: kdf)
@@ -92,6 +106,7 @@ public enum AccountFlows {
     /// Makes a new recovery key; the old one stops working.
     public static func rotateRecoveryKey(client: SyncClient, session: AccountSession, password: String) async throws -> RecoveryKey {
         let account = try await client.account()
+        try checkStrength(account.kdf)
         let keys = try VaultCrypto.passwordKeys(password: password, kdf: account.kdf)
         let encryptionKey = try VaultCrypto.encryptionKey(from: session.encryptionKey)
         let recovery = RecoveryKey.generate()
@@ -105,12 +120,14 @@ public enum AccountFlows {
     /// recovery key).
     public static func verifyPassword(client: SyncClient, password: String) async throws -> Bool {
         let account = try await client.account()
+        try checkStrength(account.kdf)
         let keys = try VaultCrypto.passwordKeys(password: password, kdf: account.kdf)
         return (try? VaultCrypto.unwrap(account.wrappedByPassword, with: keys.wrapKey)) != nil
     }
 
     public static func deleteAccount(client: SyncClient, password: String) async throws {
         let account = try await client.account()
+        try checkStrength(account.kdf)
         let keys = try VaultCrypto.passwordKeys(password: password, kdf: account.kdf)
         try await client.deleteAccount(DeleteAccountRequest(authKey: keys.authKey))
     }

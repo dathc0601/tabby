@@ -54,7 +54,8 @@ public enum SyncMerger {
             groups: items(\.groups),
             secrets: items(\.secrets),
             keyFiles: items(\.keyFiles),
-            knownHosts: text(\.knownHosts)
+            knownHosts: text(\.knownHosts),
+            knownHostLines: items(\.knownHostLines)
         )
         return SyncMergeResult(snapshot: snapshot, changedLocally: changedLocally, needsUpload: needsUpload)
     }

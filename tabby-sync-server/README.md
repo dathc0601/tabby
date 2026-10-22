@@ -62,6 +62,7 @@ requires swift-tools 6.2.
 | `SERVER_SECRET` | random per process | Keys the fake KDF salts for unknown emails; keep it stable. Required when `ENVIRONMENT=production` |
 | `ENVIRONMENT` | – | `production` makes a missing `SERVER_SECRET` a startup error |
 | `LOG_LEVEL` | `info` | `trace` … `critical` |
+| `REGISTRATIONS_PER_DAY` | `20` | New accounts one client address may create per day (registration is open) |
 
 The database schema is created and migrated at startup.
 

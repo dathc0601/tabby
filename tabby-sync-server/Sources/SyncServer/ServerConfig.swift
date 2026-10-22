@@ -24,6 +24,11 @@ public struct ServerConfig: Sendable {
     public var serverSecret: Data
     /// Fixed-window limit per client address for sign-up and sign-in requests.
     public var rateLimitPerMinute: Int
+    /// Accounts one client address may create per day (registration is open; this keeps a
+    /// script from filling the disk).
+    public var registrationsPerDay: Int
+    /// The least scrypt N accepted at sign-up and password change (clients refuse less).
+    public var minimumScryptN: Int
     public var logLevel: Logger.Level
 
     public init(
@@ -32,6 +37,8 @@ public struct ServerConfig: Sendable {
         database: Database,
         serverSecret: Data,
         rateLimitPerMinute: Int = 10,
+        registrationsPerDay: Int = 20,
+        minimumScryptN: Int = KDFParams.minimumN,
         logLevel: Logger.Level = .info
     ) {
         self.hostname = hostname
@@ -39,6 +46,8 @@ public struct ServerConfig: Sendable {
         self.database = database
         self.serverSecret = serverSecret
         self.rateLimitPerMinute = rateLimitPerMinute
+        self.registrationsPerDay = registrationsPerDay
+        self.minimumScryptN = minimumScryptN
         self.logLevel = logLevel
     }
 
@@ -95,8 +104,15 @@ public struct ServerConfig: Sendable {
             logLevel = .info
         }
 
+        var registrationsPerDay = 20
+        if let raw = value("REGISTRATIONS_PER_DAY") {
+            guard let parsed = Int(raw), parsed > 0 else {
+                throw ConfigError(description: "REGISTRATIONS_PER_DAY must be a positive number, got \(raw).")
+            }
+            registrationsPerDay = parsed
+        }
         let config = ServerConfig(hostname: value("HOSTNAME") ?? "0.0.0.0", port: port, database: database,
-                                  serverSecret: secret, logLevel: logLevel)
+                                  serverSecret: secret, registrationsPerDay: registrationsPerDay, logLevel: logLevel)
         return (config, warnings)
     }
 }

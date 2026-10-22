@@ -221,7 +221,7 @@ struct VaultSettingsView: View {
     var body: some View {
         let services = AppServices.shared
         let _ = refresh
-        let secrets = services.passwords.savedSecrets().sorted { Self.title($0) < Self.title($1) }
+        let secrets = ((try? services.passwords.savedSecrets()) ?? []).sorted { Self.title($0) < Self.title($1) }
         let keys = services.keyFiles.records()
         SettingsPage("Vault") {
             SettingsGroup("Saved in the Keychain", footer: "TabbyMac saves these when you tick “Remember” at a password or passphrase prompt. Showing one may ask for your Mac password.") {

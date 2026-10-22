@@ -57,6 +57,7 @@ final class SyncEngineTests: XCTestCase {
     var b: TestMac!
 
     override func setUp() async throws {
+        AccountFlows.allowWeakKDFForTesting = true
         server = FakeSyncServer()
         a = try TestMac(name: "a")
         b = try TestMac(name: "b")

@@ -41,6 +41,16 @@ public struct KDFParams: Codable, Hashable, Sendable {
     /// Bytes scrypt allocates (BoringSSL's accounting: `128 · r · (N + p + 1)`).
     var requiredMemory: Int { 128 * r * (n + p + 1) }
 
+    /// The least work factor a client accepts before deriving an `authKey`: weaker parameters
+    /// would let whoever chose them (the server answers `GET /account/kdf`) brute-force the
+    /// password from the `authKey` and then decrypt the vault.
+    public static let minimumN = 1 << 15
+    public static let minimumR = 8
+
+    public var isStrongEnough: Bool {
+        isSupported && n >= Self.minimumN && r >= Self.minimumR
+    }
+
     /// Refuses unknown algorithms and costs a hostile server could use to exhaust the client.
     /// The server applies the same rule to what clients register.
     public var isSupported: Bool {

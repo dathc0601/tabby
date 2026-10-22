@@ -48,6 +48,25 @@ final class LimitTests: XCTestCase {
         }
     }
 
+    /// Open registration on a small host: a daily cap per address on top of the per-minute one.
+    func testRegistrationsPerDayAreCapped() async throws {
+        try await withApp(testConfig(rateLimitPerMinute: 100, registrationsPerDay: 2)) { client in
+            for index in 0..<2 {
+                _ = try await client.register(Credentials(email: "d\(index)@example.com"))
+            }
+            try await client.send(.post, APIPath.account, json: Credentials(email: "d3@example.com").registerRequest)
+                .assertError(.tooManyRequests, ErrorDTO.Code.rateLimited)
+        }
+    }
+
+    /// Accounts can't be created (or re-keyed) with a work factor below the client minimum.
+    func testWeakKeyDerivationIsRefused() async throws {
+        try await withApp(testConfig(minimumScryptN: KDFParams.minimumN)) { client in
+            try await client.send(.post, APIPath.account, json: Credentials(email: "weak@example.com").registerRequest)
+                .assertError(.badRequest, ErrorDTO.Code.badRequest)
+        }
+    }
+
     func testBodiesOverTheLimitAre413() async throws {
         try await withApp { client in
             let session = try await client.register(Credentials())

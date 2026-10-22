@@ -9,6 +9,7 @@ final class AccountFlowTests: XCTestCase {
     var client: SyncClient!
 
     override func setUpWithError() throws {
+        AccountFlows.allowWeakKDFForTesting = true
         server = FakeSyncServer()
         client = try SyncClient(baseURL: URL(string: "https://sync.example.com")!, transport: server)
     }

@@ -18,13 +18,13 @@ final class PasswordStoreTests: XCTestCase {
 /// Sync uploads the SSH secrets TabbyMac saved: passwords (`ssh@host:port` / user) and key
 /// passphrases (`ssh-private-key:<id>`). Listing reads names, never secrets.
 final class PasswordStoreListingTests: XCTestCase {
-    func testListsSavedPasswordsAndPassphrases() {
+    func testListsSavedPasswordsAndPassphrases() throws {
         let store = InMemoryPasswordStore()
         store.savePassword("a", host: "example.com", port: 22, user: "deploy")
         store.savePassword("b", host: "db.internal", port: 2222, user: "postgres")
         store.savePassphrase("c", keyID: "abc123")
         store.items["unrelated\u{0}someone"] = "x"
-        XCTAssertEqual(Set(store.savedSecrets()), [
+        XCTAssertEqual(Set(try store.savedSecrets()), [
             .password(host: "example.com", port: 22, user: "deploy"),
             .password(host: "db.internal", port: 2222, user: "postgres"),
             .passphrase(keyID: "abc123"),

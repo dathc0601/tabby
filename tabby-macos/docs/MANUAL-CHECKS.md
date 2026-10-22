@@ -214,9 +214,12 @@ window shows (traffic lights, hover, drag and drop, sheets, animation).
 ## M7 Personal account and sync
 
 Needs the server: `docker compose -f ../tabby-sync-server/compose.yaml up` (or `swift run` in
-`tabby-sync-server`), then launch two copies of the app with different
-`TABBYMAC_CONFIG_DIRECTORY` folders and `TABBYMAC_SYNC_URL=http://localhost:8080` to act as two
-Macs. `TABBYMAC_SYNC_URL=memory:` runs one app against an in-memory server for UI-only checks.
+`tabby-sync-server`), then launch two copies of the app to act as two Macs, each with its own
+`TABBYMAC_CONFIG_DIRECTORY` and `TABBYMAC_SYNC_HOME` (a scratch folder standing in for the home
+folder, with a `.ssh` inside), plus `TABBYMAC_SYNC_URL=http://localhost:8080` and
+`TABBYMAC_KEYCHAIN=memory`. Without the last two the instances would share, upload and, at
+"Remove synced data", delete the real login keychain's SSH passwords (Electron Tabby's too).
+`TABBYMAC_SYNC_URL=memory:` runs one app against an in-memory server for UI-only checks.
 `AppClientEndToEndTests` in `tabby-sync-server` runs the same flow without a UI.
 
 - [ ] Toolbar person button opens Sign in; "Create account" → step 1 (strength meter, the

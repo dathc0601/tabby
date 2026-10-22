@@ -79,4 +79,22 @@ public struct ChangeTracker: Codable, Equatable, Sendable {
     public mutating func adoptText(_ section: String, _ merged: TextSection?) {
         texts[section] = merged.map { Entry(hash: Self.hash($0.text), modifiedAt: $0.updatedAt) }
     }
+
+    /// Puts a section back the way it is in `other` (undoes this round's observation of a part
+    /// that is off, or of data that could not be read completely).
+    public mutating func restore(_ section: String, from other: ChangeTracker) {
+        items[section] = other.items[section]
+        deleted[section] = other.deleted[section]
+        texts[section] = other.texts[section]
+    }
+
+    /// The items this Mac has in step with the account (for "Remove synced data").
+    public func knownIDs(_ section: String) -> [String] {
+        (items[section] ?? [:]).keys.sorted()
+    }
+
+    /// Whether this item, with this value, is in step with the account.
+    public func knows(_ section: String, id: String, value: JSONValue) -> Bool {
+        items[section]?[id]?.hash == Self.hash(value)
+    }
 }

@@ -34,8 +34,12 @@ public final class TerminalPane: TerminalEngineDelegate {
     public private(set) var startedAt: Date?
     public private(set) var reconnectAttempt = 0
     public static let maxReconnectAttempts = 5
-    /// Pause before an automatic reconnect.
+    /// Pause before the first automatic reconnect; later attempts double it (up to 30 s).
     public var reconnectDelay: TimeInterval = 1
+
+    public static func reconnectDelay(base: TimeInterval, attempt: Int) -> TimeInterval {
+        min(base * pow(2, Double(max(attempt, 1) - 1)), 30)
+    }
 
     /// What the SSH status chip shows; nil for local shells.
     public enum ConnectionState: Equatable, Sendable {
@@ -294,7 +298,7 @@ public final class TerminalPane: TerminalEngineDelegate {
                 reconnectAttempt = 0
             } else {
                 reconnectAttempt += 1
-                DispatchQueue.main.asyncAfter(deadline: .now() + reconnectDelay) { [weak self] in
+                DispatchQueue.main.asyncAfter(deadline: .now() + Self.reconnectDelay(base: reconnectDelay, attempt: reconnectAttempt)) { [weak self] in
                     guard let self, case .ended = self.state, self.reconnectAttempt > 0 else { return }
                     self.start()
                 }
