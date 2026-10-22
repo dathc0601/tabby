@@ -222,6 +222,36 @@ final class LibSSHSessionTests: XCTestCase {
         next.kill()
     }
 
+    /// Review I8: input sent before the shell exists (typing while connecting, login
+    /// scripts without an expect) reaches the shell once it opens.
+    func testInputBeforeTheShellOpensIsKept() async throws {
+        let session = makeSession()
+        let r = attach(session)
+        try session.start(cols: 80, rows: 24)
+        session.write(Data("echo early-$((2+2)); exit 5\n".utf8))
+        try await waitUntil { r.closed != nil }
+        XCTAssertEqual(r.closed, .some(5))
+        XCTAssertTrue(r.text.contains("early-4"), r.text)
+    }
+
+    /// Review I11: a terminal slower than the network holds at most about a megabyte of
+    /// output in memory; the rest waits on the server.
+    func testShellOutputIsBoundedForASlowTerminal() async throws {
+        let session = makeSession()
+        var received = 0
+        var closed = false
+        session.onOutput = { data in
+            received += data.count
+            usleep(40_000)   // a slow terminal
+        }
+        session.onClosed = { _ in closed = true }
+        try session.start(cols: 200, rows: 24)
+        session.write(Data("head -c 20000000 /dev/zero | base64; exit\n".utf8))
+        try await waitUntil(60) { closed }
+        XCTAssertGreaterThan(received, 26_000_000)
+        XCTAssertLessThanOrEqual(session.peakBufferedOutput, 2 * 1024 * 1024, "peak \(session.peakBufferedOutput)")
+    }
+
     func testKillWhileConnectedClosesTheSession() async throws {
         let session = makeSession()
         let r = attach(session)

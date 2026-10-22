@@ -159,12 +159,16 @@ public struct SSHChannelHandlers: Sendable {
     public var closed: @Sendable (Int32?) -> Void
     /// The remote side will send nothing more.
     public var eof: (@Sendable () -> Void)?
+    /// How many more bytes `data` takes now; with it, the rest waits in libssh (and the
+    /// server's window stops growing) until there is room again (back-pressure).
+    public var room: (@Sendable () -> Int)?
 
     public init(data: @escaping @Sendable (Data) -> Void, closed: @escaping @Sendable (Int32?) -> Void,
-                eof: (@Sendable () -> Void)? = nil) {
+                eof: (@Sendable () -> Void)? = nil, room: (@Sendable () -> Int)? = nil) {
         self.data = data
         self.closed = closed
         self.eof = eof
+        self.room = room
     }
 }
 
@@ -245,6 +249,11 @@ public final class SSHConnection: @unchecked Sendable {
 
     public func disconnect() {
         _ = enqueue { [self] in stopRequested = true }
+    }
+
+    /// Makes the loop look at its channels again (a consumer has room for more output).
+    public func wake() {
+        _ = enqueue {}
     }
 
     public var isConnected: Bool { lock.withLock { isRunning } }
@@ -704,9 +713,10 @@ public final class SSHConnection: @unchecked Sendable {
             bridge.detach()
             return true
         }
+        for box in channels where !box.isBridged { box.pullIfRoom() }
         // Freed outside the mutation: freeing may flush packets, and libssh then runs our
         // callbacks (which can register new channels) re-entrantly.
-        let closed = channels.filter { $0.isClosed && !$0.isBridged }
+        let closed = channels.filter { $0.isClosed && !$0.isBridged && !$0.holdsUndelivered }
         channels.removeAll { box in closed.contains { $0 === box } }
         for box in closed { box.free() }
     }
@@ -948,6 +958,34 @@ final class ChannelBox {
         callbacks.pointee.channel_write_wontblock_function = channelWontBlock
         callbacks.pointee.channel_exit_status_function = channelExitStatus
         ssh_set_channel_callbacks(channel, callbacks)
+        if let room = handlers.room {
+            let deliver = handlers.data
+            sink = { bytes in
+                let n = min(bytes.count, room())
+                if n > 0 { deliver(Data(bytes: bytes.baseAddress!, count: n)) }
+                return n
+            }
+        }
+    }
+
+    /// Output libssh kept while the consumer was full (only with `handlers.room`).
+    var holdsUndelivered: Bool {
+        handlers.room != nil && !freed && ssh_channel_poll(channel, 0) > 0
+    }
+
+    /// Hands kept output to the consumer while it has room; reports the close once the last
+    /// byte is through.
+    func pullIfRoom() {
+        guard let room = handlers.room, !freed else { return }
+        var buffer = [UInt8](repeating: 0, count: 65_536)
+        while true {
+            let space = room()
+            guard space > 0, ssh_channel_poll(channel, 0) > 0 else { break }
+            let n = ssh_channel_read_nonblocking(channel, &buffer, UInt32(min(space, buffer.count)), 0)
+            guard n > 0 else { break }
+            handlers.data(Data(buffer[0..<Int(n)]))
+        }
+        if isClosed, !holdsUndelivered { finish(status: exitStatus) }
     }
 
     func write(_ data: Data) {
@@ -972,7 +1010,8 @@ final class ChannelBox {
 
     func markClosed() {
         isClosed = true
-        finish(status: exitStatus)
+        // With output still waiting in libssh, the close is reported after it (pullIfRoom).
+        if !holdsUndelivered { finish(status: exitStatus) }
     }
 
     func finish(status: Int32?) {

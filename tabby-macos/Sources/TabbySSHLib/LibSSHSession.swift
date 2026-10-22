@@ -64,6 +64,8 @@ public final class LibSSHSession: TerminalSession {
     public weak var ui: SSHSessionUI?
 
     public private(set) var isRunning = false
+    /// The most output that waited for the terminal at once (tests).
+    var peakBufferedOutput: Int { output.peak }
     public private(set) var connection: SSHConnection?
     private var shell: SSHShellChannel?
     private var size = (columns: 80, rows: 24)
@@ -86,6 +88,7 @@ public final class LibSSHSession: TerminalSession {
 
     public func start(cols: Int, rows: Int) throws {
         size = (cols, rows)
+        earlyInput = Data()
         isRunning = true
         cancelled = false
         ended = false
@@ -102,13 +105,16 @@ public final class LibSSHSession: TerminalSession {
                 let connection = try await connector.acquire(profile: profile, prompter: SessionPrompter(self, cancel: flag))
                 self.connection = connection
                 guard !self.cancelled else { return self.releaseConnection() }
+                let output = self.output
+                output.onRoom = { [weak connection] in connection?.wake() }
                 let handlers = SSHChannelHandlers(
-                    data: { [output, weak self] chunk in
+                    data: { [weak self] chunk in
                         output.append(chunk) { data in self?.onOutput?(data) }
                     },
                     closed: { [weak self] status in
                         DispatchQueue.main.async { self?.shellClosed(status: status) }
-                    })
+                    },
+                    room: { output.room })
                 let shell = try await connection.openShell(term: self.options.term, columns: self.size.columns, rows: self.size.rows,
                                                            handlers: handlers, forwardAgent: self.options.agentForward,
                                                            forwardX11: self.options.x11)
@@ -117,6 +123,10 @@ public final class LibSSHSession: TerminalSession {
                 self.onStatus?(.connected)
                 if let cwd = self.options.cwd {
                     shell.write(Data(" cd -- '\(cwd.replacingOccurrences(of: "'", with: "'\\''"))'\r".utf8))
+                }
+                if !self.earlyInput.isEmpty {
+                    shell.write(self.earlyInput)
+                    self.earlyInput = Data()
                 }
                 await self.startProfileForwards(on: connection)
             } catch {
@@ -170,8 +180,17 @@ public final class LibSSHSession: TerminalSession {
         }
     }
 
+    /// Input before the shell exists (typing while connecting, login scripts without an
+    /// expect), sent once it opens; bounded so a stuck connect cannot grow it without end.
+    private var earlyInput = Data()
+    static let earlyInputLimit = 64 * 1024
+
     public func write(_ data: Data) {
-        shell?.write(data)
+        if let shell {
+            shell.write(data)
+        } else if earlyInput.count + data.count <= Self.earlyInputLimit {
+            earlyInput.append(data)
+        }
     }
 
     public func resize(cols: Int, rows: Int) {
@@ -278,23 +297,42 @@ final class SessionPrompter: SSHConnectionPrompter {
 /// Moves output from the connection's thread to the main queue, one delivery at a time:
 /// chunks that arrive while one is queued are joined to it.
 final class OutputCoalescer: @unchecked Sendable {
+    /// At most this much waits for the main thread; the rest stays on the server.
+    static let limit = 1 << 20
     private let lock = NSLock()
     private var pending = Data()
     private var scheduled = false
+    private var peakCount = 0
+    private var wasFull = false
+    /// Called (any thread) when room opened after the coalescer had been full.
+    var onRoom: (@Sendable () -> Void)?
+
+    /// How much more it takes now.
+    var room: Int {
+        lock.withLock {
+            let space = max(0, Self.limit - pending.count)
+            if space == 0 { wasFull = true }
+            return space
+        }
+    }
+    /// The most output that waited for the main thread at once.
+    var peak: Int { lock.withLock { peakCount } }
 
     func append(_ chunk: Data, deliver: @escaping (Data) -> Void) {
         let schedule = lock.withLock { () -> Bool in
             pending.append(chunk)
+            peakCount = max(peakCount, pending.count)
             defer { scheduled = true }
             return !scheduled
         }
         guard schedule else { return }
         DispatchQueue.main.async { [self] in
-            let data = lock.withLock { () -> Data in
-                defer { pending = Data(); scheduled = false }
-                return pending
+            let (data, refilled) = lock.withLock { () -> (Data, Bool) in
+                defer { pending = Data(); scheduled = false; wasFull = false }
+                return (pending, wasFull)
             }
             if !data.isEmpty { deliver(data) }
+            if refilled { onRoom?() }
         }
     }
 }
