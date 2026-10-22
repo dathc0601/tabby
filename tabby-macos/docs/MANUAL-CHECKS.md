@@ -51,23 +51,30 @@ M1 passed on 2026-10-22 (macOS 27.0.1, Xcode 27.1).
 
 ## M2 Tabs and splits
 
-- [ ] ⌘T new tab, ⌘W close, ⌘⇧T reopen the closed tab with its profile and cwd.
-- [ ] Right-click a tab: Rename, Duplicate, Pin, Colour, Close others / left / right work.
+- [x] ⌘T opens a new tab at the end of the strip, ⌘W closes, ⌘⇧T reopens the closed tab after
+      the active one with its profile and cwd.
+- [x] Right-click a tab: Rename, Duplicate (the copy opens next to the original), Pin (the tab
+      joins the pinned group at the front; ⌘W and ⌘⇧←/→ leave it there), Colour (a bar along
+      the bottom), Close others / left / right (idle tabs close, busy ones ask once, pinned
+      tabs stay).
 - [ ] Drag a tab to reorder; the active tab keeps its content.
-- [ ] Settings → Window → tab bar position top / bottom / left / right: the strip moves and the
+- [x] Settings → Window → tab bar position top / bottom / left / right: the strip moves and the
       terminal stays below / beside it without overlap.
-- [ ] ⌘1…⌘9 switch by index. Bind "Next tab (MRU order)" in Settings → Hotkeys (no default): it
+- [x] With six or more tabs every tab stays visible, shrinking to fit; the + follows the last tab.
+- [x] ⌘1…⌘9 switch by index. Bind "Next tab (MRU order)" in Settings → Hotkeys (no default): it
       switches to the most recently used tab.
-- [ ] Split right / bottom / left / top (⌘D, ⌘⇧D and the others): the new pane gets focus and
+- [x] Split right ⌘⇧D, down ⌘D, left / up from the Shell menu: the new pane gets focus and
       starts in the current directory.
 - [ ] Drag a divider: both panes resize and the shells see the new size (`stty size`).
-- [ ] Pane navigation shortcuts move focus in all four directions; previous / next cycle.
-- [ ] Maximise pane toggles a single pane filling the tab; the others come back untouched.
-- [ ] "Focus all panes" (broadcast): typing in one pane echoes in every pane of the tab.
-- [ ] Explode tab: each pane becomes a tab. Combine tabs: all tabs become panes of one.
-- [ ] Close a pane or tab whose shell has a running child (`sleep 100`): a confirmation
+- [x] Pane navigation shortcuts move focus in all four directions; previous / next cycle.
+- [x] Maximise pane toggles a single pane filling the tab; the others come back untouched.
+- [x] Broadcast (⌘⇧I, View → Broadcast Input to All Panes): every pane shows the focus ring,
+      typing and pasting reach every pane of the tab; ⌘⇧I again turns it off.
+- [x] Explode tab (⌘⇧.): the first pane stays, the others become tabs at the end. Combine tabs
+      (⌘⇧,): every pane joins the active tab in an even grid.
+- [x] Close a pane or tab whose shell has a running child (`sleep 100`): a confirmation
       sheet appears; cancelling keeps it.
-- [ ] Save layout as profile: the new profile appears in the selector and reopens the layout.
+- [x] Save layout as profile: the new profile appears in the selector and reopens the layout.
 
 ## M3 Hotkeys, selector and menus
 
@@ -142,10 +149,18 @@ Needs a reachable sshd (a local one via System Settings → Sharing → Remote L
 | 2026-10-21 | M0 | Closing a tab (seen with SSH tabs) crashed in `_dispatch_semaphore_dispose` from `PTYProcess.deinit`: output blocks queued on the main queue signalled the back-pressure semaphore through a weak reference, so the signals were lost after dealloc. Same trap killed the CI test run. | `acf887f7` |
 | 2026-10-21 | M0 | `recoveryState()` right after a tab opened recorded the app's own cwd: `proc_pidinfo` on a forked child reports the parent's directory until the child has exec'd. | `424ed008` |
 | 2026-10-22 | M0 | No `config.yaml` after the first launch; it was only written after the first settings change. | `50f2fa90` |
-| 2026-10-22 | M2 | Found by reading before the M1–M5 run: with the tab bar on the left, the terminal's first row sat under the transparent title bar. | `a445b781` |
-| 2026-10-22 | M4 | Found by reading: `ssh.warnOnClose` was never read, so closing a connected SSH tab, pane or window, or quitting, never asked. | `e5874d60` |
-| 2026-10-22 | M4 | Found by reading: "Disconnect tab" dropped the session but left a dead pane with no message and no way to reconnect. | `5e8db557` |
-| 2026-10-22 | M1 | Found by reading: ⇧↩ did nothing in the search bar. | `4ddb286f` |
-| 2026-10-22 | M5 | Found by reading: the "process completed" notification needed the pane to be unfocused, and switching apps keeps it focused, so it never appeared. | `6654757c` |
+| 2026-10-22 | M2 | Found by reading before the M1–M5 run: with the tab bar on the left, the terminal's first row sat under the transparent title bar. | `68a22092` |
+| 2026-10-22 | M4 | Found by reading: `ssh.warnOnClose` was never read, so closing a connected SSH tab, pane or window, or quitting, never asked. | `8e6a165f` |
+| 2026-10-22 | M4 | Found by reading: "Disconnect tab" dropped the session but left a dead pane with no message and no way to reconnect. | `19e359fb` |
+| 2026-10-22 | M1 | Found by reading: ⇧↩ did nothing in the search bar. | `070c18ef` |
+| 2026-10-22 | M5 | Found by reading: the "process completed" notification needed the pane to be unfocused, and switching apps keeps it focused, so it never appeared. | `e2a5c05e` |
+| 2026-10-22 | M2 | Found by reading: broadcast showed no indicator and a paste reached only the focused pane. | `de35e3ed` |
+| 2026-10-22 | M2 | Found by reading: duplicated and reopened tabs opened at the end of the strip, not next to the original / active tab. | `8089cb4e` |
+| 2026-10-22 | M2 | Found by reading: pinned tabs were not grouped at the front, ⌘W closed them, and Close others / left / right closed busy tabs without asking. | `400ccb0c` |
+| 2026-10-22 | M2 | Found by reading: combine put every pane in one row, and explode inserted the new tabs after the active one. | `34839fda` |
+| 2026-10-22 | M2 | Found by reading: ⌘T inserted after the active tab (Tabby appends), which could put a new tab inside the pinned group. | `73ba56bd` |
+| 2026-10-22 | M2 | The tab strip clipped every tab past the second: the tab scroll view and the window drag area split the free width. | `be59569c` |
+| 2026-10-22 | M2 | Under `swift test` the "process completed" banner raised (`bundleProxyForCurrentProcess is nil`): xctest's main bundle has an identifier but is no app. | `97ef7449` |
+| 2026-10-22 | M2 | The tab colour was drawn along the top, where it looked like the active-tab marker; Tabby draws it along the bottom. | `f4104929` |
 
 Open: none.
