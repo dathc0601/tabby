@@ -1,11 +1,18 @@
 #if canImport(AppKit)
 import XCTest
+import AppKit
+import SwiftUI
 import TabbyCore
 @testable import TabbySSHLib
 @testable import TabbyApp
 
 /// An in-memory server for the SFTP panel's model.
-final class FakeSFTP: SFTPBrowsing {
+final class FakeSFTP: SFTPOperations {
+    func download(_ path: String, to local: URL, progress: (UInt64) -> Void, isCancelled: () -> Bool) async throws {}
+    func upload(_ local: URL, to path: String, mode: UInt32, progress: (UInt64) -> Void, isCancelled: () -> Bool) async throws {}
+    func removeFile(_ path: String) async throws {}
+    func removeRecursively(_ path: String, progress: (String) -> Void, isCancelled: () -> Bool) async throws {}
+
     var directories: [String: [SFTPEntry]] = [:]
     var links: [String: String] = [:]
     var created: [String] = []
@@ -116,6 +123,43 @@ final class SFTPPanelTests: XCTestCase {
         let report = model.entries.first { $0.name == "report" }!
         let download = await model.open(report)
         XCTAssertEqual(download, .download(report))
+    }
+
+    private func views(_ v: NSView) -> [NSView] { v.subviews + v.subviews.flatMap(views) }
+
+    /// The panel covers the bottom 80% of the pane; a click on the terminal above closes it.
+    func testThePaneShowsThePanelOverItsLowerPart() throws {
+        TestApp.boot()
+        let c = WindowManager.shared.newWindow(openDefaultTab: false)
+        defer { TestApp.dispose(c) }
+        c.model.openTab()
+        let window = try XCTUnwrap(c.window)
+        TestApp.pump(until: { self.views(window.contentView!).contains { $0 is PaneContainerView } })
+        let container = try XCTUnwrap(views(window.contentView!).compactMap { $0 as? PaneContainerView }.first)
+        let controller = SFTPPanelController(model: SFTPPanelModel(host: "prod", client: makeServer()), client: makeServer(),
+                                             paneID: container.pane.id)
+        SFTPPanels.shared.present(controller)
+        TestApp.pump(until: { container.subviews.contains { $0 is NSHostingView<SFTPPanelView> } })
+        container.layoutSubtreeIfNeeded()
+        TestApp.pump(0.3)
+        let panel = try XCTUnwrap(container.subviews.first { $0 is NSHostingView<SFTPPanelView> })
+        XCTAssertEqual(panel.frame.height, (container.bounds.height * 0.8).rounded(), accuracy: 1)
+        XCTAssertEqual(panel.frame.maxY, container.bounds.maxY, accuracy: 1, "flush with the bottom (flipped view)")
+        let catcher = try XCTUnwrap(container.subviews.first { $0 is SFTPDismissCatcher } as? SFTPDismissCatcher)
+        XCTAssertEqual(catcher.frame.maxY, panel.frame.minY, accuracy: 1)
+        catcher.dismiss()
+        TestApp.pump(until: { SFTPPanels.shared.controllers[container.pane.id] == nil })
+        TestApp.pump(until: { !container.subviews.contains { $0 is NSHostingView<SFTPPanelView> } })
+        XCTAssertFalse(container.subviews.contains { $0 is SFTPDismissCatcher })
+    }
+
+    func testTheHotkeyNeedsAConnectedLibrarySession() throws {
+        TestApp.boot()
+        let c = WindowManager.shared.newWindow(openDefaultTab: false)
+        defer { TestApp.dispose(c) }
+        c.model.openTab()
+        XCTAssertFalse(c.runCommand("open-sftp"), "a local shell has no SFTP")
+        XCTAssertTrue(SFTPPanels.shared.controllers.isEmpty)
     }
 
     func testCreatingAFolderOpensIt() async throws {

@@ -12,7 +12,15 @@ protocol SFTPBrowsing: AnyObject {
     func makeDirectory(_ path: String, mode: UInt32) async throws
 }
 
-extension SFTPClient: SFTPBrowsing {}
+/// Transfers and deletes on top of browsing (the panel's controller).
+protocol SFTPOperations: SFTPBrowsing {
+    func download(_ path: String, to local: URL, progress: (UInt64) -> Void, isCancelled: () -> Bool) async throws
+    func upload(_ local: URL, to path: String, mode: UInt32, progress: (UInt64) -> Void, isCancelled: () -> Bool) async throws
+    func removeFile(_ path: String) async throws
+    func removeRecursively(_ path: String, progress: (String) -> Void, isCancelled: () -> Bool) async throws
+}
+
+extension SFTPClient: SFTPOperations {}
 
 /// The SFTP panel's state (Tabby's `SFTPPanelComponent`): the current folder, sorted and
 /// filtered entries, the breadcrumb.

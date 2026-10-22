@@ -69,8 +69,17 @@ final class KeyboardInteractiveModel {
     }
 }
 
-/// The strip docked at the top of the pane; it pushes the terminal down.
+/// The strip docked at the top of the pane; it pushes the terminal down. Hosted directly in
+/// an NSHostingView, so it feeds the live theme to its content.
 struct KeyboardInteractivePanel: View {
+    let model: KeyboardInteractiveModel
+
+    var body: some View {
+        KeyboardInteractiveContent(model: model).chromeEnvironment()
+    }
+}
+
+private struct KeyboardInteractiveContent: View {
     @Bindable var model: KeyboardInteractiveModel
     @Environment(\.chrome) private var chrome
     @FocusState private var focused: Bool

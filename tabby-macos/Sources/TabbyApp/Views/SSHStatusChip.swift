@@ -57,6 +57,12 @@ private struct ChipContent: View {
                     .popover(isPresented: $showsPorts, arrowEdge: .bottom) {
                         if let ports { PortsPopover(model: ports).chromeEnvironment() }
                     }
+                    Button { SFTPPanels.shared.toggle(for: pane) } label: {
+                        Label("SFTP", systemImage: "folder").font(ChromeFont.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle((state == .connected ? chrome.textMuted : chrome.textFaint).color)
+                    .disabled(state != .connected)
                 }
             }
             .padding(.horizontal, 10)

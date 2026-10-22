@@ -251,6 +251,10 @@ final class PaneContainerView: NSView {
     /// The keyboard-interactive panel while a login asks something (design `sshAuth`).
     private var authHost: NSHostingView<KeyboardInteractivePanel>?
     private var authLoop: ObservationLoop?
+    /// The SFTP panel over the lower 80% of the pane, and the strip above it that closes it.
+    private var sftpHost: NSHostingView<SFTPPanelView>?
+    private var sftpCatcher: SFTPDismissCatcher?
+    private var sftpLoop: ObservationLoop?
     var showsFocusRing = false { didSet { if oldValue != showsFocusRing { updateRing() } } }
     /// Unfocused panes of a split dim by 25% (the design).
     var isDimmed = false { didSet { if oldValue != isDimmed { updateRing() } } }
@@ -287,6 +291,9 @@ final class PaneContainerView: NSView {
         authLoop = ObservationLoop(track: {
             _ = KeyboardInteractivePanels.shared.models[paneID]
         }, apply: { [weak self] in self?.updateAuthPanel() })
+        sftpLoop = ObservationLoop(track: {
+            _ = SFTPPanels.shared.controllers[paneID]
+        }, apply: { [weak self] in self?.updateSFTPPanel() })
         appearanceLoop = ObservationLoop(track: { [weak self] in
             guard let self else { return }
             _ = AppServices.shared.theme.revision
@@ -323,8 +330,44 @@ final class PaneContainerView: NSView {
         needsLayout = true
     }
 
+    private func updateSFTPPanel() {
+        let paneID = pane.id
+        if let controller = SFTPPanels.shared.controllers[paneID] {
+            if let sftpHost, sftpHost.rootView.controller === controller { return }
+            sftpHost?.removeFromSuperview()
+            let host = NSHostingView(rootView: SFTPPanelView(controller: controller, close: { SFTPPanels.shared.close(paneID) }))
+            host.safeAreaRegions = []
+            let catcher = sftpCatcher ?? SFTPDismissCatcher { SFTPPanels.shared.close(paneID) }
+            addSubview(catcher)
+            addSubview(host)
+            sftpCatcher = catcher
+            sftpHost = host
+            needsLayout = true
+            layoutSubtreeIfNeeded()
+            // Slides up over 100 ms (Tabby).
+            let final = host.frame
+            host.frame = final.offsetBy(dx: 0, dy: final.height)
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.1
+                host.animator().frame = final
+            }
+        } else if let sftpHost {
+            sftpHost.removeFromSuperview()
+            sftpCatcher?.removeFromSuperview()
+            self.sftpHost = nil
+            sftpCatcher = nil
+            window?.makeFirstResponder(engine)
+        }
+        needsLayout = true
+    }
+
     override func layout() {
         super.layout()
+        if let sftpHost {
+            let height = (bounds.height * 0.8).rounded()
+            sftpHost.frame = CGRect(x: 0, y: bounds.height - height, width: bounds.width, height: height)
+            sftpCatcher?.frame = CGRect(x: 0, y: 0, width: bounds.width, height: bounds.height - height)
+        }
         // The keyboard-interactive panel pushes the terminal down (the PTY is resized).
         let authHeight = authHost.map { $0.fittingSize.height } ?? 0
         authHost?.frame = CGRect(x: 0, y: 0, width: bounds.width, height: authHeight)
@@ -411,5 +454,20 @@ final class PaneContainerView: NSView {
     func toggleSearch() {
         if isSearchVisible { hideSearch() } else { showSearch() }
     }
+}
+/// The terminal strip above an open SFTP panel: a click there closes the panel (Tabby).
+final class SFTPDismissCatcher: NSView {
+    private let onDismiss: () -> Void
+
+    init(onDismiss: @escaping () -> Void) {
+        self.onDismiss = onDismiss
+        super.init(frame: .zero)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    func dismiss() { onDismiss() }
+
+    override func mouseDown(with event: NSEvent) { dismiss() }
 }
 #endif
