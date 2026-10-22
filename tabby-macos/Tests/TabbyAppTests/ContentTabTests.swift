@@ -108,12 +108,15 @@ final class ContentTabTests: XCTestCase {
         XCTAssertEqual(c.model.tabs.count, 1)
     }
 
-    func testWelcomeShowsUntilDismissed() {
+    /// The spec: on a launch that restores no tabs, until "Close and never show again". A
+    /// restored session is not a first run and keeps its selected tab.
+    func testWelcomeShowsOnAFreshLaunchUntilDismissed() {
         let config = AppServices.shared.config
         defer { config.set("enableWelcomeTab", nil) }
-        XCTAssertTrue(WelcomePolicy.shouldShow(config: config), "enableWelcomeTab defaults to true")
+        XCTAssertTrue(WelcomePolicy.shouldShow(config: config, restoredTabs: false), "enableWelcomeTab defaults to true")
+        XCTAssertFalse(WelcomePolicy.shouldShow(config: config, restoredTabs: true))
         WelcomePolicy.dismissForever(config: config)
-        XCTAssertFalse(WelcomePolicy.shouldShow(config: config))
+        XCTAssertFalse(WelcomePolicy.shouldShow(config: config, restoredTabs: false))
     }
 }
 #endif

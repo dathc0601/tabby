@@ -2,12 +2,12 @@
 import SwiftUI
 import TabbyCore
 
-/// When the first-run Welcome tab shows: at every launch until "Close and never show again"
-/// (Tabby's `enableWelcomeTab`).
+/// When the first-run Welcome tab shows: on a launch that restores no tabs, until "Close and
+/// never show again" (Tabby's `enableWelcomeTab`). A restored session keeps its selected tab.
 @MainActor
 enum WelcomePolicy {
-    static func shouldShow(config: ConfigStore) -> Bool {
-        config.value("enableWelcomeTab")?.boolValue ?? true
+    static func shouldShow(config: ConfigStore, restoredTabs: Bool) -> Bool {
+        !restoredTabs && (config.value("enableWelcomeTab")?.boolValue ?? true)
     }
 
     static func dismissForever(config: ConfigStore) {

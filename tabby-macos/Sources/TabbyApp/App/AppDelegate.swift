@@ -68,7 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !restored && autoOpen {
             controller.model.openTab()
         }
-        if WelcomePolicy.shouldShow(config: services.config) {
+        if WelcomePolicy.shouldShow(config: services.config, restoredTabs: restored) {
             controller.model.openWelcome()
         }
         RecoveryCoordinator.shared.start()
