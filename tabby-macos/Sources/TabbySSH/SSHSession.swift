@@ -70,6 +70,8 @@ public final class SSHSession: TerminalSession {
     /// Saves a secret the user asked to remember, once authentication succeeds.
     private var pendingSecretSave: (() -> Void)?
     private var sawHostKeyChange = false
+    /// The user cancelled a password prompt, so the session was ended on purpose.
+    private var authenticationCancelled = false
     /// Target plus jump hosts, for matching password prompts to a port and saved password.
     private lazy var endpoints: [(user: String, host: String, port: Int, password: String?)] = {
         var list = [(options.user, options.host, options.port, options.password)]
@@ -132,11 +134,37 @@ public final class SSHSession: TerminalSession {
 
         serviceMessage("Connecting to \(options.host)")
         onStatus?(.connecting(options.host))
+        // A session that joins a running ControlMaster connection never runs `LocalCommand`,
+        // so it would never hear that it is connected.
+        let joinsMaster = options.reuseSession && masterIsRunning(config: url.path, alias: output.alias)
         let p = PTYProcess(executable: env.sshPath, arguments: ["-F", url.path, output.alias], environment: environment)
         p.onData = { [weak self] data in self?.handleOutput(data) }
         p.onExit = { [weak self] code in self?.handleExit(code) }
         try p.start(cols: cols, rows: rows)
         process = p
+        if joinsMaster {
+            isConnected = true
+            onStatus?(.connected)
+        }
+    }
+
+    /// `ssh -O check`: whether a master connection for this target is up (a local socket
+    /// probe, no network). Waits on a semaphore rather than the run loop.
+    private func masterIsRunning(config: String, alias: String) -> Bool {
+        let check = Process()
+        check.executableURL = URL(fileURLWithPath: env.sshPath)
+        check.arguments = ["-F", config, "-O", "check", alias]
+        check.standardInput = FileHandle.nullDevice
+        check.standardOutput = FileHandle.nullDevice
+        check.standardError = FileHandle.nullDevice
+        let done = DispatchSemaphore(value: 0)
+        check.terminationHandler = { _ in done.signal() }
+        do { try check.run() } catch { return false }
+        guard done.wait(timeout: .now() + 2) == .success else {
+            check.terminate()
+            return false
+        }
+        return check.terminationStatus == 0
     }
 
     public func write(_ data: Data) { process?.write(data) }
@@ -166,7 +194,9 @@ public final class SSHSession: TerminalSession {
         if sawHostKeyChange {
             serviceMessage("The host key changed. If this is expected, remove the old key with:\r\n    ssh-keygen -R \(options.host) -f \(env.knownHostsFile)")
         }
-        if code == 255 && !isConnected {
+        if authenticationCancelled {
+            serviceMessage("Authentication cancelled")
+        } else if code == 255 && !isConnected {
             serviceMessage("Connection failed")
         }
         isConnected = false
@@ -181,7 +211,7 @@ public final class SSHSession: TerminalSession {
 
     // MARK: Prompts
 
-    private func handle(_ request: AskpassRequest, reply: @escaping (AskpassResponse) -> Void) {
+    func handle(_ request: AskpassRequest, reply: @escaping (AskpassResponse) -> Void) {
         switch request.kind {
         case .connected:
             isConnected = true
@@ -268,6 +298,12 @@ public final class SSHSession: TerminalSession {
                 reply(AskpassResponse(ok: true, answer: "yes"))
             case .reject, .cancel:
                 reply(AskpassResponse(ok: false))
+                // ssh would send an empty password, a failed login on the server. Tabby skips
+                // the method instead, and the password prompt is its last one: end the attempt.
+                if case .password = prompt {
+                    self.authenticationCancelled = true
+                    self.kill()
+                }
             }
         }
     }
