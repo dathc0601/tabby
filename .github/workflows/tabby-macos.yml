@@ -1,9 +1,9 @@
 name: TabbyMac (Swift)
 on:
   push:
-    paths: ['tabby-macos/**', '.github/workflows/tabby-macos.yml']
+    paths: ['tabby-macos/**', 'tabby-sync-server/**', '.github/workflows/tabby-macos.yml']
   pull_request:
-    paths: ['tabby-macos/**', '.github/workflows/tabby-macos.yml']
+    paths: ['tabby-macos/**', 'tabby-sync-server/**', '.github/workflows/tabby-macos.yml']
   workflow_dispatch:
 
 jobs:
@@ -14,6 +14,19 @@ jobs:
     defaults:
       run:
         working-directory: tabby-macos
+    steps:
+      - uses: actions/checkout@v5
+      - run: swift test
+
+  sync-server:
+    name: Sync server (Linux)
+    runs-on: ubuntu-24.04
+    # Hummingbird 2.28 needs swift-tools 6.2; the server also builds ../tabby-macos's
+    # TabbySyncProtocol target.
+    container: swift:6.2-noble
+    defaults:
+      run:
+        working-directory: tabby-sync-server
     steps:
       - uses: actions/checkout@v5
       - run: swift test
