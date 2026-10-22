@@ -42,7 +42,7 @@ The first launch starts with defaults. To bring over your Electron Tabby setup, 
 **Settings → Application → Import Tabby's config.yaml**. Your Electron Tabby files are only
 read, never written.
 
-## What works (phase 1)
+## What works (phases 1 and 2)
 
 | Area | Status |
 |---|---|
@@ -55,8 +55,10 @@ read, never written.
 | SSH | Password, key, agent and keyboard-interactive auth through the system OpenSSH client; native host-key and password prompts; passwords in the login keychain; jump-host chains; `~/.ssh/config` import; port forwards; connection reuse |
 | Window | Integrated title bar, vibrancy, opacity, docked "Quake" mode with a global hotkey (Ctrl-Space) |
 | Persistence | `config.yaml` (diff-only, like Tabby), tab and split recovery with buffer snapshots |
+| Design | Phase 2 redesign: colour-scheme-derived tokens, tab bar with overflow menu and drag slot, Settings and a first-run Welcome page as tabs, card-style prompts, SSH status chip, toasts, split drop zones |
+| Account & sync | Personal account (email + password, recovery key) at `https://tabby-sync.dcstyle.info`; profiles, groups, settings, saved passwords and passphrases, approved private keys and known hosts sync end-to-end encrypted between Macs ([docs/SYNC-PROTOCOL.md](docs/SYNC-PROTOCOL.md)); Settings › Vault lists the saved passwords |
 
-Not yet: serial and telnet, SFTP panel, plugins, config sync, vault, localization,
+Not yet: serial and telnet, SFTP panel, live port-forward editing, plugins, localization,
 ligatures (SwiftTerm limitation). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#roadmap).
 
 ## Files
@@ -66,6 +68,10 @@ ligatures (SwiftTerm limitation). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.m
 | `~/Library/Application Support/TabbyMac/config.yaml` | Settings, profiles, hotkeys (Tabby format) |
 | `~/Library/Application Support/TabbyMac/recovery.json` | Open tabs, restored on launch |
 | `~/Library/Application Support/TabbyMac/known_hosts` | SSH host keys accepted in the app |
+| `~/Library/Application Support/TabbyMac/config.yaml.backup` | Copy of the last saved `config.yaml` |
+| `~/Library/Application Support/TabbyMac/config.yaml.before-sign-in` | This Mac's settings as they were before the last sign-in replaced them with the account's |
+| `~/Library/Application Support/TabbyMac/sync-state.json` | Sync bookkeeping (per-item hashes and times, the vault revision) |
+| `~/Library/Application Support/TabbyMac/keys/` | Private keys that arrived from the account (owner-only), used when the original file is missing on this Mac |
 | `/tmp/tabbymac-<uid>/` | Askpass socket, per-session ssh_config, ControlMaster sockets |
 
 Set `TABBYMAC_CONFIG_DIRECTORY` to use another config directory.

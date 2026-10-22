@@ -17,8 +17,9 @@ Read `README.md` and `docs/ARCHITECTURE.md` before larger changes.
   2a redesign is in code (tokens, tab bar, content tabs, settings, cards, chip, toasts,
   splits, docking); its on-screen checks are M6. 2b personal account + sync is in code
   (`TabbySyncProtocol`, `TabbyAccount`, `TabbyApp/Account`, `../tabby-sync-server`; see
-  `docs/SYNC-PROTOCOL.md`); its on-screen checks are M7. The server still has to be deployed
-  at https://tabby-sync.dcstyle.info (see `../tabby-sync-server/README.md`).
+  `docs/SYNC-PROTOCOL.md`); its on-screen checks are M7. The server runs at
+  https://tabby-sync.dcstyle.info since 2026-10-22 (Docker + Postgres behind nginx and
+  Cloudflare; see `../tabby-sync-server/README.md`). M6 and M7 still need the on-screen walk.
 - Tests never touch the real Keychain, server or `~/.ssh`: `TestApp.boot` sets
   `TABBYMAC_SYNC_URL=memory:`, `TABBYMAC_KEYCHAIN=memory`, `TABBYMAC_SYNC_HOME`. Keep it so;
   a sync reads every saved SSH password.
@@ -27,7 +28,8 @@ Read `README.md` and `docs/ARCHITECTURE.md` before larger changes.
 - Screens can be checked without a display:
   `TABBYMAC_SNAPSHOT_DIR=/tmp/shots swift test --filter DesignSnapshotTests`.
 - Linux: run `docker run --rm -v "$PWD/..":/src -w /src/tabby-macos swift:6.1-noble swift test
-  --scratch-path /tmp/linux-build` before pushing test changes (Linux XCTest differs).
+  --scratch-path /tmp/linux-build` before pushing test changes (Linux XCTest differs: test
+  methods of a `@MainActor` XCTestCase must be `async`, and URLProtocol stubs cannot redirect).
 - Tooling quirk: shells spawned by the Xcode coding assistant cannot allocate PTYs
   (`forkpty: Operation not permitted`), so PTY-backed tests fail there. Run them from
   Terminal, the Claude Code CLI, or Xcode's test runner.

@@ -93,11 +93,12 @@ through `MainWindowController.runCommand(_:)` using Tabby's hotkey ids.
 2. **Redesign and personal account (phase 2).** 2a: the Claude Design output
    (`docs/superpowers/specs/2026-10-22-phase-2-design.md`) applied to every view; on-screen
    checks in M6. 2b: account, end-to-end encrypted sync of profiles, passwords, keys,
-   known hosts and settings through `tabby-sync-server`.
+   known hosts and settings through `tabby-sync-server`, deployed at
+   https://tabby-sync.dcstyle.info on 2026-10-22; on-screen checks in M7.
 3. **SSH library backend.** libssh2 or russh behind `TerminalSession`. Adds the SFTP panel,
    live port-forward editor and in-app keyboard-interactive panel.
 4. **Serial and telnet.** New `ProfileProvider`s and `SessionFactory`s, using ORSSerialPort
    or IOKit for serial.
-5. **More of Tabby.** Vault, config sync, `tabby://` URL and CLI handlers, localization from
+5. **More of Tabby.** `tabby://` URL and CLI handlers, localization from
    `../locale/*.po`, process-completion notifications per tab, login scripts for local
    shells, SwiftTerm 2.x once Xcode 26 is the baseline.

@@ -35,7 +35,7 @@ does not reveal who has an account.
 | `GET /account/kdf?email=` | `{kdf}` |
 | `POST /account` | email, authKey, recoveryAuthKey, kdf, both wrapped keys, device → token, account, device (201) |
 | `POST /session` | email, authKey, device → token, account, device |
-| `POST /session/recovery` | email, recoveryAuthKey, device → a token limited to `GET /account`, `GET /vault`, `PATCH /account/password`, plus `wrappedByRecovery` |
+| `POST /session/recovery` | email, recoveryAuthKey, device → a token limited to `GET /account`, `GET /vault`, `PATCH /account/password` (and expiring after an hour unless it sets a password), plus `wrappedByRecovery` |
 | `DELETE /session` | signs this device out |
 | `GET /account`, `PATCH /account/password`, `PUT /account/recovery`, `DELETE /account` | account management (password-derived proof required) |
 | `GET /vault`, `GET /vault/head` | the blob or its revision; 404 before the first upload |
@@ -44,11 +44,13 @@ does not reveal who has an account.
 
 Bearer tokens are 32 random bytes, stored hashed, one per device. Sign-up and sign-in are
 rate limited per address. The app talks to `https://tabby-sync.dcstyle.info` only; there is no
-setting for the server (`TABBYMAC_SYNC_URL` exists for tests and development).
+setting for the server (`TABBYMAC_SYNC_URL` exists for tests and development), and it does not
+follow redirects, so the token never leaves for another address or plain HTTP. A password
+change keeps the other Macs signed in: `encKey` is only re-wrapped.
 
 ## Snapshot
 
-`SyncSnapshot` (JSON, ISO-8601 dates in milliseconds) has item sections — profiles, groups,
+`SyncSnapshot` (JSON, ISO-8601 dates in milliseconds, `formatVersion` 1) has item sections — profiles, groups,
 secrets (`ssh:password`, `ssh:key-passphrase`, `account:recovery-key`), key files and
 known_hosts lines (id = SHA-256 of the line) — each a list of `{id, modifiedAt, value}` plus
 tombstones `{id, deletedAt}`, and one text section, settings (canonical JSON of the user
@@ -57,14 +59,17 @@ before `knownHostLines` kept known_hosts as text; its lines are read once and re
 
 Local data carries no timestamps, so `ChangeTracker` (persisted as `sync-state.json`) keeps a
 hash per item, stamps an item when its hash changes and leaves a tombstone when one goes
-away.
+away. It also remembers which items first appeared on this Mac by being applied from the
+account, for "Remove synced data".
 
 ## Merge and sync
 
 `SyncMerger.merge(local:remote:)`: items by id, the newer of edit and deletion wins (a
 tombstone wins a tie, local wins other ties), tombstones expire after 90 days; text sections
 take the newer side. A Mac's first sync with an existing account takes the account's
-settings. The vault's recovery key replaces the one a Mac knew.
+settings; signing in first copies this Mac's to `config.yaml.before-sign-in`. A vault whose
+`formatVersion` is newer than this TabbyMac's is neither merged nor overwritten (the sync
+stops with "Update TabbyMac"), so sections a newer version added are never dropped. The vault's recovery key replaces the one a Mac knew.
 
 Missing is not deleted: a section this Mac could not read completely (a locked keychain, a
 denied prompt, an unreadable file) produces no tombstones and is not written; a part turned
@@ -87,10 +92,12 @@ on Sync now (⌘⇧S).
 Keys named by profiles and ssh's default identities (`~/.ssh/id_*`) upload only after the
 user says yes to each file once (`account.approvedKeyFiles` / `declinedKeyFiles`). On
 another Mac they are written to `<config>/keys/<sha512>` (0600) with an index by original
-path. Profiles keep their paths: when a key file is missing, the generated `ssh_config` uses
+path; a key whose contents do not hash to its id, or whose id is not 128 hex characters, is
+skipped. Profiles keep their paths: when a key file is missing, the generated `ssh_config` uses
 the synced copy, and synced default identities are added for profiles that name no key.
-Signing out with "Remove synced data" deletes those copies; files in `~/.ssh` are never
-touched.
+Signing out with "Remove synced data" deletes those copies and the profiles, groups and
+saved passwords that arrived from the account; what this Mac had or made itself stays, even
+after it was uploaded. Files in `~/.ssh` are never touched.
 
 ## Not in this version
 
