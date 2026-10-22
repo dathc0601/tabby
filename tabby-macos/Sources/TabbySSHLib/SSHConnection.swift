@@ -190,6 +190,10 @@ public final class SSHConnection: @unchecked Sendable {
     private var isRunning = false
     private var stopRequested = false
     private var channels: [ChannelBox] = []
+    /// Set once a shell's agent / X11 forwarding request succeeded (connection thread); the
+    /// server's agent and X11 channels are refused before that.
+    private var agentForwardingRequested = false
+    private var x11Requested = false
     /// The connection's SFTP session, opened on first use (connection thread).
     var sftpClient: SFTPClient?
     /// Forwards by id (connection thread) and their published list (any thread, under `lock`).
@@ -790,14 +794,24 @@ public final class SSHConnection: @unchecked Sendable {
 
     // MARK: Channels the server opens
 
-    /// An `auth-agent@openssh.com` channel: joined to a new connection to the agent.
-    fileprivate func acceptAgentChannel() -> ssh_channel? {
+    /// An `auth-agent@openssh.com` channel: joined to a new connection to the agent — only
+    /// when a shell asked for agent forwarding and the server agreed. OpenSSH refuses others
+    /// too: a server that opens one unasked would get the user's agent.
+    func acceptAgentChannel() -> ssh_channel? {
+        guard agentForwardingRequested else {
+            say("The server tried to use your SSH agent without agent forwarding; refused")
+            return nil
+        }
         guard let session, let path = options.agentSocket, let fd = LocalSocket.unix(path) else { return nil }
         return acceptBridged(session, fd: fd)
     }
 
-    /// An `x11` channel: joined to the local X server.
-    fileprivate func acceptX11Channel() -> ssh_channel? {
+    /// An `x11` channel: joined to the local X server — only after an X11 forwarding request.
+    func acceptX11Channel() -> ssh_channel? {
+        guard x11Requested else {
+            say("The server tried to open an X11 connection without X11 forwarding; refused")
+            return nil
+        }
         guard let session else { return nil }
         let display = X11Display.resolve(options.x11Display, environment: ProcessInfo.processInfo.environment["DISPLAY"])
         let fd: Int32?
@@ -835,13 +849,19 @@ public final class SSHConnection: @unchecked Sendable {
                 box.free()
                 throw SSHConnectionError.channelFailed("Remote rejected the terminal: \(lastError())")
             }
-            if forwardAgent, ssh_channel_request_auth_agent(channel) != SSH_OK {
-                say("Agent forwarding was refused")
+            if forwardAgent {
+                if ssh_channel_request_auth_agent(channel) == SSH_OK {
+                    agentForwardingRequested = true
+                } else {
+                    say("Agent forwarding was refused")
+                }
             }
             if forwardX11 {
                 // Tabby: MIT-MAGIC-COOKIE-1 with a random cookie, screen 0.
                 let cookie = (0..<16).map { _ in String(format: "%02x", UInt8.random(in: 0...255)) }.joined()
-                if ssh_channel_request_x11(channel, 0, "MIT-MAGIC-COOKIE-1", cookie, 0) != SSH_OK {
+                if ssh_channel_request_x11(channel, 0, "MIT-MAGIC-COOKIE-1", cookie, 0) == SSH_OK {
+                    x11Requested = true
+                } else {
                     say("X11 forwarding was refused. Make sure `xauth` is installed on the remote side")
                 }
             }

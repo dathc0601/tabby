@@ -263,6 +263,27 @@ final class SSHConnectionTests: XCTestCase {
         XCTAssertFalse(message.isEmpty)
     }
 
+    /// Review C5: without a forwarding request, agent and X11 channels opened by the
+    /// server are refused (a hostile server must not reach this Mac's agent or X display).
+    func testUnrequestedAgentAndX11ChannelsAreRefused() async throws {
+        let agent = try TestAgent(directory: sshd.directory, keys: [sshd.keyPath])
+        defer { agent.stop() }
+        let display = sshd.directory.appendingPathComponent("X0").path
+        let x11 = try UnixListener(path: display)
+        defer { x11.stop() }
+        var o = options(keys: [sshd.keyPath])
+        o.agentSocket = agent.socketPath
+        o.x11Display = display
+        let connection = SSHConnection(options: o, prompter: ScriptedPrompter(), passwords: InMemoryPasswordStore())
+        try await connection.connect()
+        defer { connection.disconnect() }
+        let accepted = try await connection.perform { () -> (Bool, Bool) in
+            (connection.acceptAgentChannel() != nil, connection.acceptX11Channel() != nil)
+        }
+        XCTAssertFalse(accepted.0, "agent channel without agent forwarding")
+        XCTAssertFalse(accepted.1, "X11 channel without X11 forwarding")
+    }
+
     func testNoUsableKeyIsRejected() async throws {
         let stranger = sshd.directory.appendingPathComponent("stranger").path
         try TestSSHD.keygen(stranger, passphrase: "")

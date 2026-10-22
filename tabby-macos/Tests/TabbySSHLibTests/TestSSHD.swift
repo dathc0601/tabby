@@ -435,3 +435,32 @@ func readAll(_ fd: Int32, timeout: TimeInterval = 20) -> Data {
     return received
 }
 #endif
+
+#if os(macOS)
+/// A listening Unix socket (stands in for an X server).
+final class UnixListener {
+    private let fd: Int32
+    let path: String
+
+    init(path: String) throws {
+        self.path = path
+        fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        var address = sockaddr_un()
+        address.sun_family = sa_family_t(AF_UNIX)
+        let bytes = Array(path.utf8)
+        withUnsafeMutableBytes(of: &address.sun_path) { raw in
+            raw.copyBytes(from: bytes)
+            raw[bytes.count] = 0
+        }
+        let ok = withUnsafePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { bind(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size)) == 0 }
+        }
+        guard ok, listen(fd, 4) == 0 else { throw NSError(domain: "UnixListener", code: 1) }
+    }
+
+    func stop() {
+        close(fd)
+        unlink(path)
+    }
+}
+#endif
