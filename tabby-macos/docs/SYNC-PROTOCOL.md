@@ -23,8 +23,9 @@ vault             = AES-GCM(encKey, snapshot JSON, aad "tabby-vault-v1")
 ```
 
 A password change re-wraps `encKey`; the vault is not re-encrypted and other Macs stay signed
-in. Clients refuse KDF parameters outside sane bounds, so a hostile server can't make them
-spend gigabytes. `GET /v1/account/kdf` answers unknown emails with a stable fake salt, so it
+in. Clients refuse KDF parameters outside sane bounds both ways: above them a hostile server
+could make them spend gigabytes, below N = 2^15, r = 8 it could brute-force the password from
+the `authKey`. The server refuses the same weak parameters at sign-up. `GET /v1/account/kdf` answers unknown emails with a stable fake salt, so it
 does not reveal who has an account.
 
 ## HTTP API (`/v1`, HTTPS)
@@ -48,10 +49,11 @@ setting for the server (`TABBYMAC_SYNC_URL` exists for tests and development).
 ## Snapshot
 
 `SyncSnapshot` (JSON, ISO-8601 dates in milliseconds) has item sections — profiles, groups,
-secrets (`ssh:password`, `ssh:key-passphrase`, `account:recovery-key`), key files — each a
-list of `{id, modifiedAt, value}` plus tombstones `{id, deletedAt}`, and text sections —
-settings (canonical JSON of the user config minus `profiles`, `groups`, `account` and
-`appearance.dockScreen`) and known_hosts.
+secrets (`ssh:password`, `ssh:key-passphrase`, `account:recovery-key`), key files and
+known_hosts lines (id = SHA-256 of the line) — each a list of `{id, modifiedAt, value}` plus
+tombstones `{id, deletedAt}`, and one text section, settings (canonical JSON of the user
+config minus `profiles`, `groups`, `account` and `appearance.dockScreen`). Vaults written
+before `knownHostLines` kept known_hosts as text; its lines are read once and re-uploaded.
 
 Local data carries no timestamps, so `ChangeTracker` (persisted as `sync-state.json`) keeps a
 hash per item, stamps an item when its hash changes and leaves a tombstone when one goes
@@ -61,16 +63,24 @@ away.
 
 `SyncMerger.merge(local:remote:)`: items by id, the newer of edit and deletion wins (a
 tombstone wins a tie, local wins other ties), tombstones expire after 90 days; text sections
-take the newer side. Two exceptions in `SyncEngine`: known_hosts is the union of both sides'
-lines, and a Mac's first sync with an existing account takes the account's settings.
+take the newer side. A Mac's first sync with an existing account takes the account's
+settings. The vault's recovery key replaces the one a Mac knew.
 
-`SyncEngine.sync()`: collect and stamp this Mac's data → `GET /vault` → decrypt → merge →
-write what other Macs changed → upload with `If-Match` when the server lacks something →
-on 409, start over (up to four rounds). Parts turned off in Settings keep the server's copy
+Missing is not deleted: a section this Mac could not read completely (a locked keychain, a
+denied prompt, an unreadable file) produces no tombstones and is not written; a part turned
+off is neither written nor recorded; and only what was actually written is recorded, so a
+failed write is retried instead of being uploaded as a deletion.
+
+`SyncEngine.sync()`: collect and stamp this Mac's data → `GET /vault` → if anything changed
+here meanwhile, start over → decrypt → merge → write what other Macs changed → upload with
+`If-Match` when the server lacks something → on 409, start over (up to four rounds). Signing
+out cancels a sync in flight. Parts turned off in Settings keep the server's copy
 and leave this Mac alone.
 
-The app syncs at launch, five seconds after a change to the config or the Keychain, when
-`GET /vault/head` shows a newer revision (checked every minute) and on Sync now (⌘⇧S).
+The app syncs at launch, five seconds after a change to the config or the Keychain (again
+right after a sync during which something changed), every minute while a sync has failed or
+changes are waiting, when `GET /vault/head` shows a newer revision (checked every minute) and
+on Sync now (⌘⇧S).
 
 ## Private keys
 
