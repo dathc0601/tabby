@@ -127,7 +127,7 @@ public final class AppServices {
     /// Replaces the user config with Electron Tabby's config.yaml.
     public func importElectronTabbyConfig() throws -> Bool {
         guard let value = try ConfigFile.loadElectronTabbyConfig() else { return false }
-        config.replaceUser(value)
+        try config.replaceUser(value)
         flushSave()
         return true
     }

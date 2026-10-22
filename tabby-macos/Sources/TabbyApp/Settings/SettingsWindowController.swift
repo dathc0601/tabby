@@ -401,11 +401,11 @@ struct ConfigFileSettingsView: View {
     private func save() {
         do {
             let value = try YAMLCoding.parse(text)
-            AppServices.shared.config.replaceUser(value)
+            try AppServices.shared.config.replaceUser(value)
             AppServices.shared.flushSave()
             error = nil
         } catch {
-            self.error = "Not saved: \(error)"
+            self.error = "Not saved: \((error as? LocalizedError)?.errorDescription ?? "\(error)")"
         }
     }
 }

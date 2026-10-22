@@ -22,6 +22,19 @@ final class ConfigTests: XCTestCase {
         XCTAssertNil(store.value("terminal.colorScheme")?[ConfigValue.nonStructuralKey], "markers are stripped")
     }
 
+    /// The Config file page and the Tabby import hand their YAML to `replaceUser`. Valid YAML
+    /// that is not a map (a stray word, a list) used to wipe every setting and profile.
+    func testReplaceUserRejectsYAMLThatIsNotAMap() throws {
+        let store = try makeStore()
+        store.set("terminal.fontSize", 18)
+        for text in ["hello", "- a\n- b", "42"] {
+            XCTAssertThrowsError(try store.replaceUser(YAMLCoding.parse(text)), text)
+            XCTAssertEqual(store.int("terminal.fontSize"), 18, "\(text) left the settings alone")
+        }
+        try store.replaceUser(YAMLCoding.parse(""))
+        XCTAssertEqual(store.int("terminal.fontSize"), 14, "an empty file means defaults, as in Tabby")
+    }
+
     func testFreshStoreSerializesAlmostNothing() throws {
         let store = try makeStore()
         XCTAssertEqual(store.user, ["version": .int(Migrations.latestVersion)])

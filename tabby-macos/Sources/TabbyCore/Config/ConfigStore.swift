@@ -133,8 +133,11 @@ public final class ConfigStore {
         notify()
     }
 
-    /// Replaces the user layer wholesale (e.g. from the raw YAML editor).
-    public func replaceUser(_ newUser: ConfigValue) {
+    /// Replaces the user layer wholesale (e.g. from the raw YAML editor). An empty document means
+    /// defaults, as in Tabby; any other value that is not a map is refused, so a stray word or
+    /// list can't wipe every setting and profile.
+    public func replaceUser(_ newUser: ConfigValue) throws {
+        guard newUser.objectValue != nil || newUser == .null else { throw ConfigError.notAMap }
         user = newUser.objectValue == nil ? .emptyObject : newUser
         Migrations.migrate(&user)
         notify()
@@ -191,11 +194,13 @@ public final class ConfigStore {
 public enum ConfigError: Error, LocalizedError {
     case missingDefaults
     case invalidYAML(String)
+    case notAMap
 
     public var errorDescription: String? {
         switch self {
         case .missingDefaults: return "The bundled defaults.yaml is missing."
         case .invalidYAML(let msg): return "The configuration is not valid YAML: \(msg)"
+        case .notAMap: return "The configuration must be a map of settings (key: value)."
         }
     }
 }
