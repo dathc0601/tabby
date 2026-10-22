@@ -37,13 +37,22 @@ final class SSHSessionLocalTests: XCTestCase, SSHPromptHandler {
         return session
     }
 
-    /// Starts the session, runs `during` once it is up, and returns its output when it closes.
-    func output(of session: SSHSession, during: () -> Void = {}) throws -> String {
+    /// Starts the session, runs `during` once the output shows `marker` (right away without
+    /// one), and returns the output when the session closes.
+    func output(of session: SSHSession, after marker: String? = nil, during: () -> Void = {}) throws -> String {
         var out = ""
-        session.onOutput = { out += String(decoding: $0, as: UTF8.self) }
+        let ready = expectation(description: "ready")
+        if marker == nil { ready.fulfill() }
+        session.onOutput = { data in
+            out += String(decoding: data, as: UTF8.self)
+            if let marker, out.contains(marker), !out.dropLast(String(decoding: data, as: UTF8.self).count).contains(marker) {
+                ready.fulfill()
+            }
+        }
         let closed = expectation(description: "closed")
         session.onClosed = { _ in closed.fulfill() }
         try session.start(cols: 80, rows: 24)
+        wait(for: [ready], timeout: 5)
         during()
         wait(for: [closed], timeout: 5)
         return out
@@ -51,12 +60,12 @@ final class SSHSessionLocalTests: XCTestCase, SSHPromptHandler {
 
     /// Cancelling a password prompt ends the attempt. Answering ssh's askpass with a failure
     /// made it send an empty password, which the server counts as a failed login; Tabby skips
-    /// the method instead.
+    /// the method instead. Like real ssh waiting for askpass, the stand-in ignores SIGHUP.
     func testCancelledPasswordPromptEndsTheConnection() throws {
-        let session = try makeSession(script: "exec sleep 30")
+        let session = try makeSession(script: "trap '' HUP\necho ready\nexec sleep 30")
         reply = .cancel
         var answer: AskpassResponse?
-        let out = try output(of: session) {
+        let out = try output(of: session, after: "ready") {
             session.handle(AskpassRequest(kind: .prompt, session: "", token: "", prompt: "me@example.org's password: ")) { answer = $0 }
         }
         XCTAssertEqual(answer?.ok, false)

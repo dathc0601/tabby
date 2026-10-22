@@ -170,8 +170,10 @@ public final class SSHSession: TerminalSession {
     public func write(_ data: Data) { process?.write(data) }
     public func resize(cols: Int, rows: Int) { process?.resize(cols: cols, rows: rows) }
 
+    /// SIGTERM rather than the PTY's SIGHUP: ssh ignores SIGHUP while it waits for askpass, so a
+    /// tab closed or a prompt cancelled during authentication left it running.
     public func kill() {
-        process?.terminate()
+        process?.terminate(signal: SIGTERM)
     }
 
     public func workingDirectory() -> String? { nil }
@@ -297,13 +299,14 @@ public final class SSHSession: TerminalSession {
             case .accept:
                 reply(AskpassResponse(ok: true, answer: "yes"))
             case .reject, .cancel:
-                reply(AskpassResponse(ok: false))
                 // ssh would send an empty password, a failed login on the server. Tabby skips
-                // the method instead, and the password prompt is its last one: end the attempt.
+                // the method instead, and the password prompt is its last one: end the attempt,
+                // before the reply so ssh never gets to send anything.
                 if case .password = prompt {
                     self.authenticationCancelled = true
                     self.kill()
                 }
+                reply(AskpassResponse(ok: false))
             }
         }
     }
