@@ -2,3 +2,4 @@
 #include <libssh/libssh.h>
 #include <libssh/callbacks.h>
 #include <libssh/sftp.h>
+#include <libssh/server.h>  // ssh_send_keepalive (client-side too)
