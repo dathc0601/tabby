@@ -23,8 +23,16 @@ Read `README.md` and `docs/ARCHITECTURE.md` before larger changes.
 - Tests never touch the real Keychain, server or `~/.ssh`: `TestApp.boot` sets
   `TABBYMAC_SYNC_URL=memory:`, `TABBYMAC_KEYCHAIN=memory`, `TABBYMAC_SYNC_HOME`. Keep it so;
   a sync reads every saved SSH password.
-- Roadmap after phase 2: phase 3 SSH library backend + SFTP, phase 4 serial/telnet, phase 5
-  URL/CLI, localization, per-tab "notify when done".
+- Phase 3 (started 2026-10-23, spec `docs/superpowers/specs/2026-10-23-phase-3-ssh-backend-design.md`,
+  branch `claude/phase-3-libssh`): the libssh backend (`TabbySSHLib`, `CLibSSH`) is the default
+  for SSH tabs; `ssh.backend: openssh` keeps the old one. SFTP panel, transfers, Ports popover,
+  keyboard-interactive panel, shared connections, jump hosts, proxies, agent/X11 forwarding,
+  Test connection. Needs `brew install libssh` to build. Its on-screen checks are M8.
+- SSH integration tests start their own unprivileged sshd (`TestSSHD`); wrap runs that might
+  hang with a deadline (macOS has no `timeout`), and never call `Process.waitUntilExit()` from
+  an async test (it needs a run loop).
+- Roadmap after phase 3: phase 4 serial/telnet, phase 5 URL/CLI, localization, per-tab
+  "notify when done".
 - Screens can be checked without a display:
   `TABBYMAC_SNAPSHOT_DIR=/tmp/shots swift test --filter DesignSnapshotTests`.
 - Linux: run `docker run --rm -v "$PWD/..":/src -w /src/tabby-macos swift:6.1-noble swift test
@@ -37,6 +45,7 @@ Read `README.md` and `docs/ARCHITECTURE.md` before larger changes.
 ## Commands
 
 ```sh
+brew install libssh               # once: the SSH library backend links it
 swift build                       # all targets
 swift test                        # unit tests
 swift run TabbyMacDev             # run the app without a bundle

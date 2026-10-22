@@ -10,7 +10,8 @@ modules with plain protocols and registries instead.
 |---|---|---|---|
 | `TabbyCore` | macOS, Linux | Config store and migrations, profiles and groups, hotkeys and chord matching, split layout tree, recovery tokens, colour schemes and chrome palette, ssh_config import and generation | `tabby-core`, parts of `tabby-terminal`, `tabby-ssh`, `tabby-community-color-schemes` |
 | `TabbyTerminal` | macOS, Linux (except `SwiftTermEngine`) | `PTYProcess`, `TerminalSession`, `LocalSession`, `TerminalPane` controller, output processing, `SwiftTermEngine` view | `tabby-terminal`, `tabby-local`, `app/lib/pty.ts` |
-| `TabbySSH` | macOS, Linux | `SSHSession` over system OpenSSH, askpass server, password stores | `tabby-ssh` |
+| `TabbySSH` | macOS, Linux | `SSHSession` over system OpenSSH (the `openssh` backend), askpass server, password stores | `tabby-ssh` |
+| `TabbySSHLib` | macOS | The `library` backend over libssh (`CLibSSH`): `SSHConnection`, `LibSSHSession`, `SSHConnector` (sharing, jump hosts), port forwards, `SFTPClient` | `tabby-ssh` (russh) |
 | `TabbyIPC` | macOS, Linux | Unix-socket messages between the app and `tabby-askpass` | none |
 | `TabbyApp` | macOS | Window, tab bar, split views, hotkeys, menus, selector, settings, prompts | `tabby-core` components, `tabby-settings`, `tabby-electron` |
 | `tabby-askpass` | macOS, Linux | `SSH_ASKPASS` helper | none |
@@ -49,9 +50,30 @@ names: service `ssh@host:port`, account = user. A `LocalCommand` hook reports su
 authentication, which is when remembered passwords are saved. This supports every key type,
 agent, certificates, ProxyJump and port forwards with almost no protocol code.
 
-The trade-off is that there is no in-process channel API. An SFTP panel, live port-forward
-editing and channel multiplexing need a library backend (libssh2 or russh through FFI).
-That backend will sit behind the same `TerminalSession` protocol, so the UI won't change.
+The trade-off is that there is no in-process channel API, which SFTP, live port forwards and
+an in-app keyboard-interactive panel need. Since phase 3 this is the `openssh` backend,
+chosen with `ssh.backend: openssh` in config.yaml or a profile's `backend` option.
+
+**SSH, phase 3: the library backend (default).** `TabbySSHLib` runs SSH in-process over
+libssh (spec: `docs/superpowers/specs/2026-10-23-phase-3-ssh-backend-design.md`).
+- Each `SSHConnection` owns one libssh session on its own thread. That thread connects,
+  checks the host key against the app's known_hosts and `~/.ssh/known_hosts` (hashed entries
+  read too), and logs in with Tabby's plan (`SSHAuthPlan`: agent, keys, saved password,
+  keyboard-interactive, prompt). Then it runs an `ssh_event` loop; other threads hand it work
+  through a wake pipe, so no libssh call happens anywhere else.
+- Channels use libssh's callback tables. Local sockets are joined to channels by
+  flow-controlled bridges (1 MiB buffer, the server's window as back-pressure), which carry
+  jump hosts, local and dynamic (SOCKS5) forwards, remote forwards, agent forwarding and X11.
+- `SSHConnector` shares connections between tabs (`reuseSession`, Tabby's key) in place of
+  ControlMaster, and builds jump-host chains.
+- `SFTPClient` moves 256 KiB per step, so shells keep running during transfers.
+- `LibSSHSession` is the `TerminalSession`. Its questions go to `LibSSHPromptPresenter`
+  (cards, and the keyboard-interactive panel in the pane).
+- The app bundles libssh and libcrypto (`scripts/bundle-libssh.sh`, from Homebrew's
+  `libssh`), so the app needs at least the macOS those were built for. Building them from
+  source for macOS 14 is a follow-up.
+- Tests run against a throwaway unprivileged `/usr/sbin/sshd` on a free port
+  (`Tests/TabbySSHLibTests/TestSSHD.swift`); nothing touches `~/.ssh`.
 
 **UI separation.** Views are SwiftUI over `@Observable` models (`WindowModel`, `TabModel`,
 `TerminalPane`, `ThemeManager`). AppKit hosts the window, split tree and terminal view.
@@ -95,8 +117,10 @@ through `MainWindowController.runCommand(_:)` using Tabby's hotkey ids.
    checks in M6. 2b: account, end-to-end encrypted sync of profiles, passwords, keys,
    known hosts and settings through `tabby-sync-server`, deployed at
    https://tabby-sync.dcstyle.info on 2026-10-22; on-screen checks in M7.
-3. **SSH library backend.** libssh2 or russh behind `TerminalSession`. Adds the SFTP panel,
-   live port-forward editor and in-app keyboard-interactive panel.
+3. **SSH library backend (phase 3).** libssh behind `TerminalSession`: SFTP panel and
+   transfers, live port forwards, the keyboard-interactive panel, shared connections, jump
+   hosts, SOCKS/HTTP proxies, agent and X11 forwarding, Test connection. On-screen checks in
+   M8.
 4. **Serial and telnet.** New `ProfileProvider`s and `SessionFactory`s, using ORSSerialPort
    or IOKit for serial.
 5. **More of Tabby.** `tabby://` URL and CLI handlers, localization from

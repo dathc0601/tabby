@@ -278,6 +278,51 @@ TABBYMAC_CONFIG_DIRECTORY=~/tabbymac-m7/b TABBYMAC_SYNC_HOME=~/tabbymac-m7/b/hom
       ask for the Mac password; not under `TABBYMAC_KEYCHAIN=memory`), Remove deletes it here
       and, after a sync, on the other Mac.
 
+## M8 SSH library backend (phase 3)
+
+Build the app as for M7 (it bundles libssh; `brew install libssh` first). Use a test config
+folder (`TABBYMAC_CONFIG_DIRECTORY`). For a local server, turn on Remote Login (it needs
+your Mac password, as in M4) or use a VPS you own. The integration tests already cover
+logins, forwards, SFTP, proxies and agent forwarding against a throwaway sshd; these items
+cover what only the window shows and what the test sshd can't do (PAM, 2FA, X11).
+
+- [ ] First connection: the host key card shows the type and fingerprint and "Remember in
+      known_hosts"; unticked, the next connection asks again. With the key changed in
+      known_hosts, the warning shows both fingerprints and Return rejects.
+- [ ] Password login asks once with "Remember in Keychain"; the next login says "Using saved
+      password". A wrong saved password is deleted and asked for again.
+- [ ] An encrypted key asks for its passphrase once (Remember), not again afterwards.
+- [ ] A 2FA host (keyboard-interactive) shows the panel at the top of the pane: "prompt n of
+      m", the instruction with clickable links, hidden field, Back, Cancel, Continue. Cancel
+      ends the login; the terminal gets its full height back.
+- [ ] Two tabs of a profile open on one connection (second tab instant, no host key
+      question); closing one leaves the other working.
+- [ ] Jump host profile: connects through the jump profile; a loop names both profiles.
+- [ ] Agent: a key only in the agent logs in; with Agent forwarding, `ssh-add -l` on the
+      server lists it.
+- [ ] X11 (XQuartz installed, server with xauth): `xeyes` from the server opens on this Mac.
+- [ ] Chip: Ports and SFTP buttons are enabled only while connected. Ports: add Local
+      127.0.0.1:8000 → a web server, open it in a browser; Remote and Dynamic (browser SOCKS
+      proxy) work; × puts the forward back in the form; a busy port shows the error.
+- [ ] A profile's saved forwards start on connect; a busy one shows a toast and the session
+      carries on.
+- [ ] SFTP (chip, ⌘ hotkey `open-sftp` if bound, pane menu "Open SFTP Panel"): opens at the
+      shell's folder when it reports one (OSC 7), else the last one, else /; breadcrumb and
+      typed path (double-click); Filter; Go up; click a folder / a link / a file (save
+      panel); drop files and a folder from Finder; Create directory opens it; Delete asks;
+      Download directory into "Download here" with "name (1)" on a clash; Edit locally
+      re-uploads on save; a click on the terminal above closes the panel.
+- [ ] Transfers: the tab bar button appears with the first transfer and opens its popover;
+      progress, speed, cancel, Show in Finder; Clear finished asks while one runs.
+- [ ] Profile editor: Test connection reports "Connected as … · key fingerprint" or the
+      reason; its questions appear over the editor. Ciphers, keep-alive count, ready
+      timeout, Backspace (Ctrl-H shows `^H` in `cat -v`) and "Reopen in the last directory"
+      save and take effect.
+- [ ] Settings › SSH: a custom agent socket and an X11 display are used.
+- [ ] `ssh.backend: openssh` in config.yaml: SSH tabs use the system client again (M4 passes);
+      a profile's `backend: library` overrides it.
+- [ ] The panels follow the colour scheme (switch schemes with the SFTP and 2FA panels open).
+
 ## Findings
 
 | Date | Milestone | Finding | Fix |
