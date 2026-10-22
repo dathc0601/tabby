@@ -6,7 +6,7 @@ Run it from the `.app` built by Xcode, not `swift run`, because notifications an
 bundle identifier only exist there. For a clean run set `TABBYMAC_CONFIG_DIRECTORY` to an
 empty folder first.
 
-Mark items `[x]` when they pass. Anything that fails gets a line under **Open findings** at
+Mark items `[x]` when they pass. Anything that fails gets a line under **Findings** at
 the bottom with the commit that fixed it.
 
 ## M0 Build and launch
@@ -213,14 +213,44 @@ window shows (traffic lights, hover, drag and drop, sheets, animation).
 
 ## M7 Personal account and sync
 
-Needs the server: `docker compose -f ../tabby-sync-server/compose.yaml up` (or `swift run` in
-`tabby-sync-server`), then launch two copies of the app to act as two Macs, each with its own
-`TABBYMAC_CONFIG_DIRECTORY` and `TABBYMAC_SYNC_HOME` (a scratch folder standing in for the home
-folder, with a `.ssh` inside), plus `TABBYMAC_SYNC_URL=http://localhost:8080` and
-`TABBYMAC_KEYCHAIN=memory`. Without the last two the instances would share, upload and, at
-"Remove synced data", delete the real login keychain's SSH passwords (Electron Tabby's too).
-`TABBYMAC_SYNC_URL=memory:` runs one app against an in-memory server for UI-only checks.
-`AppClientEndToEndTests` in `tabby-sync-server` runs the same flow without a UI.
+Two copies of the app act as two Macs. Build once, with a fixed output folder:
+
+```sh
+cd Xcode && xcodegen generate && cd ..
+xcodebuild -project Xcode/TabbyMac.xcodeproj -scheme TabbyMac -configuration Debug \
+  -derivedDataPath Xcode/build -skipPackagePluginValidation build
+APP=Xcode/build/Build/Products/Debug/TabbyMac.app/Contents/MacOS/TabbyMac
+mkdir -p ~/tabbymac-m7/a/home/.ssh ~/tabbymac-m7/b/home/.ssh
+```
+
+Start each copy from the binary (not `open`, which drops the environment), each in its own
+Terminal window:
+
+```sh
+TABBYMAC_CONFIG_DIRECTORY=~/tabbymac-m7/a TABBYMAC_SYNC_HOME=~/tabbymac-m7/a/home \
+  TABBYMAC_KEYCHAIN=memory "$APP"
+TABBYMAC_CONFIG_DIRECTORY=~/tabbymac-m7/b TABBYMAC_SYNC_HOME=~/tabbymac-m7/b/home \
+  TABBYMAC_KEYCHAIN=memory "$APP"
+```
+
+- **Server.** Without `TABBYMAC_SYNC_URL` the copies use the real server,
+  `https://tabby-sync.dcstyle.info`. Use a throwaway email and finish with Settings › Account &
+  sync › Delete account…. For a local server instead, fill `../tabby-sync-server/.env` as its
+  README shows, `docker compose -f ../tabby-sync-server/compose.yaml up -d --build`, and add
+  `TABBYMAC_SYNC_URL=http://localhost:8080` to both commands. `TABBYMAC_SYNC_URL=memory:` runs
+  one copy against an in-memory server for UI-only checks; `AppClientEndToEndTests` in
+  `tabby-sync-server` runs the whole flow without a UI.
+- **`TABBYMAC_KEYCHAIN=memory` is required.** Without it both copies share the login
+  keychain: they would upload its SSH passwords (Electron Tabby's too, same item names) and
+  "Remove synced data" could delete them. With it, passwords and the account session live in
+  memory: quitting a copy signs it out, and nothing asks for the Mac password.
+- **`TABBYMAC_SYNC_HOME` only changes what sync reads** (the `~/.ssh/id_*` default identities it
+  offers to upload). ssh itself, the synced-key fallback and the `~/.ssh/config` import still
+  use the real home folder. For "a key that only exists on the first Mac", create it under
+  `~/tabbymac-m7/a/home/.ssh/` with a name that does not exist in the real `~/.ssh`, name it in
+  the profile with its full path, and check on copy B that the profile connects through the
+  synced copy in `~/tabbymac-m7/b/keys/`.
+- Afterwards: quit both copies and `rm -rf ~/tabbymac-m7`.
 
 - [ ] Toolbar person button opens Sign in; "Create account" → step 1 (strength meter, the
       passwords must match) → step 2 recovery key: Copy, Save as file…, Print work; Start
@@ -242,8 +272,9 @@ folder, with a `.ssh` inside), plus `TABBYMAC_SYNC_URL=http://localhost:8080` an
       what came from the account (`<config>/keys` emptied, `~/.ssh` untouched).
 - [ ] Wrong password, no network and a stopped server show readable errors (sheet or toast),
       never a hang.
-- [ ] Settings › Vault lists saved passwords; Show reveals one (may ask for the Mac
-      password), Remove deletes it here and, after a sync, on the other Mac.
+- [ ] Settings › Vault lists saved passwords; Show reveals one (with the login keychain it may
+      ask for the Mac password; not under `TABBYMAC_KEYCHAIN=memory`), Remove deletes it here
+      and, after a sync, on the other Mac.
 
 ## Findings
 
