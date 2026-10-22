@@ -17,54 +17,26 @@ enum Prompts {
         run(alert, in: window) { completion($0 == .alertFirstButtonReturn) }
     }
 
-    /// Tabby's multi-line paste warning.
+    /// Tabby's multi-line paste warning, as the design's card.
     static func confirmPaste(in window: NSWindow?, text: String, completion: @escaping (Bool) -> Void) {
-        let alert = NSAlert()
-        alert.messageText = "Paste multiple lines?"
-        let preview = text.count > 1000 ? String(text.prefix(1000)) + "…" : text
-        alert.informativeText = preview.replacingOccurrences(of: "\r", with: "\n")
-        alert.addButton(withTitle: "Paste")
-        alert.addButton(withTitle: "Cancel")
-        alert.showsSuppressionButton = true
-        alert.suppressionButton?.title = "Don't ask again"
-        run(alert, in: window) { response in
-            if alert.suppressionButton?.state == .on {
-                AppServices.shared.config.set("terminal.warnOnMultilinePaste", false)
+        ChromeSheet.present(in: window) { dismiss in
+            PasteWarningCard(text: text) { paste, dontAsk in
+                dismiss()
+                if dontAsk { AppServices.shared.config.set("terminal.warnOnMultilinePaste", false) }
+                completion(paste)
             }
-            completion(response == .alertFirstButtonReturn)
         }
     }
 
     /// A text prompt (Tabby's `PromptModalComponent`). `remember` adds a checkbox.
     static func text(in window: NSWindow?, title: String, message: String = "", value: String = "", secure: Bool = false,
                      remember: String? = nil, confirm: String = "OK", completion: @escaping (String?, Bool) -> Void) {
-        let alert = NSAlert()
-        alert.messageText = title
-        alert.informativeText = message
-        alert.addButton(withTitle: confirm)
-        alert.addButton(withTitle: "Cancel")
-        let field: NSTextField = secure ? NSSecureTextField(frame: CGRect(x: 0, y: 0, width: 300, height: 24))
-                                        : NSTextField(frame: CGRect(x: 0, y: 0, width: 300, height: 24))
-        field.stringValue = value
-        var checkbox: NSButton?
-        if let remember {
-            let stack = NSStackView(frame: CGRect(x: 0, y: 0, width: 300, height: 52))
-            stack.orientation = .vertical
-            stack.alignment = .leading
-            stack.spacing = 8
-            let box = NSButton(checkboxWithTitle: remember, target: nil, action: nil)
-            stack.addArrangedSubview(field)
-            stack.addArrangedSubview(box)
-            field.widthAnchor.constraint(equalToConstant: 300).isActive = true
-            checkbox = box
-            alert.accessoryView = stack
-        } else {
-            alert.accessoryView = field
-        }
-        alert.window.initialFirstResponder = field
-        run(alert, in: window) { response in
-            guard response == .alertFirstButtonReturn else { return completion(nil, false) }
-            completion(field.stringValue, checkbox?.state == .on)
+        ChromeSheet.present(in: window) { dismiss in
+            TextPromptCard(symbol: secure ? "lock" : "pencil", title: title, message: message, secure: secure,
+                           remember: remember, confirm: confirm, finish: { value, remember in
+                               dismiss()
+                               completion(value, remember)
+                           }, value: value)
         }
     }
 
@@ -105,11 +77,11 @@ final class SSHPromptPresenter: SSHPromptHandler {
         let window = NSApp.keyWindow ?? NSApp.mainWindow
         switch prompt {
         case let .hostKey(promptHost, keyType, fingerprint, _):
-            let alert = Self.hostKeyAlert(host: promptHost.isEmpty ? host : promptHost, keyType: keyType, fingerprint: fingerprint)
-            if let window, window.attachedSheet == nil {
-                alert.beginSheetModal(for: window) { r in reply(r == .alertFirstButtonReturn ? .accept : .reject) }
-            } else {
-                reply(alert.runModal() == .alertFirstButtonReturn ? .accept : .reject)
+            ChromeSheet.present(in: window) { dismiss in
+                HostKeyPromptCard(host: promptHost.isEmpty ? host : promptHost, keyType: keyType, fingerprint: fingerprint) { accept in
+                    dismiss()
+                    reply(accept ? .accept : .reject)
+                }
             }
         case let .password(user, promptHost):
             Prompts.text(in: window, title: "Password for \(user)@\(promptHost)", message: profileName, secure: true,
@@ -133,37 +105,6 @@ final class SSHPromptPresenter: SSHPromptHandler {
             Prompts.message(in: window, title: host, message: message)
             reply(.accept)
         }
-    }
-
-    /// Tabby's `HostKeyPromptModal`: accept and remember, or disconnect. The fingerprint gets a
-    /// field of its own: AppKit hyphenates the informative text where it wraps, which put a
-    /// "-" into the fingerprint.
-    static func hostKeyAlert(host: String, keyType: String?, fingerprint: String?) -> NSAlert {
-        let alert = NSAlert()
-        alert.alertStyle = .warning
-        alert.messageText = "Unknown host key for \(host)"
-        alert.informativeText = """
-        The authenticity of this host can't be established. Accept it only if you trust this \
-        host. The key will be remembered.
-
-        \(keyType ?? "Host") key fingerprint:
-        """
-        let style = NSMutableParagraphStyle()
-        style.lineBreakMode = .byCharWrapping
-        style.hyphenationFactor = 0
-        let field = NSTextField(wrappingLabelWithString: "")
-        field.attributedStringValue = NSAttributedString(string: fingerprint ?? "unknown", attributes: [
-            .font: NSFont.monospacedSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .regular),
-            .paragraphStyle: style,
-        ])
-        field.lineBreakMode = .byCharWrapping
-        field.isSelectable = true
-        field.preferredMaxLayoutWidth = 230
-        field.frame.size = field.sizeThatFits(NSSize(width: 230, height: CGFloat.greatestFiniteMagnitude))
-        alert.accessoryView = field
-        alert.addButton(withTitle: "Accept and remember")
-        alert.addButton(withTitle: "Disconnect")
-        return alert
     }
 }
 #endif

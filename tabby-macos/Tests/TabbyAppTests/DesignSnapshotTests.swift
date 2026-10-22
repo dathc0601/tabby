@@ -113,6 +113,38 @@ final class DesignSnapshotTests: XCTestCase {
         }
     }
 
+    private func render<V: View>(_ view: V, _ size: NSSize, _ name: String) throws {
+        let host = NSHostingView(rootView: view.chromeEnvironment())
+        host.frame = NSRect(origin: .zero, size: size)
+        let window = NSWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        window.contentView = host
+        TestApp.pump(0.3)
+        try save(host, name)
+    }
+
+    func testOverlaysAndCards() throws {
+        let items = [
+            SelectorItem(id: "1", title: "prod-web-01", group: "Recent", subtitle: "deploy@prod-web-01.acme.internal", icon: "server.rack", color: "#ff615a") {},
+            SelectorItem(id: "2", title: "prod-web-02", group: "Acme / Production", subtitle: "deploy@prod-web-02.acme.internal", icon: "server.rack") {},
+            SelectorItem(id: "3", title: "prod-db-primary", group: "Acme / Production", subtitle: "postgres@prod-db-primary", icon: "server.rack") {},
+            SelectorItem(id: "4", title: "Manage profiles", group: "Actions", subtitle: "Settings › Profiles & connections", icon: "gearshape") {},
+        ]
+        try render(SelectorView(placeholder: "Select a profile or type user@host", items: items, dynamicItems: nil) { _ in },
+                   SelectorPanel.size, "selector")
+        try render(PasteWarningCard(text: "cd /srv/api\ngit fetch origin && git reset --hard origin/main\nsudo systemctl restart api\njournalctl -u api -n 50 --no-pager") { _, _ in },
+                   NSSize(width: 460, height: 330), "card-paste")
+        try render(HostKeyPromptCard(host: "prod-web-01.acme.internal:22", keyType: "ssh-ed25519",
+                                     fingerprint: "SHA256:qX3m9vT2pKcY8hN1rB7eW4uF6sJ0aL5dZ2gH9xC3oVk") { _ in },
+                   NSSize(width: 480, height: 360), "card-hostkey")
+        try render(TextPromptCard(symbol: "lock", title: "Password for deploy@prod-web-01", message: "prod-web-01", secure: true,
+                                  remember: "Remember in Keychain", confirm: "Log in", finish: { _, _ in }, value: "hunter2"),
+                   NSSize(width: 400, height: 220), "card-password")
+        let center = ToastCenter()
+        center.show(ToastCenter.Toast(symbol: "checkmark.circle.fill", tint: .success, title: "Process completed",
+                                      detail: "terraform apply exited with code 0 in tab 4 · 3m 12s", actionTitle: "Show", action: {}))
+        try render(ToastOverlay(center: center), NSSize(width: 520, height: 110), "toast")
+    }
+
     func testContentTabs() throws {
         let c = window()
         defer { TestApp.dispose(c) }

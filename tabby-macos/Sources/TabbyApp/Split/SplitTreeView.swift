@@ -148,7 +148,10 @@ final class PaneContainerView: NSView {
     let engine: SwiftTermEngine
     private weak var controller: MainWindowController?
     private var searchHost: NSHostingView<SearchBarView>?
+    private var chipHost: NSHostingView<SSHStatusChip>?
+    private let hover = PaneHover()
     private var appearanceLoop: ObservationLoop?
+    private var chipLoop: ObservationLoop?
     var showsFocusRing = false { didSet { if oldValue != showsFocusRing { updateRing() } } }
 
     init(pane: TerminalPane, controller: MainWindowController) {
@@ -159,11 +162,24 @@ final class PaneContainerView: NSView {
         wantsLayer = true
         layer?.borderWidth = 0
         addSubview(engine)
+        if pane.profile.type != "local" {
+            let chip = NSHostingView(rootView: SSHStatusChip(pane: pane, hover: hover))
+            chip.safeAreaRegions = []
+            addSubview(chip)
+            chipHost = chip
+        }
         engine.transparentBackground = AppServices.shared.theme.vibrancy
         pane.attach(engine: engine)
         engine.contextMenuProvider = { [weak self] _ in
             guard let self, let controller = self.controller else { return nil }
             return controller.terminalContextMenu(for: self.pane)
+        }
+        if chipHost != nil {
+            // The chip changes size with the state and on hover; keep its frame fitted.
+            chipLoop = ObservationLoop(track: { [weak self] in
+                _ = self?.pane.connectionState
+                _ = self?.hover.isHovering
+            }, apply: { [weak self] in self?.needsLayout = true })
         }
         appearanceLoop = ObservationLoop(track: { [weak self] in
             guard let self else { return }
@@ -186,6 +202,10 @@ final class PaneContainerView: NSView {
     override func layout() {
         super.layout()
         engine.frame = bounds
+        if let chipHost {
+            let size = chipHost.fittingSize
+            chipHost.frame = CGRect(x: 4, y: 4, width: max(size.width, 1), height: max(size.height, 1))
+        }
         if let searchHost {
             let size = searchHost.fittingSize
             searchHost.frame = CGRect(x: bounds.width - size.width - 12, y: 8, width: size.width, height: size.height)
@@ -196,6 +216,24 @@ final class PaneContainerView: NSView {
                 MainActor.assumeIsolated { self?.pane.startIfNeeded() }
             }
         }
+    }
+
+    // MARK: Hover (status chip)
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect], owner: self))
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        hover.isHovering = true
+        needsLayout = true
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        hover.isHovering = false
+        needsLayout = true
     }
 
     private func updateRing() {

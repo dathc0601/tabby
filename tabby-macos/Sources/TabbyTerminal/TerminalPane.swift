@@ -29,6 +29,39 @@ public final class TerminalPane: TerminalEngineDelegate {
     public private(set) var progress: Double?
     public private(set) var hasActivity = false
     public private(set) var status: SessionStatus?
+    /// Automatic reconnects since the connection was last up (profile "Reconnect" behaviour).
+    /// When the current session started (the "Process completed" toast shows how long it ran).
+    public private(set) var startedAt: Date?
+    public private(set) var reconnectAttempt = 0
+    public static let maxReconnectAttempts = 5
+    /// Pause before an automatic reconnect.
+    public var reconnectDelay: TimeInterval = 1
+
+    /// What the SSH status chip shows; nil for local shells.
+    public enum ConnectionState: Equatable, Sendable {
+        case connecting
+        case connected
+        case disconnected
+        case reconnecting(attempt: Int, of: Int)
+    }
+
+    public var connectionState: ConnectionState? {
+        guard profile.type != "local" else { return nil }
+        let reconnecting = ConnectionState.reconnecting(attempt: reconnectAttempt, of: Self.maxReconnectAttempts)
+        switch state {
+        case .idle:
+            return reconnectAttempt > 0 ? reconnecting : .connecting
+        case .running:
+            switch status {
+            case .connecting?: return reconnectAttempt > 0 ? reconnecting : .connecting
+            case .disconnected?: return .disconnected
+            case .connected?: return .connected
+            default: return reconnectAttempt > 0 ? reconnecting : .connected
+            }
+        case .ended, .failed:
+            return reconnectAttempt > 0 ? reconnecting : .disconnected
+        }
+    }
     public var isFocused = false {
         didSet { if isFocused { hasActivity = false } }
     }
@@ -119,12 +152,16 @@ public final class TerminalPane: TerminalEngineDelegate {
             let s = try factory.makeSession(profile: profile, context: context)
             s.onOutput = { [weak self] data in self?.handleOutput(data) }
             s.onClosed = { [weak self] code in self?.handleClosed(code) }
-            s.onStatus = { [weak self] st in self?.status = st }
+            s.onStatus = { [weak self] st in
+                self?.status = st
+                if st == .connected { self?.reconnectAttempt = 0 }
+            }
             session = s
             userClosed = false
             disconnectedByHand = false
             recentInput = ""
             try s.start(cols: max(size.cols, 2), rows: max(size.rows, 1))
+            startedAt = Date()
             state = .running
             started = true
             if let scripts = loginScripts?.unconditionalScripts() {
@@ -155,6 +192,7 @@ public final class TerminalPane: TerminalEngineDelegate {
     /// Ends the session on purpose (closing the pane).
     public func close() {
         userClosed = true
+        reconnectAttempt = 0
         progressClearWork?.cancel()
         session?.onClosed = nil
         session?.onOutput = nil
@@ -168,6 +206,7 @@ public final class TerminalPane: TerminalEngineDelegate {
     public func disconnect() {
         guard profile.type != "local", isRunning, let session else { return }
         disconnectedByHand = true
+        reconnectAttempt = 0
         session.kill()
     }
 
@@ -216,7 +255,8 @@ public final class TerminalPane: TerminalEngineDelegate {
         let behaviour = profile.behaviorOnSessionEnd
         let isLocal = profile.type == "local"
         let pause = isLocal && LocalOptions(profile.options).pauseAfterExit
-        onProcessEnded?(self, code)
+        // Closing a pane by hand ends its process too; that is not news worth a toast.
+        if !userClosed { onProcessEnded?(self, code) }
 
         var shouldClose: Bool
         var autoReconnect = false
@@ -249,9 +289,15 @@ public final class TerminalPane: TerminalEngineDelegate {
         engine?.feed(Data("\r\n\u{1b}[2m\(message). Press any key to restart.\u{1b}[0m\r\n".utf8))
         state = .ended(code: code, canRestart: true)
         if autoReconnect {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
-                guard let self, case .ended = self.state else { return }
-                self.start()
+            if reconnectAttempt >= Self.maxReconnectAttempts {
+                // Give up; any key still restarts, as after a manual disconnect.
+                reconnectAttempt = 0
+            } else {
+                reconnectAttempt += 1
+                DispatchQueue.main.asyncAfter(deadline: .now() + reconnectDelay) { [weak self] in
+                    guard let self, case .ended = self.state, self.reconnectAttempt > 0 else { return }
+                    self.start()
+                }
             }
         }
     }
@@ -266,6 +312,7 @@ public final class TerminalPane: TerminalEngineDelegate {
 
     public func send(_ data: Data) {
         if case .ended(_, true) = state {
+            reconnectAttempt = 0
             start()
             return
         }

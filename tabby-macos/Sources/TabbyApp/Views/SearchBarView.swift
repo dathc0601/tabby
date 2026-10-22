@@ -51,12 +51,23 @@ final class SearchModel {
 struct SearchBarView: View {
     @State var model: SearchModel
     var onClose: () -> Void
-    @FocusState private var focused: Bool
 
     var body: some View {
-        let chrome = AppServices.shared.theme.chrome
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass").foregroundStyle(chrome.textMuted.color)
+        SearchBarContent(model: model, onClose: onClose).chromeEnvironment()
+    }
+}
+
+/// Docked at the top right of the pane (design: query, "n / m", case / regex / whole word,
+/// previous / next, close).
+private struct SearchBarContent: View {
+    @Bindable var model: SearchModel
+    var onClose: () -> Void
+    @FocusState private var focused: Bool
+    @Environment(\.chrome) private var chrome
+
+    var body: some View {
+        HStack(spacing: 2) {
+            Image(systemName: "magnifyingglass").foregroundStyle(chrome.textMuted.color).padding(.leading, 4)
             TextField("Search", text: $model.query)
                 .textFieldStyle(.plain)
                 .frame(width: 180)
@@ -73,32 +84,33 @@ struct SearchBarView: View {
                 .onKeyPress(.downArrow) { model.find(); return .handled }
                 .onExitCommand { onClose() }
             Text(model.total == 0 ? (model.query.isEmpty ? "" : "No results") : "\(model.index) / \(model.total)")
-                .font(.caption.monospacedDigit())
+                .font(ChromeFont.caption.monospacedDigit())
                 .foregroundStyle(chrome.textMuted.color)
-                .frame(minWidth: 54, alignment: .trailing)
-            Button { model.find(backwards: true) } label: { Image(systemName: "chevron.up") }
-                .help("Previous match")
-            Button { model.find() } label: { Image(systemName: "chevron.down") }
-                .help("Next match")
-            Toggle(isOn: $model.caseSensitive) { Text("Aa") }
-                .toggleStyle(.button).help("Case sensitive")
-                .onChange(of: model.caseSensitive) { model.optionsChanged() }
-            Toggle(isOn: $model.regex) { Text(".*") }
-                .toggleStyle(.button).help("Regular expression")
-                .onChange(of: model.regex) { model.optionsChanged() }
-            Toggle(isOn: $model.wholeWord) { Text("W") }
-                .toggleStyle(.button).help("Whole word")
-                .onChange(of: model.wholeWord) { model.optionsChanged() }
-            Button(action: onClose) { Image(systemName: "xmark") }
-                .help("Close search")
+                .frame(minWidth: 58, alignment: .trailing)
+                .padding(.trailing, 4)
+            toggle("textformat", "Match case", $model.caseSensitive)
+            toggle("asterisk", "Regular expression", $model.regex)
+            toggle("textformat.abc", "Whole word", $model.wholeWord)
+            Rectangle().fill(chrome.separator.color).frame(width: 1, height: 16).padding(.horizontal, 2)
+            IconButton(symbol: "chevron.up", help: "Previous match (⇧↩)", size: 24) { model.find(backwards: true) }
+            IconButton(symbol: "chevron.down", help: "Next match (↩)", size: 24) { model.find() }
+            IconButton(symbol: "xmark", help: "Close search (esc)", size: 24, action: onClose)
         }
-        .buttonStyle(.borderless)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(chrome.surfaceRaised.color, in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(chrome.border.color))
+        .font(ChromeFont.body)
+        .padding(.horizontal, 6)
+        .frame(height: 34)
+        .background(RoundedRectangle(cornerRadius: 9).fill(chrome.surfaceRaised.color))
+        .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(chrome.border.color, lineWidth: 0.5))
+        .shadow(color: .black.opacity(0.18), radius: 8, y: 3)
         .foregroundStyle(chrome.text.color)
         .onAppear { focused = true }
+    }
+
+    private func toggle(_ symbol: String, _ help: String, _ isOn: Binding<Bool>) -> some View {
+        IconButton(symbol: symbol, help: help, isActive: isOn.wrappedValue, size: 24) {
+            isOn.wrappedValue.toggle()
+            model.optionsChanged()
+        }
     }
 }
 #endif

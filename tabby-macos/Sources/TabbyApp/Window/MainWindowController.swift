@@ -16,7 +16,9 @@ final class TerminalWindow: NSWindow {
 @MainActor
 final class MainWindowController: NSWindowController, NSWindowDelegate, WindowModelUI {
     let model = WindowModel()
+    let toasts = ToastCenter()
     private let root = WindowRootView()
+    private var toastHost: NSHostingView<ToastOverlay>!
     private var tabBarHost: NSHostingView<TabBarView>!
     private var startPageHost: NSHostingView<StartPageView>!
     /// A `SplitTreeView` per terminal tab, an `NSHostingView<ContentTabRoot>` per content tab.
@@ -72,11 +74,15 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
         // past `tabBarHeight` and paints over the terminal's first row.
         tabBarHost.safeAreaRegions = []
         startPageHost.safeAreaRegions = []
+        toastHost = NSHostingView(rootView: ToastOverlay(center: toasts))
+        toastHost.safeAreaRegions = []
         root.tabBar = tabBarHost
         root.startPage = startPageHost
+        root.toasts = toastHost
         window.contentView = root
         root.addSubview(tabBarHost)
         root.addSubview(startPageHost)
+        root.addSubview(toastHost)
 
         loops.append(ObservationLoop(track: { [weak self] in
             guard let self else { return }
@@ -87,6 +93,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
             _ = AppServices.shared.theme.revision
             _ = AppServices.shared.configRevision
         }, apply: { [weak self] in self?.applyAppearance() }))
+        loops.append(ObservationLoop(track: { [weak self] in
+            _ = self?.toasts.toasts.count
+        }, apply: { [weak self] in self?.root.needsLayout = true }))
         loops.append(ObservationLoop(track: { [weak self] in
             _ = self?.model.activeTab?.title
         }, apply: { [weak self] in
@@ -263,14 +272,31 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
         focusEngine(of: pane)
     }
 
-    /// "Process completed" banner. Only while another app is frontmost: the pane keeps focus
-    /// across app switches, and banners for the active app are not shown anyway. Needs an app
-    /// bundle: `swift run` has none and xctest's main bundle is a tool, where posting raises.
+    /// "Process completed": a toast when the pane's tab is in the background or another app is
+    /// frontmost, and a system banner too in the latter case. Banners need an app bundle:
+    /// `swift run` has none and xctest's main bundle is a tool, where posting raises.
     func notifyProcessEnded(_ pane: TerminalPane, code: Int32?) {
         notifyProcessEnded(pane, code: code, appIsActive: NSApp.isActive)
     }
 
     func notifyProcessEnded(_ pane: TerminalPane, code: Int32?, appIsActive: Bool) {
+        let tab = model.tabs.first { $0.panes[pane.id] != nil }
+        let inBackground = tab.map { $0 !== model.activeTab } ?? true
+        if !appIsActive || inBackground {
+            let ran = pane.startedAt.map { " · " + ToastCenter.duration(Date().timeIntervalSince($0)) } ?? ""
+            let index = tab.flatMap { t in model.tabs.firstIndex { $0 === t } }.map { " in tab \($0 + 1)" } ?? ""
+            let what = code.map { "\(pane.title) exited with code \($0)" } ?? "\(pane.title): session ended"
+            toasts.show(ToastCenter.Toast(
+                symbol: code == 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill",
+                tint: code == 0 ? .success : .danger,
+                title: "Process completed", detail: what + index + ran,
+                actionTitle: "Show",
+                action: { [weak self, weak pane] in
+                    guard let self, let pane, self.model.tabs.contains(where: { $0.panes[pane.id] != nil }) else { return }
+                    self.model.focus(paneID: pane.id)
+                    self.window?.makeKeyAndOrderFront(nil)
+                }))
+        }
         guard !appIsActive, Bundle.main.bundleURL.pathExtension == "app" else { return }
         let content = UNMutableNotificationContent()
         content.title = pane.title
@@ -362,6 +388,7 @@ final class WindowRootView: NSView {
     weak var tabBar: NSView?
     weak var startPage: NSView?
     weak var effectView: NSVisualEffectView?
+    weak var toasts: NSView?
     var tabViews: [UUID: NSView] = [:]
     var activeTabID: UUID?
     var placement: TabBarPlacement = .top
@@ -400,6 +427,10 @@ final class WindowRootView: NSView {
         }
         startPage?.frame = content
         for v in tabViews.values { v.frame = content }
+        if let toasts {
+            let size = toasts.fittingSize
+            toasts.frame = CGRect(x: content.maxX - size.width, y: content.maxY - size.height, width: size.width, height: size.height)
+        }
     }
 }
 #endif

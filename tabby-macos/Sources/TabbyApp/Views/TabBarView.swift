@@ -289,7 +289,7 @@ struct TabHeaderView: View {
             } else if showIcon, let icon = tab.icon {
                 Image(systemName: ProfileIcons.symbol(for: icon))
                     .font(.system(size: 12))
-                    .foregroundStyle((profileColor ?? userColor ?? chrome.textMuted).color)
+                    .foregroundStyle((Self.connectionTint(tab.focusedPane?.connectionState, chrome) ?? profileColor ?? userColor ?? chrome.textMuted).color)
             }
             Text(tab.title)
                 .font(isActive ? ChromeFont.bodyEmphasised : ChromeFont.body)
@@ -360,46 +360,89 @@ struct TabHeaderView: View {
     }
 }
 
+extension TabHeaderView {
+    /// SSH tabs tint their icon with the connection state (the design's status chip colours).
+    static func connectionTint(_ state: TerminalPane.ConnectionState?, _ chrome: ChromeTheme) -> RGBColor? {
+        switch state {
+        case .connecting?, .reconnecting?: return chrome.warning
+        case .disconnected?: return chrome.danger
+        default: return nil
+        }
+    }
+}
+
 struct TabContextMenu: View {
     let tab: TabModel
     let actions: TabBarActions
 
     var body: some View {
-        Button("Close") { actions.close(tab) }
-        Button("Close other tabs") { actions.command("close-other-tabs", tab) }
-        Button("Close tabs to the left") { actions.command("close-tabs-left", tab) }
-        Button("Close tabs to the right") { actions.command("close-tabs-right", tab) }
+        Button("Close Tab") { actions.close(tab) }
+        Button("Close Other Tabs") { actions.command("close-other-tabs", tab) }
+        Button("Close Tabs to the Left") { actions.command("close-tabs-left", tab) }
+        Button("Close Tabs to the Right") { actions.command("close-tabs-right", tab) }
         Divider()
-        Button("Rename…") { actions.command("rename-tab", tab) }
-        Button("Duplicate") { actions.command("duplicate-tab", tab) }
-        Button(tab.isPinned ? "Unpin" : "Pin") { actions.command("pin-tab", tab) }
-        Menu("Color") {
-            Button("No color") { actions.setColor(tab, nil) }
-            ForEach(TabColors.all) { c in
-                Button(c.name) { actions.setColor(tab, c.hex) }
+        if tab.content == nil {
+            Button("Rename Tab…") { actions.command("rename-tab", tab) }
+            Button("Duplicate Tab") { actions.command("duplicate-tab", tab) }
+        }
+        Button(tab.isPinned ? "Unpin Tab" : "Pin Tab") { actions.command("pin-tab", tab) }
+        Menu("Colour") {
+            Button { actions.setColor(tab, nil) } label: {
+                if tab.color == nil { Label("None", systemImage: "checkmark") } else { Text("None") }
+            }
+            Divider()
+            ForEach(TabColors.current()) { c in
+                Button { actions.setColor(tab, c.hex) } label: {
+                    Label { Text(c.name) } icon: { Image(nsImage: TabColors.swatch(c.hex, checked: tab.color?.lowercased() == c.hex)) }
+                }
             }
         }
-        Divider()
-        Button("Split right") { actions.command("split-right", tab) }
-        Button("Split down") { actions.command("split-bottom", tab) }
-        Button("Split left") { actions.command("split-left", tab) }
-        Button("Split up") { actions.command("split-top", tab) }
-        Divider()
-        Button("Save layout as profile") { actions.command("save-layout-as-profile", tab) }
+        if tab.content == nil {
+            Divider()
+            Menu("Split") {
+                Button("Split Up") { actions.command("split-top", tab) }
+                Button("Split Right") { actions.command("split-right", tab) }
+                Button("Split Down") { actions.command("split-bottom", tab) }
+                Button("Split Left") { actions.command("split-left", tab) }
+            }
+            Button("Save Layout as Profile…") { actions.command("save-layout-as-profile", tab) }
+            Button("Switch Profile…") { actions.command("switch-profile", tab) }
+        }
     }
 }
 
-/// Tab colours offered in the context menu (from `tabby-core/src/tabContextMenu.ts`).
+/// Tab colours: the active scheme's six ANSI colours (the design's Colour submenu), stored as
+/// hex like Tabby's tab colours.
 struct TabColors: Identifiable {
     let name: String
     let hex: String
     var id: String { hex }
 
-    static let all: [TabColors] = [
-        TabColors(name: "Blue", hex: "#0275d8"), TabColors(name: "Green", hex: "#5cb85c"),
-        TabColors(name: "Orange", hex: "#f0ad4e"), TabColors(name: "Purple", hex: "#613d7c"),
-        TabColors(name: "Red", hex: "#d9534f"), TabColors(name: "Yellow", hex: "#ffd500"),
-    ]
+    @MainActor
+    static func current() -> [TabColors] {
+        let p = AppServices.shared.theme.scheme.paletteRGB
+        return [("Red", 1), ("Yellow", 3), ("Green", 2), ("Cyan", 6), ("Blue", 4), ("Magenta", 5)].map {
+            TabColors(name: $0.0, hex: p[$0.1].hex)
+        }
+    }
+
+    /// A round swatch for menus (not a template image, so it keeps its colour).
+    static func swatch(_ hex: String, checked: Bool) -> NSImage {
+        let size = NSSize(width: 14, height: 14)
+        let image = NSImage(size: size, flipped: false) { rect in
+            (RGBColor(hex: hex) ?? .black).nsColor.setFill()
+            NSBezierPath(ovalIn: rect.insetBy(dx: 1, dy: 1)).fill()
+            if checked {
+                NSColor.white.setStroke()
+                let ring = NSBezierPath(ovalIn: rect.insetBy(dx: 4, dy: 4))
+                ring.lineWidth = 2
+                ring.stroke()
+            }
+            return true
+        }
+        image.isTemplate = false
+        return image
+    }
 }
 
 /// Maps Tabby's Font Awesome icon names to SF Symbols, falling back to a terminal glyph.

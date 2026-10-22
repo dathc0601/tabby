@@ -231,28 +231,45 @@ extension MainWindowController {
 
     // MARK: Context menus
 
+    /// The pane's context menu in the design's order: clipboard, Split submenu, broadcast and
+    /// clear, then the session. Items show the command's first hotkey.
     func terminalContextMenu(for pane: TerminalPane) -> NSMenu {
         let menu = NSMenu()
-        func item(_ title: String, _ id: String) {
+        func item(_ title: String, _ id: String, in target: NSMenu? = nil, checked: Bool = false) {
             let i = NSMenuItem(title: title, action: #selector(contextCommand(_:)), keyEquivalent: "")
             i.target = self
             i.representedObject = id
-            menu.addItem(i)
+            i.state = checked ? .on : .off
+            if let stroke = HotkeyBinding.bindings(from: AppServices.shared.config.value("hotkeys.\(id)")).first,
+               stroke.strokes.count == 1, let (key, mods) = KeyMapping.keyEquivalent(for: stroke.strokes[0]) {
+                i.keyEquivalent = key
+                i.keyEquivalentModifierMask = mods
+            }
+            (target ?? menu).addItem(i)
         }
         model.focus(paneID: pane.id)
         item("Copy", "copy")
         item("Paste", "paste")
+        item("Copy Current Path", "copy-current-path")
+        menu.addItem(.separator())
+        let split = NSMenu()
+        item("Split Up", "split-top", in: split)
+        item("Split Right", "split-right", in: split)
+        item("Split Down", "split-bottom", in: split)
+        item("Split Left", "split-left", in: split)
+        let splitItem = NSMenuItem(title: "Split", action: nil, keyEquivalent: "")
+        splitItem.submenu = split
+        menu.addItem(splitItem)
+        item("Broadcast Input to All Panes", "pane-focus-all", checked: model.activeTab?.broadcastInput == true)
         item("Select All", "select-all")
         item("Clear", "clear")
         menu.addItem(.separator())
-        item("Split Right", "split-right")
-        item("Split Down", "split-bottom")
-        item("Split Left", "split-left")
-        item("Split Up", "split-top")
-        menu.addItem(.separator())
-        item("Copy Current Path", "copy-current-path")
         item("Switch Profile…", "switch-profile")
-        item(pane.isRunning ? "Restart" : "Reconnect", "restart-tab")
+        if pane.connectionState != nil {
+            item(pane.isRunning ? "Disconnect" : "Reconnect", pane.isRunning ? "disconnect-tab" : "reconnect-tab")
+        } else {
+            item("Restart", "restart-tab")
+        }
         item("Close Pane", "close-pane")
         return menu
     }
