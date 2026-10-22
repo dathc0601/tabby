@@ -198,15 +198,21 @@ final class RecoveryCoordinator {
 final class DockController {
     static let shared = DockController()
 
+    /// Tabby's `setAlwaysOnTop(dockAlwaysOnTop)`, applied every time so turning it off while
+    /// docked lowers the window again.
+    var level: NSWindow.Level {
+        let config = AppServices.shared.config
+        guard config.string("appearance.dock") ?? "off" != "off" else { return .normal }
+        return config.value("appearance.dockAlwaysOnTop")?.boolValue ?? true ? .floating : .normal
+    }
+
     func apply() {
         let config = AppServices.shared.config
         let side = config.string("appearance.dock") ?? "off"
         guard let controller = WindowManager.shared.controllers.first, let window = controller.window else { return }
+        window.level = level
         guard side != "off" else {
-            if window.level != .normal {
-                window.level = .normal
-                window.collectionBehavior = [.fullScreenPrimary]
-            }
+            window.collectionBehavior = [.fullScreenPrimary]
             return
         }
         guard let screen = window.screen ?? NSScreen.main else { return }
@@ -227,9 +233,6 @@ final class DockController {
             frame.origin.x = side == "left" ? area.minX : area.maxX - frame.width
         }
         window.setFrame(frame, display: true, animate: false)
-        if config.value("appearance.dockAlwaysOnTop")?.boolValue ?? true {
-            window.level = .floating
-        }
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
     }
 }
