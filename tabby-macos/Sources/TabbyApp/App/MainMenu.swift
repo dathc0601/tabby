@@ -10,6 +10,9 @@ enum MainMenu {
     private static var commandItems: [(NSMenuItem, String)] = []
 
     static func install() {
+        // TabbyMac has its own tabs: keep macOS from adding its window-tab items (Show Tab Bar,
+        // Merge All Windows, …) to the View and Window menus.
+        NSWindow.allowsAutomaticWindowTabbing = false
         commandItems = []
         let main = NSMenu()
 
@@ -68,7 +71,7 @@ enum MainMenu {
         view.addItem(command("Maximize Pane", "pane-maximize"))
         view.addItem(command("Broadcast Input to All Panes", "pane-focus-all"))
         view.addItem(.separator())
-        view.addItem(command("Enter Full Screen", "toggle-fullscreen"))
+        view.addItem(fullScreenItem())
         add(view, title: "View", to: main)
 
         let window = NSMenu(title: "Window")
@@ -102,6 +105,14 @@ enum MainMenu {
         item.target = MenuTarget.shared
         item.representedObject = id
         commandItems.append((item, id))
+        return item
+    }
+
+    /// "Enter Full Screen" with AppKit's own action, so AppKit neither adds a second one to the
+    /// View menu nor misses retitling it "Exit Full Screen". Its shortcut still follows `hotkeys`.
+    private static func fullScreenItem() -> NSMenuItem {
+        let item = NSMenuItem(title: "Enter Full Screen", action: #selector(NSWindow.toggleFullScreen(_:)), keyEquivalent: "")
+        commandItems.append((item, "toggle-fullscreen"))
         return item
     }
 

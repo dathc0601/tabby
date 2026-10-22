@@ -107,6 +107,24 @@ final class WindowSmokeTests: XCTestCase {
         XCTAssertTrue(ids.contains("reconnect-tab"), "\(ids)")
     }
 
+    /// TabbyMac has its own tabs, so macOS must not add its window-tab items (Show Tab Bar,
+    /// Merge All Windows, …) to the View and Window menus.
+    func testMenusLeaveOutNativeWindowTabbing() {
+        MainMenu.install()
+        XCTAssertFalse(NSWindow.allowsAutomaticWindowTabbing)
+    }
+
+    /// AppKit adds its own "Enter Full Screen" to a View menu that has no `toggleFullScreen:`
+    /// item, so ours must use that action; it keeps the ⌃⌘F shortcut from `hotkeys`.
+    func testFullScreenMenuItemUsesTheStandardAction() throws {
+        MainMenu.install()
+        let view = try XCTUnwrap(NSApp.mainMenu?.items.first { $0.title == "View" }?.submenu)
+        let items = view.items.filter { $0.action == #selector(NSWindow.toggleFullScreen(_:)) }
+        XCTAssertEqual(items.count, 1, "\(view.items.map(\.title))")
+        XCTAssertEqual(items.first?.keyEquivalent, "f")
+        XCTAssertEqual(items.first?.keyEquivalentModifierMask, [.control, .command])
+    }
+
     func testSettingsWindowKeepsItsSize() {
         SettingsWindowController.show()
         pump(0.5)
