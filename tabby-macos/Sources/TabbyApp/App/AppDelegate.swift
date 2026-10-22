@@ -96,10 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func registerGlobalHotkey() {
-        let config = AppServices.shared.config
-        let raw = config.value("hacks.globalHotkey")?.stringValue
-        let binding = raw.flatMap(HotkeyBinding.init) ?? HotkeyBinding.bindings(from: config.value("hotkeys.toggle-window")).first
-        GlobalHotkey.shared.register(binding?.strokes.first)
+        GlobalHotkey.shared.register(GlobalHotkey.strokes(from: AppServices.shared.config))
     }
 }
 

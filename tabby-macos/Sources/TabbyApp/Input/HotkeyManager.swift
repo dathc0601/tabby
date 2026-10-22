@@ -63,20 +63,32 @@ final class HotkeyManager {
 final class GlobalHotkey {
     static let shared = GlobalHotkey()
     var action: (() -> Void)?
-    private var ref: EventHotKeyRef?
+    private var refs: [EventHotKeyRef] = []
     private var handlerInstalled = false
 
-    func register(_ stroke: Keystroke?) {
+    /// Tabby's `registerGlobalHotkey`: the first stroke of every `toggle-window` binding. A
+    /// `hacks.globalHotkey` other than null or false turns it off, as in Tabby's `app.ts`.
+    static func strokes(from config: ConfigStore) -> [Keystroke] {
+        if let hack = config.value("hacks.globalHotkey"), hack != .null, hack != false { return [] }
+        return HotkeyBinding.bindings(from: config.value("hotkeys.toggle-window")).compactMap(\.strokes.first)
+    }
+
+    func register(_ strokes: [Keystroke]) {
         unregister()
-        guard let stroke, let (code, mods) = KeyMapping.carbonHotKey(for: stroke) else { return }
-        installHandlerIfNeeded()
-        let id = EventHotKeyID(signature: OSType(0x5442_4D43), id: 1) // 'TBMC'
-        RegisterEventHotKey(code, mods, id, GetApplicationEventTarget(), 0, &ref)
+        for (index, stroke) in strokes.enumerated() {
+            guard let (code, mods) = KeyMapping.carbonHotKey(for: stroke) else { continue }
+            installHandlerIfNeeded()
+            let id = EventHotKeyID(signature: OSType(0x5442_4D43), id: UInt32(index + 1)) // 'TBMC'
+            var ref: EventHotKeyRef?
+            if RegisterEventHotKey(code, mods, id, GetApplicationEventTarget(), 0, &ref) == noErr, let ref {
+                refs.append(ref)
+            }
+        }
     }
 
     func unregister() {
-        if let ref { UnregisterEventHotKey(ref) }
-        ref = nil
+        refs.forEach { UnregisterEventHotKey($0) }
+        refs = []
     }
 
     private func installHandlerIfNeeded() {
