@@ -258,3 +258,27 @@ public final class LibSSHSessionFactory: SessionFactory {
     }
 }
 #endif
+
+#if os(macOS)
+/// Chooses the SSH implementation per session: `ssh.backend` in config.yaml (`library`, the
+/// default, or `openssh`), overridden by a profile's `backend` option.
+public final class SSHBackendFactory: SessionFactory {
+    public let profileType = "ssh"
+    public let openSSH: SSHSessionFactory
+    public let library: LibSSHSessionFactory
+    public var configuredBackend: () -> String?
+
+    public init(openSSH: SSHSessionFactory, library: LibSSHSessionFactory, configuredBackend: @escaping () -> String?) {
+        self.openSSH = openSSH
+        self.library = library
+        self.configuredBackend = configuredBackend
+    }
+
+    public func makeSession(profile: Profile, context: SessionContext) throws -> TerminalSession {
+        let chosen = profile.options["backend"]?.stringValue ?? configuredBackend()
+        return chosen == "openssh"
+            ? try openSSH.makeSession(profile: profile, context: context)
+            : try library.makeSession(profile: profile, context: context)
+    }
+}
+#endif

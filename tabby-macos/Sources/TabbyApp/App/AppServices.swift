@@ -4,6 +4,7 @@ import Observation
 import TabbyCore
 import TabbyTerminal
 import TabbySSH
+import TabbySSHLib
 import TabbyAccount
 
 /// Process-wide services: configuration, profiles, sessions, theme. Replaces the Angular
@@ -25,6 +26,9 @@ public final class AppServices {
     @ObservationIgnored public let keyFiles: KeyFileStore
     @ObservationIgnored public private(set) var factories: [String: SessionFactory] = [:]
     @ObservationIgnored public let sshFactory: SSHSessionFactory
+    /// The library (libssh) backend; `ssh.backend: openssh` or a profile's `backend` picks
+    /// `sshFactory` instead.
+    @ObservationIgnored let libSSHFactory: LibSSHSessionFactory
     public let theme: ThemeManager
     let account: AccountService
 
@@ -85,8 +89,20 @@ public final class AppServices {
                                  // Tests point this at a scratch folder so no real ~/.ssh key is read.
                                  homeDirectory: ProcessInfo.processInfo.environment["TABBYMAC_SYNC_HOME"] ?? NSHomeDirectory()),
             paths: paths)
+        let config = config
+        libSSHFactory = LibSSHSessionFactory(environment: LibSSHSession.Environment(
+            knownHostsFile: paths.knownHostsFile.path,
+            verifyHostKeys: config.value("ssh.verifyHostKeys")?.boolValue ?? true,
+            agentSocket: {
+                let configured = MainActor.assumeIsolated { config.value("ssh.agentPath")?.stringValue }
+                if let configured, !configured.isEmpty { return (configured as NSString).expandingTildeInPath }
+                return ProcessInfo.processInfo.environment["SSH_AUTH_SOCK"]
+            },
+            syncedKeys: { keyFiles.syncedKeys() },
+            passwords: passwords))
         factories["local"] = LocalSessionFactory()
-        factories["ssh"] = sshFactory
+        factories["ssh"] = SSHBackendFactory(openSSH: sshFactory, library: libSSHFactory,
+                                             configuredBackend: { MainActor.assumeIsolated { config.value("ssh.backend")?.stringValue } })
         loadError = error
 
         config.observe { [weak self] in
@@ -126,6 +142,7 @@ public final class AppServices {
         configRevision += 1
         theme.update(config: config)
         sshFactory.environment.verifyHostKeys = config.value("ssh.verifyHostKeys")?.boolValue ?? true
+        libSSHFactory.environment.verifyHostKeys = sshFactory.environment.verifyHostKeys
         scheduleSave()
         account.localDataChanged()
     }

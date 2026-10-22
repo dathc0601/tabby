@@ -104,6 +104,9 @@ terminal:
     __nonStructural: true
   profile: 'local:default'
 ssh:
+  # TabbyMac: `library` (in-process libssh: SFTP, live port forwards) or `openssh`
+  # (/usr/bin/ssh in a PTY). A profile's `options.backend` overrides it.
+  backend: library
   warnOnClose: false
   agentType: auto
   agentPath: null
