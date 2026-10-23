@@ -105,6 +105,10 @@ let package = Package(
             name: "TabbyTelnet",
             dependencies: ["TabbyCore", "TabbyTerminal"]
         ),
+        // Phase 5: Tabby's command line and tabbymac:// / ssh:// / telnet:// links, parsed into one
+        // request type (Foundation only, tested on Linux). Used by the app and the `tabby` helper.
+        .target(name: "TabbyCLIKit"),
+        .testTarget(name: "TabbyCLIKitTests", dependencies: ["TabbyCLIKit"]),
         // Socket and pty helpers shared by the integration test targets (not shipped).
         .target(
             name: "TabbyTestSupport",
