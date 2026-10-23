@@ -168,10 +168,12 @@ public final class TerminalPane: TerminalEngineDelegate {
             userClosed = false
             disconnectedByHand = false
             recentInput = ""
+            started = true
             try s.start(cols: max(size.cols, 2), rows: max(size.rows, 1))
+            // A session can end inside `start` (a serial port that can't open).
+            guard session === s else { return }
             startedAt = Date()
             state = .running
-            started = true
             if let scripts = loginScripts?.unconditionalScripts() {
                 for line in scripts { s.write(Data(line.utf8)) }
             }

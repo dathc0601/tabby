@@ -174,4 +174,30 @@ final class ConnectionPaneTests: XCTestCase {
         serial.start()
         XCTAssertNil(serial.closeWarning(sshWarnOnClose: true))
     }
+
+    // A session that ends inside `start` (a port that can't open) leaves the pane ended and
+    // ready to retry, not running.
+    func testASessionThatEndsWhileStartingLeavesThePaneEnded() throws {
+        final class EndsAtOnce: TerminalSession {
+            var onOutput: ((Data) -> Void)?
+            var onClosed: ((Int32?) -> Void)?
+            var onStatus: ((SessionStatus) -> Void)?
+            var isRunning = false
+            func start(cols: Int, rows: Int) throws { onClosed?(nil) }
+            func write(_ data: Data) {}
+            func resize(cols: Int, rows: Int) {}
+            func kill() {}
+            func workingDirectory() -> String? { nil }
+        }
+        final class Factory: SessionFactory {
+            let profileType = "serial"
+            func makeSession(profile: Profile, context: SessionContext) throws -> TerminalSession { EndsAtOnce() }
+        }
+        let settings = TerminalSettings(config: ConfigStore(defaults: try ConfigStore.bundledDefaults()))
+        let pane = TerminalPane(profile: Profile(type: "serial", name: "s"), factory: Factory(), context: SessionContext(),
+                                settings: settings, scheme: .tabbyDefault)
+        pane.attach(engine: FakeEngine())
+        pane.start()
+        XCTAssertEqual(pane.state, .ended(code: nil, canRestart: true))
+    }
 }

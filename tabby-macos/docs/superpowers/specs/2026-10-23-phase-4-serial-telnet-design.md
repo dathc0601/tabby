@@ -177,8 +177,8 @@ terminal on `.connected`, as Tabby's `ConnectableTerminalTabComponent` does.
 ## Serial
 
 **Port list.** `SerialPortList` enumerates IOKit `IOSerialBSDClient` services.
-- Each port has its callout path (`/dev/cu.*`), dial-in path, and a description from the USB
-  ancestor: product name, and serial number when there is one.
+- Each port has its callout path (`/dev/cu.*`) and Tabby's description from the USB ancestor:
+  the vendor name and the serial number, when there are any.
 - Hot-plug works through `IOServiceAddMatchingNotification`, for both first-match and
   terminated notifications.
 - Internal ports (`cu.debug-console`, `cu.Bluetooth-Incoming-Port`) are listed last and get
@@ -213,8 +213,9 @@ terminal on `.connected`, as Tabby's `ConnectableTerminalTabComponent` does.
 **Opening a tab** (in `WindowModel` before the pane is made; Tabby does this in
 `getNewTabParameters`):
 1. ★ With no `port`, a **serial port selector** opens: one row per port, with the
-   description as subtitle. With no ports it prints the error "No serial ports found".
-   Tabby silently takes the first port and crashes when there is none.
+   description as subtitle; a typed `/dev/…` path is offered too. With no ports a toast says
+   "No serial ports found" and no tab opens. Tabby silently takes the first port and crashes
+   when there is none.
 2. With `baudrate` null, the **baud rate selector** opens: standard rates with 115200
    preselected. ★ A typed number offers `Use custom rate "<n>"`.
 3. Cancelling either selector opens no tab.
@@ -223,7 +224,11 @@ terminal on `.connected`, as Tabby's `ConnectableTerminalTabComponent` does.
 
 **`SerialPort`.**
 - Opens with `open(path, O_RDWR | O_NOCTTY | O_NONBLOCK)`, then takes the port exclusively
-  with `ioctl(TIOCEXCL)`, so a second open fails with "Port is busy".
+  with `ioctl(TIOCEXCL)`, so another program's open fails. Ports open in this process are
+  also tracked, so a second tab on the same port fails with "<path> is busy: another program
+  has it open" (ptys ignore `TIOCEXCL`, which is how the tests see this).
+- A port that can't open shows the error and ends the session right after `start`, so the
+  pane offers to try again.
 - Puts the port in raw mode (`cfmakeraw`) and sets `CLOCAL | CREAD`.
 - Applies data bits, stop bits (1.5 maps to 2, as on POSIX), parity, `CRTSCTS` for RTS/CTS,
   `IXON`/`IXOFF`/`IXANY`.
@@ -234,8 +239,8 @@ terminal on `.connected`, as Tabby's `ConnectableTerminalTabComponent` does.
 - "Change baud rate" applies live, and the pane's profile copy is updated.
 - `slowSend` writes one byte per `write` call (Tabby adds no delay).
 
-**Errors** are printed with the ` X ` helper: "Permission denied", "Port is busy",
-"No such device", "Unsupported baud rate".
+**Errors** are printed with the ` X ` helper: "Cannot open <path>: <reason>", "<path> is
+busy: another program has it open", "Unsupported baud rate <n>", "No serial port selected".
 
 **Hotkeys** (defaults in `defaults.yaml`, catalog entries for the Hotkeys page):
 - `serial` (Alt-K) opens the serial selector: saved serial profiles plus the detected ports.

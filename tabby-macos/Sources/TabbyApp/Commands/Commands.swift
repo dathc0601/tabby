@@ -39,10 +39,11 @@ extension MainWindowController {
         case "duplicate-tab": if let t = model.activeTab { model.duplicateTab(t.id) }
         case "pin-tab": if let t = model.activeTab { model.togglePinned(t.id) }
         case "restart-tab", "reconnect-tab", "restart-ssh-session": pane?.restart()
-        case "restart-telnet-session":
+        case "restart-telnet-session", "restart-serial-session":
             // Tabby's per-type restart acts on its own kind of tab only.
-            guard let pane, pane.profile.type == "telnet" else { return false }
+            guard let pane, "restart-\(pane.profile.type)-session" == id else { return false }
             pane.restart()
+        case "serial": showSerialSelector()
         case "disconnect-tab": pane?.disconnect()
         case "open-sftp":
             // Tabby's "Open SFTP panel" (library backend, connected).

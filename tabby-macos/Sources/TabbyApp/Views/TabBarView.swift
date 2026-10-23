@@ -471,7 +471,8 @@ enum ProfileIcons {
         let name = icon.replacingOccurrences(of: "fas fa-", with: "").replacingOccurrences(of: "fab fa-", with: "")
         let map = ["terminal": "terminal", "network": "network", "server": "server.rack", "desktop": "desktopcomputer",
                    "laptop": "laptopcomputer", "globe": "globe", "bolt": "bolt", "cloud": "cloud", "database": "cylinder",
-                   "linux": "terminal", "apple": "apple.logo", "docker": "shippingbox", "code": "chevron.left.forwardslash.chevron.right"]
+                   "linux": "terminal", "apple": "apple.logo", "docker": "shippingbox", "code": "chevron.left.forwardslash.chevron.right",
+                   "microchip": "memorychip", "network-wired": "network"]
         return map[name] ?? "terminal"
     }
 

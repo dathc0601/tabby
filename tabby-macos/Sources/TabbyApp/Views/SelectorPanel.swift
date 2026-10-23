@@ -24,7 +24,7 @@ final class SelectorPanel: NSPanel {
     static let size = CGSize(width: 660, height: 440)
 
     static func present(over window: NSWindow?, placeholder: String, items: [SelectorItem],
-                        dynamicItems: ((String) -> [SelectorItem])? = nil) {
+                        initialSelection: Int = 0, dynamicItems: ((String) -> [SelectorItem])? = nil) {
         current?.close()
         let panel = SelectorPanel(contentRect: CGRect(origin: .zero, size: size),
                                   styleMask: [.titled, .fullSizeContentView], backing: .buffered, defer: false)
@@ -40,7 +40,8 @@ final class SelectorPanel: NSPanel {
         panel.standardWindowButton(.closeButton)?.isHidden = true
         panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
         panel.standardWindowButton(.zoomButton)?.isHidden = true
-        let view = SelectorView(placeholder: placeholder, items: items, dynamicItems: dynamicItems) { [weak panel] item in
+        let view = SelectorView(placeholder: placeholder, items: items, initialSelection: initialSelection,
+                                dynamicItems: dynamicItems) { [weak panel] item in
             panel?.close()
             if let item { DispatchQueue.main.async { item.action() } }
         }
@@ -101,11 +102,13 @@ struct HoverSelection {
 struct SelectorView: View {
     let placeholder: String
     let items: [SelectorItem]
+    var initialSelection = 0
     let dynamicItems: ((String) -> [SelectorItem])?
     let finish: (SelectorItem?) -> Void
 
     var body: some View {
-        SelectorContent(placeholder: placeholder, items: items, dynamicItems: dynamicItems, finish: finish)
+        SelectorContent(placeholder: placeholder, items: items, initialSelection: initialSelection,
+                        dynamicItems: dynamicItems, finish: finish)
             .chromeEnvironment()
     }
 }
@@ -113,6 +116,7 @@ struct SelectorView: View {
 private struct SelectorContent: View {
     let placeholder: String
     let items: [SelectorItem]
+    let initialSelection: Int
     let dynamicItems: ((String) -> [SelectorItem])?
     let finish: (SelectorItem?) -> Void
     @State private var query = ""
@@ -195,7 +199,10 @@ private struct SelectorContent: View {
         .frame(width: SelectorPanel.size.width, height: SelectorPanel.size.height)
         .foregroundStyle(chrome.text.color)
         .background(chrome.surfaceRaised.color)
-        .onAppear { focused = true }
+        .onAppear {
+            focused = true
+            if items.indices.contains(initialSelection) { selection = initialSelection }
+        }
     }
 
     private func hint(_ key: String, _ label: String) -> some View {

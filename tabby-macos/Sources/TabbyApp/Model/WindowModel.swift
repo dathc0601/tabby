@@ -11,6 +11,11 @@ public protocol WindowModelUI: AnyObject {
     func paneDidRequestFocus(_ pane: TerminalPane)
     func notifyProcessEnded(_ pane: TerminalPane, code: Int32?)
     func modelDidBecomeEmpty()
+    /// Asks which port and baud rate a serial profile without them should use (Tabby asks
+    /// the rate in `getNewTabParameters`); the completion gets the profile with the answers,
+    /// or nil when the user cancelled.
+    func completeSerialProfile(_ profile: Profile, missing: [SerialProfileProvider.Parameter],
+                               completion: @escaping (Profile?) -> Void)
 }
 
 /// Tabs of one window (Tabby's `AppService` for a window).
@@ -90,11 +95,32 @@ public final class WindowModel {
         }
     }
 
+    /// A serial profile with no port or baud rate opens once the user answered (never when
+    /// restoring: the recovery token keeps the answers). Returns whether it asked.
+    private func askForMissingParameters(_ profile: Profile, then open: @escaping (Profile) -> Void) -> Bool {
+        guard !skipAsking, let ui else { return false }
+        let missing = SerialProfileProvider.missingParameters(services.profiles.resolved(profile))
+        guard !missing.isEmpty else { return false }
+        ui.completeSerialProfile(profile, missing: missing) { [weak self] completed in
+            guard let self, let completed else { return }
+            MainActor.assumeIsolated {
+                // Answers that still leave a gap open anyway; the session says what's missing.
+                self.skipAsking = true
+                defer { self.skipAsking = false }
+                open(completed)
+            }
+        }
+        return true
+    }
+
+    @ObservationIgnored private var skipAsking = false
+
     // MARK: Tabs
 
     @discardableResult
     public func openTab(profile: Profile? = nil, cwd: String? = nil) -> TabModel? {
         let p = profile ?? services.defaultProfile()
+        if askForMissingParameters(p, then: { [weak self] done in self?.openTab(profile: done, cwd: cwd) }) { return nil }
         let inherited = cwd ?? (p.type == "local" ? activePane?.currentDirectory() : nil)
         guard let pane = makePane(profile: p, cwd: inherited) else { return nil }
         let tab = TabModel(pane: pane)
@@ -368,6 +394,7 @@ public final class WindowModel {
 
     /// Restarts the active pane with another profile (`switch-profile`).
     public func switchActivePane(to profile: Profile) {
+        if askForMissingParameters(profile, then: { [weak self] done in self?.switchActivePane(to: done) }) { return }
         guard let tab = activeTab, let old = tab.focusedPane,
               let pane = makePane(profile: profile, cwd: old.currentDirectory()) else { return }
         old.close()
