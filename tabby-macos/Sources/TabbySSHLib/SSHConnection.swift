@@ -776,6 +776,9 @@ public final class SSHConnection: @unchecked Sendable {
         try await perform { [self] in (bridges.count, channels.count) }
     }
 
+    /// Work handed to the connection's thread and not yet started (tests).
+    var queuedWorkCount: Int { lock.withLock { tasks.count } }
+
     /// Joins `fd` and `channel` until either side ends; the connection owns and closes `fd`.
     func bridge(_ box: ChannelBox, fd: Int32, connecting: Bool = false) {
         var yes: Int32 = 1
@@ -841,6 +844,9 @@ public final class SSHConnection: @unchecked Sendable {
             return done(.failure(.channelFailed(lastError())))
         }
         let box = ChannelBox(channel: channel, handlers: SSHChannelHandlers(data: { _ in }, closed: { _ in }))
+        // Until the bridge takes over, libssh keeps what arrives: a target that speaks first
+        // (an sshd's banner) can answer in the same read as the open confirmation.
+        box.sink = { _ in 0 }
         let open = PendingOpen(box: box, host: host, port: port, done: done)
         if !advance(open) { pendingOpens.append(open) }
     }

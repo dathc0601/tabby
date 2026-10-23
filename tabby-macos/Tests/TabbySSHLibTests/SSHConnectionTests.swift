@@ -186,6 +186,34 @@ final class SSHConnectionTests: XCTestCase {
         XCTAssertEqual(roundTrip(fd, big).count, big.count, "256 KiB, more than one channel window")
     }
 
+    /// Found in the M8 walk: a jump host failed with "Receiving banner: too large banner".
+    /// The target's first bytes (an sshd's banner) came in with the channel's open
+    /// confirmation and went to the channel's placeholder handler before the bridge was in
+    /// place. Through Docker that happened by itself; here the connection's thread is held
+    /// right after the open request, so the confirmation and the bytes are read together.
+    func testABridgeKeepsWhatTheTargetSaysFirst() async throws {
+        let greeting = try FloodServer(size: 64)
+        defer { greeting.stop() }
+        let connection = SSHConnection(options: options(keys: [sshd.keyPath]), prompter: ScriptedPrompter(), passwords: InMemoryPasswordStore())
+        try await connection.connect()
+        defer { connection.disconnect() }
+
+        let holding = DispatchSemaphore(value: 0)
+        let gate = DispatchSemaphore(value: 0)
+        connection.enqueue { holding.signal(); gate.wait() }
+        holding.wait()
+        async let opened = connection.openBridgedSocket(to: "127.0.0.1", port: greeting.port)
+        let deadline = Date().addingTimeInterval(5)
+        while connection.queuedWorkCount < 1, Date() < deadline { try await Task.sleep(nanoseconds: 5_000_000) }
+        // Runs right after the open request went out: the answer and the first bytes arrive meanwhile.
+        connection.enqueue { usleep(300_000) }
+        gate.signal()
+
+        let fd = try await opened
+        defer { close(fd) }
+        XCTAssertEqual(readAll(fd, timeout: 10), greeting.payload)
+    }
+
     func testABridgeToAClosedPortFails() async throws {
         let closedPort = try TestSSHD.freePort()
         let connection = SSHConnection(options: options(keys: [sshd.keyPath]), prompter: ScriptedPrompter(), passwords: InMemoryPasswordStore())
