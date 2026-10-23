@@ -24,6 +24,14 @@ final class ConfirmationAlertTests: XCTestCase {
         XCTAssertFalse(alert.buttons[0].hasDestructiveAction)
     }
 
+    /// Found in the M9b walk: two panes on one host asked "Disconnect from 127.0.0.1?" twice.
+    func testTheSameWarningIsAskedOnce() {
+        let warnings = ["Disconnect from h?", "Disconnect from h?", "vim is still running.", "Disconnect from h?"]
+        XCTAssertEqual(MainWindowController.closeMessage(warnings), "Disconnect from h?\nvim is still running.")
+        XCTAssertNil(MainWindowController.closeMessage([]))
+        XCTAssertEqual(AppDelegate.quitAlert(warnings: warnings).informativeText, "Disconnect from h?\nvim is still running.")
+    }
+
     func testQuitIsTheDefault() {
         let alert = AppDelegate.quitAlert(warnings: ["Disconnect from switch.lan?"])
         XCTAssertEqual(alert.messageText, "Quit TabbyMac?")

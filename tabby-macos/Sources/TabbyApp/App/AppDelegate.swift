@@ -100,7 +100,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     static func quitAlert(warnings: [String]) -> NSAlert {
         let alert = NSAlert()
         alert.messageText = "Quit TabbyMac?"
-        alert.informativeText = warnings.joined(separator: "\n")
+        alert.informativeText = MainWindowController.closeMessage(warnings) ?? ""
         alert.addButton(withTitle: "Quit")
         alert.addButton(withTitle: "Cancel")
         return alert
