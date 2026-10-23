@@ -77,7 +77,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
 
         if let error = services.loadError {
-            Prompts.message(in: controller.window, title: "Couldn't read config.yaml", message: "\(error)\n\nDefaults are in use; your file was not modified.")
+            Prompts.message(in: controller.window, title: L("Couldn't read config.yaml"), message: L("{error}\n\nDefaults are in use; your file was not modified.", ["error": String(describing: error)]))
         }
     }
 
@@ -99,10 +99,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Quit is the default button (design C10).
     static func quitAlert(warnings: [String]) -> NSAlert {
         let alert = NSAlert()
-        alert.messageText = "Quit TabbyMac?"
+        alert.messageText = L("Quit TabbyMac?")
         alert.informativeText = MainWindowController.closeMessage(warnings) ?? ""
-        alert.addButton(withTitle: "Quit")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: L("Quit"))
+        alert.addButton(withTitle: L("Cancel"))
         return alert
     }
 
@@ -156,8 +156,8 @@ final class WindowManager {
         if let error {
             let message = error.localizedDescription
             if message != lastSyncError {
-                controller.toasts.show(ToastCenter.Toast(symbol: "exclamationmark.icloud", tint: .danger, title: "Sync failed", detail: message,
-                                                         actionTitle: "Settings", action: { [weak self] in self?.openSettings(section: .account) }), for: 8)
+                controller.toasts.show(ToastCenter.Toast(symbol: "exclamationmark.icloud", tint: .danger, title: L("Sync failed"), detail: message,
+                                                         actionTitle: L("Settings"), action: { [weak self] in self?.openSettings(section: .account) }), for: 8)
             }
             lastSyncError = message
             return
@@ -166,7 +166,7 @@ final class WindowManager {
         guard let report else { return }
         if report.applied && !account.isRestoring {
             controller.toasts.show(ToastCenter.Toast(symbol: "arrow.triangle.2.circlepath.icloud", tint: .accent,
-                                                     title: "Synced", detail: "Changes from your other Macs are here."))
+                                                     title: L("Synced"), detail: L("Changes from your other Macs are here.")))
         }
         let fresh = report.pendingKeyFiles.filter { !offeredKeyFiles.contains($0.id) }
         if !fresh.isEmpty, controller.window?.attachedSheet == nil {

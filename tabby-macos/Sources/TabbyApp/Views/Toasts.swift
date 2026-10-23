@@ -40,8 +40,8 @@ final class ToastCenter {
     static func duration(_ seconds: TimeInterval) -> String {
         let s = Int(seconds.rounded())
         if s < 60 { return "\(s)s" }
-        if s < 3600 { return "\(s / 60)m \(s % 60)s" }
-        return "\(s / 3600)h \((s % 3600) / 60)m"
+        if s < 3600 { return L("{minutes}m {seconds}s", ["minutes": s / 60, "seconds": s % 60]) }
+        return L("{hours}h {minutes}m", ["hours": s / 3600, "minutes": (s % 3600) / 60])
     }
 }
 
@@ -101,7 +101,7 @@ struct ToastView: View {
                 }
                 .buttonStyle(ChromeButtonStyle())
             }
-            IconButton(symbol: "xmark", help: "Dismiss", size: 20, action: close)
+            IconButton(symbol: "xmark", help: L("Dismiss"), size: 20, action: close)
         }
         .padding(12)
         .foregroundStyle(chrome.text.color)

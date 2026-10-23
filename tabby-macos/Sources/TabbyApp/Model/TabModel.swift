@@ -12,8 +12,8 @@ public enum ContentTabKind: Hashable, Sendable {
 
     public var title: String {
         switch self {
-        case .settings: return "Settings"
-        case .welcome: return "Welcome"
+        case .settings: return L("Settings")
+        case .welcome: return L("Welcome")
         }
     }
 
@@ -76,7 +76,7 @@ public final class TabModel: Identifiable {
     public var title: String {
         if let content { return content.title }
         if let customTitle, !customTitle.isEmpty { return customTitle }
-        return focusedPane?.title ?? "Terminal"
+        return focusedPane?.title ?? L("Terminal")
     }
 
     public var progress: Double? {

@@ -43,6 +43,15 @@ final class LanguageTests: XCTestCase {
         AppServices.shared.config.set("terminal.scrollback", .null)
     }
 
+    /// 5.4a: menus, prompts and alerts go through the catalogs.
+    func testTheMenuBarAndAlertsAreTranslated() {
+        MainMenu.install()
+        AppServices.shared.config.set("language", .string("de-DE"))
+        let appMenu = NSApp.mainMenu?.items.first?.submenu
+        XCTAssertNotNil(appMenu?.items.first { $0.title == "Einstellungen…" }, "\(appMenu?.items.map(\.title) ?? [])")
+        XCTAssertEqual(AppDelegate.quitAlert(warnings: []).buttons.last?.title, "Abbrechen")
+    }
+
     func testSettingsSectionsShowTranslatedTitlesAndStillMatchEnglish() {
         AppServices.shared.config.set("language", .string("de-DE"))
         XCTAssertEqual(SettingsSection.application.title, "Anwendung")

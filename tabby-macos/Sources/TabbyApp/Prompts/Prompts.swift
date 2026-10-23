@@ -6,7 +6,7 @@ import TabbySSH
 /// Native replacements for Tabby's prompt / rename / confirmation modals.
 @MainActor
 enum Prompts {
-    static func confirm(in window: NSWindow?, title: String, message: String, confirm: String, cancel: String = "Cancel",
+    static func confirm(in window: NSWindow?, title: String, message: String, confirm: String, cancel: String = L("Cancel"),
                         destructive: Bool = false, completion: @escaping (Bool) -> Void) {
         let alert = confirmAlert(title: title, message: message, confirm: confirm, cancel: cancel, destructive: destructive)
         run(alert, in: window) { completion($0 == .alertFirstButtonReturn) }
@@ -14,7 +14,7 @@ enum Prompts {
 
     /// A destructive confirm has no Return key (design C10): closing a live connection takes a
     /// deliberate click; Cancel keeps Escape.
-    static func confirmAlert(title: String, message: String, confirm: String, cancel: String = "Cancel",
+    static func confirmAlert(title: String, message: String, confirm: String, cancel: String = L("Cancel"),
                              destructive: Bool) -> NSAlert {
         let alert = NSAlert()
         alert.messageText = title
@@ -55,7 +55,7 @@ enum Prompts {
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = message
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: L("OK"))
         run(alert, in: window) { _ in }
     }
 
@@ -124,21 +124,21 @@ final class SSHPromptPresenter: SSHPromptHandler {
                 }
             }
         case let .password(user, promptHost):
-            Prompts.text(in: window, title: "Password for \(user)@\(promptHost)", message: profileName, secure: true,
-                         remember: "Remember in Keychain", confirm: "Log in") { value, remember in
+            Prompts.text(in: window, title: L("Password for {user}@{host}", ["user": user, "host": promptHost]), message: profileName, secure: true,
+                         remember: L("Remember in Keychain"), confirm: L("Log in")) { value, remember in
                 reply(value.map { .text($0, remember: remember) } ?? .cancel)
             }
         case let .passphrase(keyPath):
-            Prompts.text(in: window, title: "Passphrase for key", message: keyPath, secure: true,
-                         remember: "Remember in Keychain", confirm: "Unlock") { value, remember in
+            Prompts.text(in: window, title: L("Passphrase for key"), message: keyPath, secure: true,
+                         remember: L("Remember in Keychain"), confirm: L("Unlock")) { value, remember in
                 reply(value.map { .text($0, remember: remember) } ?? .cancel)
             }
         case let .confirm(message):
-            Prompts.confirm(in: window, title: host, message: message, confirm: "Yes", cancel: "No") { ok in
+            Prompts.confirm(in: window, title: host, message: message, confirm: L("Yes"), cancel: L("No")) { ok in
                 reply(ok ? .accept : .reject)
             }
         case let .secret(message), let .hostKeyChanged(message):
-            Prompts.text(in: window, title: host, message: message, secure: true, confirm: "Send") { value, _ in
+            Prompts.text(in: window, title: host, message: message, secure: true, confirm: L("Send")) { value, _ in
                 reply(value.map { .text($0, remember: false) } ?? .cancel)
             }
         case let .information(message):

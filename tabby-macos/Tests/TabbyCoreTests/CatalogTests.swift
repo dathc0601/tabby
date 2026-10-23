@@ -60,36 +60,38 @@ final class CatalogTests: XCTestCase {
 
     // MARK: Raw literals
 
-    /// Calls whose literal text is shown to the user. A literal counts when it has a letter
-    /// outside `\(…)`; `// l10n-ignore` on the line exempts it (identifiers, sample input).
-    static let uiPatterns = [
-        #"\b(Text|Button|Label|Toggle|Picker|Menu|TextField|SecureField|GroupHeader|SettingsRow|SettingsGroup|SettingsPage)\(\s*""#,
-        #"\.help\(\s*""#,
-        #"NSMenuItem\(title:\s*""#,
-        #"\b(command|item)\(\s*""#,
-        #"\.(messageText|informativeText)\s*=\s*""#,
-        #"addButton\(withTitle:\s*""#,
-        #"\b(title|subtitle|placeholder|message|detail|footer|confirm|cancel|help|label|text|prompt):\s*""#,
-        #"ServiceMessage\.\w+\(\s*""#,
-    ]
+    /// Calls whose literal argument is shown to the user (checked when the literal has a letter
+    /// outside `\(…)`), plus any literal that reads as English words ("Show", "Port closed").
+    /// `// l10n-ignore` on a line, or `l10n-ignore-file` anywhere in a file, exempts it: key
+    /// names, font names, identifiers, log lines.
+    static let uiPrefixes = [
+        #"\b(Text|Button|Label|Toggle|Picker|Menu|TextField|SecureField|GroupHeader|SettingsRow|SettingsGroup|SettingsPage)\(\s*$"#,
+        #"\.help\(\s*$"#,
+        #"NSMenuItem\(title:\s*$"#,
+        #"\b(command|item)\(\s*$"#,
+        #"\.(messageText|informativeText)\s*=\s*$"#,
+        #"addButton\(withTitle:\s*$"#,
+        #"\b(title|subtitle|placeholder|message|detail|footer|confirm|cancel|help|label|text|prompt|group|actionTitle):\s*$"#,
+        #"ServiceMessage\.\w+\(\s*$"#,
+    ].map { try! NSRegularExpression(pattern: $0) }
+    static let prose = try! NSRegularExpression(pattern: #"^[A-Z][a-z’']+(?:[  ]\S+)*$"#)
+    static let wrapped = try! NSRegularExpression(pattern: #"\b(L|Lkey)\(\s*$"#)
+    static let skippedLines = try! NSRegularExpression(pattern: #"NSLog\(|print\(|fatalError\(|assert|precondition\(|\.custom\(|NSFont\(name:|os_log|Logger\(|Notification\.Name\(|forResource:|setFrameAutosaveName|DispatchQueue\(label|identifier:"#)
 
     /// Files not swept yet. Each sweep task (5.4a–e) removes its files; at the end of phase 5
     /// the list is empty.
     static let notYetSwept: Set<String> = [
+        "Sources/TabbyAccount/InMemorySyncServer.swift",
+        "Sources/TabbyAccount/SyncClient.swift",
+        "Sources/TabbyAccount/SyncEngine.swift",
+        "Sources/TabbyApp/Account/AccountService.swift",
         "Sources/TabbyApp/Account/AccountSettingsView.swift",
         "Sources/TabbyApp/Account/AccountViews.swift",
-        "Sources/TabbyApp/App/AppDelegate.swift",
-        "Sources/TabbyApp/App/MainMenu.swift",
-        "Sources/TabbyApp/Commands/Commands.swift",
-        "Sources/TabbyApp/Commands/SerialSelectors.swift",
-        "Sources/TabbyApp/Prompts/KeyboardInteractivePanel.swift",
-        "Sources/TabbyApp/Prompts/LibSSHPromptPresenter.swift",
-        "Sources/TabbyApp/Prompts/PromptCards.swift",
-        "Sources/TabbyApp/Prompts/Prompts.swift",
         "Sources/TabbyApp/Settings/ColorSchemeSettingsView.swift",
         "Sources/TabbyApp/Settings/ConfigFileSettingsView.swift",
         "Sources/TabbyApp/Settings/HotkeysSettingsView.swift",
         "Sources/TabbyApp/Settings/ProfilesSettingsView.swift",
+        "Sources/TabbyApp/Settings/ProfileTypes.swift",
         "Sources/TabbyApp/Settings/SettingsView.swift",
         "Sources/TabbyApp/Split/SplitOverlays.swift",
         "Sources/TabbyApp/Split/SplitTreeView.swift",
@@ -100,21 +102,41 @@ final class CatalogTests: XCTestCase {
         "Sources/TabbyApp/Views/SearchBarView.swift",
         "Sources/TabbyApp/Views/SelectorPanel.swift",
         "Sources/TabbyApp/Views/SFTPPanelController.swift",
+        "Sources/TabbyApp/Views/SFTPPanelModel.swift",
         "Sources/TabbyApp/Views/SFTPPanelView.swift",
         "Sources/TabbyApp/Views/StartPageView.swift",
         "Sources/TabbyApp/Views/TabBarView.swift",
-        "Sources/TabbyApp/Views/Toasts.swift",
         "Sources/TabbyApp/Views/Transfers.swift",
         "Sources/TabbyApp/Views/WelcomeView.swift",
-        "Sources/TabbyApp/Window/MainWindowController.swift",
+        "Sources/TabbyCore/ColorSchemes/ColorScheme.swift",
+        "Sources/TabbyCore/Config/ConfigPaths.swift",
+        "Sources/TabbyCore/Config/ConfigStore.swift",
+        "Sources/TabbyCore/Config/ConfigValue.swift",
+        "Sources/TabbyCore/Config/Migrations.swift",
+        "Sources/TabbyCore/Hotkeys/HotkeyCatalog.swift",
+        "Sources/TabbyCore/Hotkeys/Keystroke.swift",
+        "Sources/TabbyCore/Profiles/ProfileOptions.swift",
+        "Sources/TabbyCore/Profiles/ProfileProvider.swift",
         "Sources/TabbyCore/Profiles/ProfileRegistry.swift",
         "Sources/TabbyCore/Profiles/StreamProcessing.swift",
+        "Sources/TabbyCore/Serial/SerialProfileProvider.swift",
+        "Sources/TabbyCore/SSH/SSHConfigGenerator.swift",
+        "Sources/TabbyCore/SSH/SSHConfigParser.swift",
+        "Sources/TabbyCore/Telnet/TelnetProfileProvider.swift",
         "Sources/TabbySerial/SerialPort.swift",
         "Sources/TabbySerial/SerialSession.swift",
+        "Sources/TabbySSH/SSHSession.swift",
         "Sources/TabbySSHLib/LibSSHSession.swift",
+        "Sources/TabbySSHLib/PortForwards.swift",
+        "Sources/TabbySSHLib/SFTPClient.swift",
+        "Sources/TabbySSHLib/SSHConnection.swift",
+        "Sources/TabbySSHLib/SSHConnectionTest.swift",
+        "Sources/TabbySSHLib/SSHConnector.swift",
         "Sources/TabbyTelnet/TelnetSession.swift",
         "Sources/TabbyTerminal/PTYProcess.swift",
         "Sources/TabbyTerminal/SwiftTermEngine.swift",
+        "Sources/TabbyTerminal/TerminalPane.swift",
+        "Sources/TabbyTerminal/TerminalSettings.swift",
     ]
 
     func testUserVisibleTextGoesThroughL() throws {
@@ -124,11 +146,25 @@ final class CatalogTests: XCTestCase {
             if !hits.isEmpty { offenders[Self.relative(file), default: []] += hits }
         }
         for (file, hits) in offenders.sorted(by: { $0.key < $1.key }) where !Self.notYetSwept.contains(file) {
-            XCTFail("\(file): \(hits.count) literal(s) without L(): \(hits.prefix(3).joined(separator: " | "))")
+            XCTFail("\(file): \(hits.count) literal(s) without L(): \(hits.prefix(4).joined(separator: " | "))")
         }
         for file in Self.notYetSwept.sorted() where offenders[file] == nil {
             XCTFail("\(file) has no raw literals left: remove it from notYetSwept")
         }
+    }
+
+    func testTheLiteralScannerFindsShownTextOnly() {
+        func hits(_ line: String) -> [String] { Self.rawLiterals(inLines: [line]).map { $0.components(separatedBy: ": ").dropFirst().joined(separator: ": ") } }
+        XCTAssertEqual(hits(#"Text("Hello")"#), ["Hello"])
+        XCTAssertEqual(hits(#"Text(L("Hello"))"#), [])
+        XCTAssertEqual(hits(#"item(running ? "Disconnect" : "Reconnect", id)"#), ["Disconnect", "Reconnect"])
+        XCTAssertEqual(hits(#"let url = "https://example.com" // A comment"#), [])
+        XCTAssertEqual(hits(#"title: "user@host""#), ["user@host"])
+        XCTAssertEqual(hits(#"Text("\(a ?? "Fallback text") items")"#), [#"\(a ?? "Fallback text") items"#])
+        XCTAssertEqual(hits(#"NSLog("Could not save")"#), [])
+        XCTAssertEqual(hits(#"x = "Menlo" // l10n-ignore"#), [])
+        XCTAssertEqual(hits(#"Text("\(count)")"#), [])
+        XCTAssertEqual(hits(#"let id = "new-tab""#), [])
     }
 
     // MARK: Helpers
@@ -228,43 +264,73 @@ final class CatalogTests: XCTestCase {
     }
 
     static func rawLiterals(in file: URL) throws -> [String] {
-        let regexes = uiPatterns.map { try! NSRegularExpression(pattern: $0) }
+        let text = try String(contentsOf: file, encoding: .utf8)
+        if text.contains("l10n-ignore-file") { return [] }
+        return rawLiterals(inLines: text.components(separatedBy: "\n"))
+    }
+
+    static func rawLiterals(inLines lines: [String]) -> [String] {
         var hits: [String] = []
-        let lines = try String(contentsOf: file, encoding: .utf8).components(separatedBy: "\n")
-        for line in lines where !line.contains("l10n-ignore") {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("//") || trimmed.hasPrefix("///") { continue }
+        var inMultiline = false
+        for (n, line) in lines.enumerated() {
+            if line.contains("\"\"\"") { inMultiline.toggle(); continue }
+            if inMultiline || line.contains("l10n-ignore") { continue }
             let ns = line as NSString
-            for regex in regexes {
-                for match in regex.matches(in: line, range: NSRange(location: 0, length: ns.length)) {
-                    let start = match.range.location + match.range.length
-                    let literal = readLiteral(ns.substring(from: start))
-                    if hasWords(literal) { hits.append(literal) }
-                }
+            if skippedLines.firstMatch(in: line, range: NSRange(location: 0, length: ns.length)) != nil { continue }
+            for (literal, before) in literals(in: line) {
+                let range = NSRange(location: 0, length: (before as NSString).length)
+                if wrapped.firstMatch(in: before, range: range) != nil { continue }
+                let shown = uiPrefixes.contains { $0.firstMatch(in: before, range: range) != nil } && hasWords(literal)
+                let plain = literal.replacingOccurrences(of: #"\\\([^)]*\)"#, with: "X", options: .regularExpression)
+                let looksLikeProse = plain.count > 2 && prose.firstMatch(in: plain, range: NSRange(location: 0, length: (plain as NSString).length)) != nil
+                if shown || looksLikeProse { hits.append("\(n + 1): \(literal)") }
             }
         }
         return hits
     }
 
-    /// The literal's text up to its closing quote.
-    static func readLiteral(_ rest: String) -> String {
-        var out = ""
-        var escaped = false
-        var depth = 0
-        for ch in rest {
-            if escaped {
-                if ch == "(" { depth += 1 }
-                out.append(ch); escaped = false; continue
+    /// The string literals of one line with the code before each, up to a `//` comment.
+    static func literals(in line: String) -> [(text: String, before: String)] {
+        let chars = Array(line)
+        var result: [(String, String)] = []
+        var i = 0
+        while i < chars.count {
+            let c = chars[i]
+            if c == "/" && i + 1 < chars.count && chars[i + 1] == "/" { break }
+            guard c == "\"" else { i += 1; continue }
+            let start = i
+            var j = i + 1
+            var text = ""
+            var depth = 0
+            while j < chars.count {
+                let d = chars[j]
+                if depth == 0 {
+                    if d == "\\" {
+                        text.append(d)
+                        if j + 1 < chars.count { text.append(chars[j + 1]); if chars[j + 1] == "(" { depth = 1 } }
+                        j += 2
+                        continue
+                    }
+                    if d == "\"" { break }
+                    text.append(d); j += 1
+                } else {
+                    if d == "\"" {
+                        text.append(d); j += 1
+                        while j < chars.count && chars[j] != "\"" {
+                            if chars[j] == "\\" { text.append(chars[j]); j += 1 }
+                            if j < chars.count { text.append(chars[j]); j += 1 }
+                        }
+                        if j < chars.count { text.append(chars[j]); j += 1 }
+                        continue
+                    }
+                    if d == "(" { depth += 1 } else if d == ")" { depth -= 1 }
+                    text.append(d); j += 1
+                }
             }
-            if ch == "\\" { out.append(ch); escaped = true; continue }
-            if depth > 0 {
-                if ch == "(" { depth += 1 } else if ch == ")" { depth -= 1 }
-                out.append(ch); continue
-            }
-            if ch == "\"" { break }
-            out.append(ch)
+            result.append((text, String(chars[0..<start])))
+            i = j + 1
         }
-        return out
+        return result
     }
 
     /// Letters outside `\(…)` interpolations.

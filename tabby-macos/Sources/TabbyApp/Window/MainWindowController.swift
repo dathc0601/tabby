@@ -291,13 +291,14 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
         let inBackground = tab.map { $0 !== model.activeTab } ?? true
         if !appIsActive || inBackground {
             let ran = pane.startedAt.map { " · " + ToastCenter.duration(Date().timeIntervalSince($0)) } ?? ""
-            let index = tab.flatMap { t in model.tabs.firstIndex { $0 === t } }.map { " in tab \($0 + 1)" } ?? ""
-            let what = code.map { "\(pane.title) exited with code \($0)" } ?? "\(pane.title): session ended"
+            let index = tab.flatMap { t in model.tabs.firstIndex { $0 === t } }.map { " " + L("in tab {number}", ["number": $0 + 1]) } ?? ""
+            let what = code.map { L("{title} exited with code {code}", ["title": pane.title, "code": $0]) }
+                ?? L("{title}: session ended", ["title": pane.title])
             toasts.show(ToastCenter.Toast(
                 symbol: code == 0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill",
                 tint: code == 0 ? .success : .danger,
-                title: "Process completed", detail: what + index + ran,
-                actionTitle: "Show",
+                title: L("Process completed"), detail: what + index + ran,
+                actionTitle: L("Show"),
                 action: { [weak self, weak pane] in
                     guard let self, let pane, self.model.tabs.contains(where: { $0.panes[pane.id] != nil }) else { return }
                     self.model.focus(paneID: pane.id)
@@ -307,7 +308,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
         guard !appIsActive, Bundle.main.bundleURL.pathExtension == "app" else { return }
         let content = UNMutableNotificationContent()
         content.title = pane.title
-        content.body = code.map { "Process exited with code \($0)" } ?? "Session ended"
+        content.body = code.map { L("Process exited with code {code}", ["code": $0]) } ?? L("Session ended")
         let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
         UNUserNotificationCenter.current().add(request)
     }
@@ -345,8 +346,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
         let busy = tabs.filter { closeWarnings($0.orderedPanes) != nil }
         for tab in tabs where !busy.contains(where: { $0 === tab }) { model.closeTab(tab.id) }
         guard let message = closeWarnings(busy.flatMap(\.orderedPanes)) else { return }
-        Prompts.confirm(in: window, title: busy.count == 1 ? "Close this tab?" : "Close \(busy.count) tabs?",
-                        message: message, confirm: "Close", destructive: true) { [weak self] ok in
+        Prompts.confirm(in: window, title: busy.count == 1 ? L("Close this tab?") : L("Close {busyCount} tabs?", ["busyCount": busy.count]),
+                        message: message, confirm: L("Close"), destructive: true) { [weak self] ok in
             guard ok, let self else { return }
             for tab in busy { self.model.closeTab(tab.id) }
         }
@@ -357,7 +358,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
             model.closePane(pane.id)
             return
         }
-        Prompts.confirm(in: window, title: "Close this pane?", message: message, confirm: "Close",
+        Prompts.confirm(in: window, title: L("Close this pane?"), message: message, confirm: L("Close"),
                         destructive: true) { [weak self] ok in
             if ok { self?.model.closePane(pane.id) }
         }
@@ -365,8 +366,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         guard let message = closeWarnings(model.tabs.flatMap(\.orderedPanes)) else { return true }
-        Prompts.confirm(in: window, title: "Close this window?", message: message,
-                        confirm: "Close", destructive: true) { [weak self] ok in
+        Prompts.confirm(in: window, title: L("Close this window?"), message: message,
+                        confirm: L("Close"), destructive: true) { [weak self] ok in
             guard ok, let self else { return }
             self.closeAllTabsAndWindow()
         }

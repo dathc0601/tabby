@@ -238,7 +238,7 @@ public final class AppServices {
         let id = config.string("terminal.profile") ?? "local:default"
         if let p = profiles.profile(withId: id) { return profiles.resolved(p) }
         if let p = profiles.builtinProfiles().first(where: { $0.type == "local" }) { return profiles.resolved(p) }
-        return Profile(id: "local:default", type: "local", name: "Shell", options: LocalOptions(command: "").configValue)
+        return Profile(id: "local:default", type: "local", name: L("Shell"), options: LocalOptions(command: "").configValue)
     }
 }
 #endif

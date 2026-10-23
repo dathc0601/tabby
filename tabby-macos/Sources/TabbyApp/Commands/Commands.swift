@@ -180,7 +180,7 @@ extension MainWindowController {
                 break
             }
         }
-        SelectorPanel.present(over: window, placeholder: switchActivePane ? "Switch profile" : "Search profiles or user@host:port",
+        SelectorPanel.present(over: window, placeholder: switchActivePane ? L("Switch profile") : L("Search profiles or user@host:port"),
                               items: items) { [weak self] query in
             registry.selectorEntries(query: query).compactMap { entry -> SelectorItem? in
                 guard case let .quickConnect(providerId, q) = entry.kind,
@@ -211,14 +211,14 @@ extension MainWindowController {
                 _ = self?.runCommand(entry.id)
             })
         }
-        SelectorPanel.present(over: window, placeholder: "Type a command", items: items)
+        SelectorPanel.present(over: window, placeholder: L("Type a command"), items: items)
     }
 
     // MARK: Tab actions
 
     func renameActiveTab() {
         guard let tab = model.activeTab else { return }
-        Prompts.text(in: window, title: "Rename tab", value: tab.customTitle ?? tab.title, confirm: "Rename") { value, _ in
+        Prompts.text(in: window, title: L("Rename tab"), value: tab.customTitle ?? tab.title, confirm: L("Rename")) { value, _ in
             guard let value else { return }
             tab.customTitle = value.isEmpty ? nil : value
             RecoveryCoordinator.shared.scheduleSave()
@@ -228,7 +228,7 @@ extension MainWindowController {
     /// Saves the active tab's layout as a `split-layout` profile (Tabby's "Save layout as profile").
     func saveLayoutAsProfile() {
         guard let tab = model.activeTab, let token = tab.recoveryToken() else { return }
-        Prompts.text(in: window, title: "Save layout as profile", value: tab.title, confirm: "Save") { name, _ in
+        Prompts.text(in: window, title: L("Save layout as profile"), value: tab.title, confirm: L("Save")) { name, _ in
             guard let name, !name.isEmpty else { return }
             var stripped = token
             if case let .split(o, r, c, p, t, col) = token {
@@ -264,30 +264,30 @@ extension MainWindowController {
             (target ?? menu).addItem(i)
         }
         model.focus(paneID: pane.id)
-        item("Copy", "copy")
-        item("Paste", "paste")
-        item("Copy Current Path", "copy-current-path")
+        item(L("Copy"), "copy")
+        item(L("Paste"), "paste")
+        item(L("Copy Current Path"), "copy-current-path")
         menu.addItem(.separator())
         let split = NSMenu()
-        item("Split Up", "split-top", in: split)
-        item("Split Right", "split-right", in: split)
-        item("Split Down", "split-bottom", in: split)
-        item("Split Left", "split-left", in: split)
-        let splitItem = NSMenuItem(title: "Split", action: nil, keyEquivalent: "")
+        item(L("Split Up"), "split-top", in: split)
+        item(L("Split Right"), "split-right", in: split)
+        item(L("Split Down"), "split-bottom", in: split)
+        item(L("Split Left"), "split-left", in: split)
+        let splitItem = NSMenuItem(title: L("Split"), action: nil, keyEquivalent: "")
         splitItem.submenu = split
         menu.addItem(splitItem)
-        item("Broadcast Input to All Panes", "pane-focus-all", checked: model.activeTab?.broadcastInput == true)
-        item("Select All", "select-all")
-        item("Clear", "clear")
+        item(L("Broadcast Input to All Panes"), "pane-focus-all", checked: model.activeTab?.broadcastInput == true)
+        item(L("Select All"), "select-all")
+        item(L("Clear"), "clear")
         menu.addItem(.separator())
-        item("Switch Profile…", "switch-profile")
+        item(L("Switch Profile…"), "switch-profile")
         if pane.connectionState != nil {
-            if SFTPPanels.canOpen(pane) { item("Open SFTP Panel", "open-sftp") }
-            item(pane.isRunning ? "Disconnect" : "Reconnect", pane.isRunning ? "disconnect-tab" : "reconnect-tab")
+            if SFTPPanels.canOpen(pane) { item(L("Open SFTP Panel"), "open-sftp") }
+            item(pane.isRunning ? L("Disconnect") : L("Reconnect"), pane.isRunning ? "disconnect-tab" : "reconnect-tab")
         } else {
-            item("Restart", "restart-tab")
+            item(L("Restart"), "restart-tab")
         }
-        item("Close Pane", "close-pane")
+        item(L("Close Pane"), "close-pane")
         return menu
     }
 
@@ -301,7 +301,7 @@ extension MainWindowController {
 enum ProfileSelectorRows {
     /// Design C8b: "Quick connect · SSH connection" with the type's icon and the query.
     static func quickConnect(providerId: String, query: String, action: @escaping () -> Void) -> SelectorItem {
-        SelectorItem(id: "qc-\(providerId)", title: "Quick connect · \(ProfileTypes.title(providerId))", group: "Quick connect",
+        SelectorItem(id: "qc-\(providerId)", title: L("Quick connect · {type}", ["type": ProfileTypes.title(providerId)]), group: L("Quick connect"),
                      subtitle: query, icon: ProfileIcons.symbol(for: ProfileIcons.defaultIcon(forType: providerId)), action: action)
     }
 }

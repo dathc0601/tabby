@@ -4,11 +4,275 @@ msgid ""
 msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 
+msgid "About TabbyMac"
+msgstr ""
+
+msgid "Accept"
+msgstr ""
+
+msgid "Accept new key"
+msgstr ""
+
+msgid "Accepting saves the key in known_hosts."
+msgstr ""
+
 msgid "Account & sync"
+msgstr ""
+
+msgid "Actual Size"
+msgstr ""
+
+msgid "Asks for the port and baud rate"
 msgstr ""
 
 msgid "Automatic follows the system language"
 msgstr ""
 
+msgid "Back"
+msgstr ""
+
+msgid "Bring All to Front"
+msgstr ""
+
+msgid "Broadcast Input to All Panes"
+msgstr ""
+
+msgid "Built in"
+msgstr ""
+
+msgid "Changes from your other Macs are here."
+msgstr ""
+
+msgid "Clear Buffer"
+msgstr ""
+
+msgid "Close Pane"
+msgstr ""
+
+msgid "Close this pane?"
+msgstr ""
+
+msgid "Close this tab?"
+msgstr ""
+
+msgid "Close this window?"
+msgstr ""
+
+msgid "Close {busyCount} tabs?"
+msgstr ""
+
+msgid "Command Palette…"
+msgstr ""
+
+msgid "Connect a device, or type its path"
+msgstr ""
+
+msgid "Continue"
+msgstr ""
+
+msgid "Could not change the baud rate"
+msgstr ""
+
+msgid "Couldn't read config.yaml"
+msgstr ""
+
+msgid "Dismiss"
+msgstr ""
+
+msgid "Don't ask again"
+msgstr ""
+
+msgid "Enter Full Screen"
+msgstr ""
+
+msgid "Find…"
+msgstr ""
+
+msgid "Fingerprint"
+msgstr ""
+
+msgid "Hide Others"
+msgstr ""
+
+msgid "Hide TabbyMac"
+msgstr ""
+
+msgid "Key type"
+msgstr ""
+
+msgid "Last known"
+msgstr ""
+
+msgid "Log in"
+msgstr ""
+
+msgid "Maximize Pane"
+msgstr ""
+
+msgid "Minimize"
+msgstr ""
+
+msgid "Move Tab Left"
+msgstr ""
+
+msgid "Move Tab Right"
+msgstr ""
+
+msgid "Next Pane"
+msgstr ""
+
+msgid "No"
+msgstr ""
+
+msgid "No ports found"
+msgstr ""
+
+msgid "OK"
+msgstr ""
+
+msgid "Passphrase for key"
+msgstr ""
+
+msgid "Password for {user}@{host}"
+msgstr ""
+
+msgid "Previous Pane"
+msgstr ""
+
+msgid "Process exited with code {code}"
+msgstr ""
+
+msgid "Quick connect · {type}"
+msgstr ""
+
+msgid "Quit TabbyMac"
+msgstr ""
+
+msgid "Quit TabbyMac?"
+msgstr ""
+
+msgid "Reject"
+msgstr ""
+
+msgid "Remember"
+msgstr ""
+
+msgid "Remember in Keychain"
+msgstr ""
+
+msgid "Remember in known_hosts"
+msgstr ""
+
+msgid "Reopen Closed Tab"
+msgstr ""
+
+msgid "Response"
+msgstr ""
+
+msgid "Restart"
+msgstr ""
+
+msgid "Restart Session"
+msgstr ""
+
 msgid "SSH"
+msgstr ""
+
+msgid "Saved profiles"
+msgstr ""
+
+msgid "Search profiles or user@host:port"
+msgstr ""
+
+msgid "Send"
+msgstr ""
+
+msgid "Serial port or a device path"
+msgstr ""
+
+msgid "Serial port or profile"
+msgstr ""
+
+msgid "Session ended"
+msgstr ""
+
+msgid "Show All"
+msgstr ""
+
+msgid "Split Down"
+msgstr ""
+
+msgid "Split Left"
+msgstr ""
+
+msgid "Split Right"
+msgstr ""
+
+msgid "Split Up"
+msgstr ""
+
+msgid "Sync failed"
+msgstr ""
+
+msgid "Synced"
+msgstr ""
+
+msgid "TabbyMac"
+msgstr ""
+
+msgid "The clipboard holds {count} lines. Each line runs as soon as it reaches the shell."
+msgstr ""
+
+msgid "This is the first connection to {host}. Compare the fingerprint with the one your administrator gave you before accepting."
+msgstr ""
+
+msgid "Type a command"
+msgstr ""
+
+msgid "Unlock"
+msgstr ""
+
+msgid "Use custom rate \\u{201C}{rate}\\u{201D}"
+msgstr ""
+
+msgid "Use {path}"
+msgstr ""
+
+msgid "Username for {host}"
+msgstr ""
+
+msgid "Verify host key"
+msgstr ""
+
+msgid "View"
+msgstr ""
+
+msgid "Yes"
+msgstr ""
+
+msgid "You could be under a man-in-the-middle attack right now, or the host key of {host} could have just been changed."
+msgstr ""
+
+msgid "Zoom"
+msgstr ""
+
+msgid "in tab {number}"
+msgstr ""
+
+msgid "keyboard-interactive · prompt {number} of {total}"
+msgstr ""
+
+msgid "{error}\n\nDefaults are in use; your file was not modified."
+msgstr ""
+
+msgid "{hours}h {minutes}m"
+msgstr ""
+
+msgid "{minutes}m {seconds}s"
+msgstr ""
+
+msgid "{title} exited with code {code}"
+msgstr ""
+
+msgid "{title}: session ended"
 msgstr ""
