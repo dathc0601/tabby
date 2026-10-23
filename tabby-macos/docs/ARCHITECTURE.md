@@ -117,7 +117,8 @@ through `MainWindowController.runCommand(_:)` using Tabby's hotkey ids.
    (`docs/superpowers/specs/2026-10-22-phase-2-design.md`) applied to every view; on-screen
    checks in M6. 2b: account, end-to-end encrypted sync of profiles, passwords, keys,
    known hosts and settings through `tabby-sync-server`, deployed at
-   https://tabby-sync.dcstyle.info on 2026-10-22; on-screen checks in M7.
+   https://tabby-sync.dcstyle.info on 2026-10-22; on-screen checks in M7. M6 and M7 walked on
+   2026-10-23.
 3. **SSH library backend (phase 3).** libssh behind `TerminalSession`: SFTP panel and
    transfers, live port forwards, the keyboard-interactive panel, shared connections, jump
    hosts, SOCKS/HTTP proxies, agent and X11 forwarding, Test connection. On-screen checks in

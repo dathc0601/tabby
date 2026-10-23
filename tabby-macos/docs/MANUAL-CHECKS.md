@@ -175,43 +175,51 @@ Compare with the Claude Design canvases (`Tabby Design Canvas.zip`, not in git) 
 renders the main screens to PNG without a display; these items cover what only the real
 window shows (traffic lights, hover, drag and drop, sheets, animation).
 
-- [ ] Tab bar: 38 pt bar on the chrome colour, rounded 28 pt tabs, traffic lights centred in
+- [x] Tab bar: 38 pt bar on the chrome colour, rounded 28 pt tabs, traffic lights centred in
       the bar; hover shows ⋯ and ×; pinned tabs are 92 pt; a tab colour is a 2 pt bar at the
       bottom; progress fills the tab and shows a percentage; activity shows a dot.
-- [ ] Twelve tabs in a narrow window: tabs shrink to 120 pt, then the strip scrolls, the
+- [x] Twelve tabs in a narrow window: tabs shrink to 120 pt, then the strip scrolls, the
       active tab stays in view and "+N" lists the hidden ones. With Flex tabs on they shrink
       to 64 pt first.
 - [ ] Dragging a tab along the strip shows an accent slot where it lands; Esc cancels.
-- [ ] Tabs on the left: a 200 pt column, "New tab ⌘T" row, toolbar in the footer.
-- [ ] Spaciness 0.8 / 1.5 scales the bar (30.4 / 57 pt), the tabs and the settings rows.
-- [ ] Vibrancy: the window turns translucent; the active tab stays readable.
-- [ ] ⌘, opens Settings as a tab (a second ⌘, focuses it); the sidebar search finds "dock"
+      *Open: needs a mouse drag; the computer-use tool has none.*
+- [x] Tabs on the left: a 200 pt column, "New tab ⌘T" row, toolbar in the footer.
+- [x] Spaciness 0.8 / 1.5 scales the bar (30.4 / 57 pt), the tabs and the settings rows.
+- [x] Vibrancy: the window turns translucent; the active tab stays readable.
+- [x] ⌘, opens Settings as a tab (a second ⌘, focuses it); the sidebar search finds "dock"
       on the Window page; every page matches the canvas; nothing is cut off at 960 × 620.
-- [ ] Color scheme: clicking a tile recolours terminal and chrome live; the editor's wells
+- [x] Color scheme: clicking a tile recolours terminal and chrome live; the editor's wells
       change the scheme and Save as… adds a custom scheme.
-- [ ] Hotkeys: capturing ⌘T for "Split right" warns "Also used by New tab".
-- [ ] Profiles: the outline, the bottom bar and the editor sheet (all five pages) work; the
+- [x] Hotkeys: capturing ⌘T for "Split right" warns "Also used by New tab".
+- [x] Profiles: the outline, the bottom bar and the editor sheet (all five pages) work; the
       password row says "Saved in Keychain" for a saved password without a Keychain prompt;
       Forget asks before deleting it; deleting a profile says its password stays.
-- [ ] Config file: line numbers and colours; typing a stray word shows the error and
+- [x] Config file: line numbers and colours; typing a stray word shows the error and
       disables Save.
-- [ ] First launch with an empty config folder shows the Welcome tab; "Close and never show
+- [x] First launch with an empty config folder shows the Welcome tab; "Close and never show
       again" keeps it away after a relaunch.
-- [ ] Start page (close every tab): ↑ ↓ ↩ work, ⌘1–⌘3 open the recent profiles.
-- [ ] ⌘E selector: 660 pt wide under the tab bar, group headers, accent row with "↩ open",
+- [x] Start page (close every tab): ↑ ↓ ↩ work, ⌘1–⌘3 open the recent profiles.
+- [x] ⌘E selector: 660 pt wide under the tab bar, group headers, accent row with "↩ open",
       footer hints; an unknown host offers quick connect.
-- [ ] Search bar (⌘F): counter, Aa / .* / W toggles, ⇧↩ previous.
-- [ ] Paste of several lines shows the card; Esc cancels, ↩ pastes; host key and password
+- [x] Search bar (⌘F): counter, Aa / .* / W toggles, ⇧↩ previous.
+- [x] Paste of several lines shows the card; Esc cancels, ↩ pastes; host key and password
       prompts are cards too.
-- [ ] SSH tab: hovering the pane shows the status chip; Reconnect on a connected session asks
+- [x] SSH tab: hovering the pane shows the status chip; Reconnect on a connected session asks
       first; stopping sshd shows Disconnected with Reconnect (no question); a "Reconnect"
       profile shows Reconnecting n/5 and gives up after five.
-- [ ] A command that ends in a background tab shows the "Process completed" toast with Show.
+- [x] A command that ends in a background tab shows the "Process completed" toast with Show.
 - [ ] Split panes: divider grip on hover, focused pane ring, others dimmed; ⌥⌘↩ maximises
       with the chip and Restore. Dragging a tab onto a pane shows the four targets and drops
-      it as a split.
+      it as a split. *Passed except the drag onto a pane (needs a mouse drag).*
 - [ ] Docked: no traffic lights, the global hotkey slides it in and out, dragging its free
-      edge changes the size kept for next time.
+      edge changes the size kept for next time. *Passed except dragging the edge (needs a
+      mouse drag).*
+
+M6 walked on 2026-10-23 (macOS 27.0.1, Xcode 27.1, built from `claude/modest-einstein-y8eodm`)
+with `TABBYMAC_KEYCHAIN=memory` and `TABBYMAC_SYNC_URL=memory:`; SSH items against a throwaway
+OpenSSH container on 127.0.0.1:2222. Every item passed after the fixes in Findings, except the
+three mouse drags above. The "Saved in Keychain" row was checked with the in-memory keychain,
+so "without a Keychain prompt" is still to be seen with the login keychain.
 
 ## M7 Personal account and sync
 
@@ -254,29 +262,36 @@ TABBYMAC_CONFIG_DIRECTORY=~/tabbymac-m7/b TABBYMAC_SYNC_HOME=~/tabbymac-m7/b/hom
   synced copy in `~/tabbymac-m7/b/keys/`.
 - Afterwards: quit both copies and `rm -rf ~/tabbymac-m7`.
 
-- [ ] Toolbar person button opens Sign in; "Create account" → step 1 (strength meter, the
+- [x] Toolbar person button opens Sign in; "Create account" → step 1 (strength meter, the
       passwords must match) → step 2 recovery key: Copy, Save as file…, Print work; Start
       syncing stays disabled until the checkbox is ticked; the avatar shows a check after the
       upload.
-- [ ] Private key prompt: a profile with a key file and an `~/.ssh/id_*` default identity
+- [x] Private key prompt: a profile with a key file and an `~/.ssh/id_*` default identity
       are listed once; declined keys are not asked about again.
-- [ ] Second Mac: Sign in with the same email and password → "Welcome back" with the counts;
+- [x] Second Mac: Sign in with the same email and password → "Welcome back" with the counts;
       profiles, groups, settings, known hosts appear; an SSH profile with a saved password
       and a key that only exists on the first Mac connects without a prompt.
-- [ ] Edit a profile on one Mac: within a minute the other shows it and a "Synced" toast.
-- [ ] Settings › Account & sync: Auto off stops automatic syncs; Sync now works; turning a
+- [x] Edit a profile on one Mac: within a minute the other shows it and a "Synced" toast.
+- [x] Settings › Account & sync: Auto off stops automatic syncs; Sync now works; turning a
       part off keeps it out of both directions; Devices lists both Macs and Remove signs the
       other one out at its next sync.
-- [ ] Recovery key View… asks for the password; Regenerate… shows a new key and the old one
+- [x] Recovery key View… asks for the password; Regenerate… shows a new key and the old one
       no longer works with "Forgot password?"; Change password keeps the other Mac signed in.
-- [ ] "Forgot password?" with the recovery key sets a new password and restores the data.
-- [ ] Sign out → Keep a local copy leaves everything usable; Remove synced data deletes only
+- [x] "Forgot password?" with the recovery key sets a new password and restores the data.
+- [x] Sign out → Keep a local copy leaves everything usable; Remove synced data deletes only
       what came from the account (`<config>/keys` emptied, `~/.ssh` untouched).
 - [ ] Wrong password, no network and a stopped server show readable errors (sheet or toast),
-      never a hang.
-- [ ] Settings › Vault lists saved passwords; Show reveals one (with the login keychain it may
+      never a hang. *Wrong password and a stopped server passed; no network not walked (it
+      needs a change to the Mac's network settings).*
+- [x] Settings › Vault lists saved passwords; Show reveals one (with the login keychain it may
       ask for the Mac password; not under `TABBYMAC_KEYCHAIN=memory`), Remove deletes it here
       and, after a sync, on the other Mac.
+
+M7 walked on 2026-10-23 with two copies (`TABBYMAC_KEYCHAIN=memory`) against a local server
+(`docker compose` on 127.0.0.1:18080, since port 8080 was taken on the test Mac), not the live
+one: creating an account on https://tabby-sync.dcstyle.info is the owner's call. Every item
+passed after the fixes in Findings, except the no-network case. A short sign-up, sync and
+delete-account run against the live server is still to do.
 
 ## M8 SSH library backend (phase 3)
 
@@ -354,5 +369,25 @@ cover what only the window shows and what the test sshd can't do (PAM, 2FA, X11)
 | 2026-10-22 | M5 | The window docked on whichever display it was on, not on the one under the mouse (Tabby's `dockScreen: current`); `dockScreen` ids from Tabby configs were ignored. | `9e97a6ba` |
 | 2026-10-22 | M5 | Only the first `toggle-window` binding was registered, so a second one did nothing while macOS keeps ⌃Space; `hacks.globalHotkey: true` from a Tabby config registered a key named "True". | `29a0819b` |
 | 2026-10-22 | M5 | The notification permission error was dropped, so a missing "process completed" banner gave no reason. | `bce4ebf9` |
+| 2026-10-23 | M6 | The terminal touched the window edge; Tabby keeps a margin of `30 × spaciness − 15` px around it, in the terminal background. | `e2a50abc` |
+| 2026-10-23 | M6 | A restored window showed its active first tab partly under the traffic lights; the strip only scrolled when the active tab changed. | `8c432b72` |
+| 2026-10-23 | M6 | In a 706 pt window the Color scheme page was wider than the window and pushed the Settings sidebar off the left edge; the editor's labels broke mid-word. | `1190903d`, `50899592` |
+| 2026-10-23 | M6 | The SSH chip showed the port with the locale's digit grouping (`:2.222` on a Mac set to Vietnamese). | `3180e9d2` |
+| 2026-10-23 | M6 | The SSH chip sat at the pane's top left, over the first line, instead of the top right. | `147ac741` |
+| 2026-10-23 | M6 | After the last tab closed, the start page ignored ↑ ↓ ↩. | `5006c3ea` |
+| 2026-10-23 | M6 | At 706 pt the Config file header squeezed "Show defaults" into a column of letters and cut a YAML error to "Not…". | `3518434d` |
+| 2026-10-23 | M6 | Quitting with a second, empty window lost every tab: AppKit closes the windows after the save on quit, and each close saved again; the empty one went last. | `13fc2e89` |
+| 2026-10-23 | M6 | After ⌘F the first keys typed went nowhere: the search bar's host, not its field, was made first responder. | `3fcddedd` |
+| 2026-10-23 | M6 | A background tab's password card covered the tab in front and took its keys; the OpenSSH presenter also used whichever window was key. Cards now open on the session's window with its tab in front. | `90214324` |
+| 2026-10-23 | M6 | Follow-up to `8c432b72`: the deferred scroll could run during another view update, which SwiftUI traps (a test run crashed). | `e216b757` |
+| 2026-10-23 | M7 | With Auto off, the other Mac's changes still arrived and local ones still went up: the 60 s poll ignored the setting. | `0e6552d3` |
+| 2026-10-23 | M7 | Sync counts read "1 passwords · 1 keys". | `9f5010e2` |
+| 2026-10-23 | M7 | A Mac removed from another Mac stayed signed in: with nothing to upload, the poll dropped the 401 from its "has the vault changed" request. | `37b8d43f` |
+| 2026-10-23 | M7 | A Mac signing in with its own copy of a key already in the account was asked to upload it. | `1cf35b68` |
+| 2026-10-23 | M7 | Regenerate… showed the sign-up step ("Step 2 of 2", "Start syncing"); View… put the key in a footer below the fold; their password cards did not say which password. | `b2d9f530` |
+| 2026-10-23 | M7 | On the recovery card a key that no longer works said "The email or password is not right." | `aed87b85` |
+| 2026-10-23 | M7 | Change password… took the new password once, so a typo left only the recovery key. | `71cd4725` |
+| 2026-10-23 | M7 | At 706 pt the signed-out Account card put its title one word a line and cut "Create account". | `c99a7dca` |
+| 2026-10-23 | M7 | After signing in again, the sign-out card said "0 keys" and then emptied `<config>/keys`. | `b74bfb47` |
 
 Open: the M5 notification item, blocked by macOS on the test Mac (see the item).
