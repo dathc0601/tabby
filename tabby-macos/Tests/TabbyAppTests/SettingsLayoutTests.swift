@@ -28,6 +28,20 @@ final class SettingsLayoutTests: XCTestCase {
         }
     }
 
+    /// Found in the M6 walk at 706 pt: the Config file header squeezed "Show defaults" into a
+    /// column of letters (eight rows tall) and cut the YAML error to "Not…".
+    func testTheConfigFileHeaderStaysReadableWhenNarrow() {
+        func height(_ problem: String?) -> CGFloat {
+            let header = ConfigFileHeader(problem: problem, showDefaults: .constant(false), showInFinder: {}, revert: {}, save: {})
+                .chromeEnvironment()
+            return NSHostingController(rootView: header).sizeThatFits(in: CGSize(width: 419 - 48, height: 400)).height
+        }
+        let oneRow = NSHostingController(rootView: Text("Config file").font(ChromeFont.title)).sizeThatFits(in: CGSize(width: 400, height: 100)).height
+        XCTAssertLessThanOrEqual(height(nil), oneRow * 4, "a few rows, not a column of letters")
+        XCTAssertLessThanOrEqual(height("Not valid YAML: mapping values are not allowed here"), oneRow * 5,
+                                 "the error wraps onto a line or two of its own")
+    }
+
     /// The page itself fits (rather than being cut off): 640 pt minus the 221 pt sidebar.
     func testTheColorSchemePageFitsBesideTheSidebar() {
         let host = NSHostingController(rootView: ColorSchemeSettingsView())

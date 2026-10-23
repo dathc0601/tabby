@@ -16,26 +16,9 @@ struct ConfigFileSettingsView: View {
         let services = AppServices.shared
         let problem = Self.problem(in: text)
         VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 10) {
-                Text("Config file").font(ChromeFont.title)
-                Spacer()
-                if showDefaults {
-                    Label("Defaults (read only)", systemImage: "lock").foregroundStyle(chrome.textMuted.color)
-                } else if let problem {
-                    Label(problem, systemImage: "exclamationmark.triangle.fill").foregroundStyle(chrome.danger.color).lineLimit(1)
-                } else {
-                    Label("Valid YAML", systemImage: "checkmark.circle.fill").foregroundStyle(chrome.success.color)
-                }
-                Toggle("Show defaults", isOn: $showDefaults).toggleStyle(.switch).controlSize(.small)
-                Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([services.paths.configFile]) }
-                    .buttonStyle(ChromeButtonStyle())
-                Button("Revert", action: load).buttonStyle(ChromeButtonStyle()).disabled(showDefaults)
-                Button("Save") { save() }
-                    .buttonStyle(ChromeButtonStyle(kind: .primary))
-                    .keyboardShortcut("s", modifiers: .command)
-                    .disabled(showDefaults || problem != nil)
-            }
-            .font(ChromeFont.body)
+            ConfigFileHeader(problem: problem, showDefaults: $showDefaults,
+                             showInFinder: { NSWorkspace.shared.activateFileViewerSelecting([services.paths.configFile]) },
+                             revert: load, save: save)
             if let saveError {
                 Text(saveError).font(ChromeFont.callout).foregroundStyle(chrome.danger.color)
             }
@@ -219,6 +202,83 @@ final class LineNumberRuler: NSRulerView {
             if next <= index || next >= text.length { break }
             index = next
         }
+    }
+}
+
+/// Title, validation status, Show defaults and the file actions of the Config file page.
+struct ConfigFileHeader: View {
+    let problem: String?
+    @Binding var showDefaults: Bool
+    let showInFinder: () -> Void
+    let revert: () -> Void
+    let save: () -> Void
+    @Environment(\.chrome) private var chrome
+
+    /// One row when there is room; in a narrow window two, then three rows, so no label is
+    /// squeezed into a column of letters and a YAML error can wrap.
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                title
+                Spacer(minLength: 10)
+                status.fixedSize()
+                toggle
+                actions
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 10) {
+                    title
+                    Spacer(minLength: 10)
+                    status.fixedSize()
+                }
+                HStack(spacing: 10) {
+                    toggle
+                    Spacer(minLength: 10)
+                    actions
+                }
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 10) {
+                    title
+                    Spacer(minLength: 10)
+                    toggle
+                }
+                status.lineLimit(3).fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 10) {
+                    Spacer(minLength: 0)
+                    actions
+                }
+            }
+        }
+        .font(ChromeFont.body)
+    }
+
+    private var title: some View {
+        Text("Config file").font(ChromeFont.title).fixedSize()
+    }
+
+    @ViewBuilder private var status: some View {
+        if showDefaults {
+            Label("Defaults (read only)", systemImage: "lock").foregroundStyle(chrome.textMuted.color)
+        } else if let problem {
+            Label(problem, systemImage: "exclamationmark.triangle.fill").foregroundStyle(chrome.danger.color)
+        } else {
+            Label("Valid YAML", systemImage: "checkmark.circle.fill").foregroundStyle(chrome.success.color)
+        }
+    }
+
+    private var toggle: some View {
+        Toggle("Show defaults", isOn: $showDefaults).toggleStyle(.switch).controlSize(.small).fixedSize()
+    }
+
+    @ViewBuilder private var actions: some View {
+        Button("Show in Finder", action: showInFinder).buttonStyle(ChromeButtonStyle()).fixedSize()
+        Button("Revert", action: revert).buttonStyle(ChromeButtonStyle()).disabled(showDefaults).fixedSize()
+        Button("Save", action: save)
+            .buttonStyle(ChromeButtonStyle(kind: .primary))
+            .keyboardShortcut("s", modifiers: .command)
+            .disabled(showDefaults || problem != nil)
+            .fixedSize()
     }
 }
 #endif
