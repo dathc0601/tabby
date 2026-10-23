@@ -369,14 +369,17 @@ The integration tests already cover the port settings, hang-up, telnet negotiati
 stream modes, so these items cover what only the window shows. Never open a port you don't
 own: only list it.
 
-- [ ] ⌥K (Show Serial connections) lists the "Serial connection" template, saved serial
+- [x] ⌥K (Show Serial connections) lists the "Serial connection" template, saved serial
       profiles and one profile per external port. The Mac's internal ports (debug console,
-      Bluetooth) get none. The New menu on Settings › Profiles has Serial and Telnet.
-- [ ] The template asks for the port (a typed path such as `~/tabbymac-m9/tty` is offered
+      Bluetooth) get none. *The New menu on Settings › Profiles was not opened on screen (unit
+      test and snapshots only).*
+- [x] The template asks for the port (a typed path such as `~/tabbymac-m9/tty` is offered
       as "Use /Users/…/tabbymac-m9/tty"), then the baud rate (115200 selected; typing 250000 offers it as a custom
       rate). The tab opens with " Serial  Port opened"; `AT` answers `OK`.
 - [ ] Chip: `tty · 115200`, Connected; its Baud rate button changes the rate and the label.
-      The rate survives quitting and relaunching (no questions on restore).
+      The rate survives quitting and relaunching (no questions on restore). *The label and
+      the restore passed; the Baud rate button was not clicked (the live change has a test on
+      a pty).*
 - [x] Line by line: `> ` prompt; typing edits locally; Return sends the line (the device
       prints it); device output clears the prompt and it comes back. Hexadecimal input
       `41 54 0d` sends `AT\r`; Hexadecimal output shows `bin` as a dump.
@@ -387,7 +390,7 @@ own: only list it.
       the tab when the port then goes away.
 - [x] A login script on a serial profile (expect `login:`, send `root`) answers the device's
       `login` prompt.
-- [ ] Telnet profile to 127.0.0.1:2323: "Connecting to 127.0.0.1", "Connected", a shell;
+- [x] Telnet profile to 127.0.0.1:2323: "Connecting to 127.0.0.1", "Connected", a shell;
       `stty size` matches the pane and follows a resize; chip `127.0.0.1:2323`; Quick connect
       `127.0.0.1:2323` works too.
 - [x] ⌘W on a connected telnet tab asks "Disconnect from 127.0.0.1?" (quitting asks the
@@ -401,7 +404,20 @@ own: only list it.
 - [ ] Profile editor: the Serial and Telnet pages save their settings (device menu, baud rate
       menu with "Ask every time", data/stop bits, parity, flow control, stream processing,
       "Clear terminal after connection"); Settings › SSH › Quick connect uses lists SSH,
-      Serial and Telnet; the Hotkeys page lists the serial and telnet entries.
+      Serial and Telnet; the Hotkeys page lists the serial and telnet entries. *Not walked on
+      screen: covered by unit tests (pages, saving Normal/Keep, the picker's providers) and
+      `DesignSnapshotTests.testSerialAndTelnetScreens`.*
+
+M9 walked on 2026-10-23 with `scripts/fake-serial-device.py` behind `~/tabbymac-m9/tty`, a
+busybox telnetd in Docker on 127.0.0.1:2323 and a small TCP peer for the raw socket. The test
+profiles were written into the test config with ⌘⌥1–6 hotkeys so most items ran with the app
+in the background. Two fixes came out of it (Findings). The foreground part stopped early
+because the owner was using the Mac. Left for the owner:
+- the items above marked as not walked;
+- a real USB-serial adapter: Reconnect right after closing, a paste of 10 KB at 9600 baud,
+  a rate above 230400 (custom rates fail on a pty by design), another app holding the port
+  (exclusive mode), unplugging the cable;
+- a real telnet device (a switch or router console).
 
 ## Findings
 
@@ -463,5 +479,7 @@ own: only list it.
 | 2026-10-23 | M8 | Double-clicking the SFTP breadcrumb showed the path field without the keys. | `ac5d6443` |
 | 2026-10-23 | M8 | Edit locally never uploaded a change written into the file in place (shell, editors that overwrite); only the folder was watched. | `a0ace81c` |
 | 2026-10-23 | M8 | config.yaml edited by hand while the app ran was overwritten at quit, though nothing had changed in the app. | `53c4c4b5` |
+| 2026-10-23 | M9 | A new telnet tab to busybox showed extra prompts: the pane sent the same window size more than once and the shell redraws on every NAWS. | `e916c03f` |
+| 2026-10-23 | M9 | A telnet profile made with New → Telnet (local echo, Tabby's default) showed every key twice against a shell that echoes. Local echo now stands aside while the server echoes. | `cc2b1be2` |
 
 Open: the M5 notification item, blocked by macOS on the test Mac (see the item).
