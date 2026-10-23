@@ -54,51 +54,83 @@ extension MainWindowController {
         }
     }
 
-    /// One row per port on this Mac, external ones first. Picking one calls `chosen`; closing
-    /// the selector opens nothing.
+    /// Asks for a port (design C4). Picking one calls `chosen`; closing opens nothing.
     func chooseSerialPort(_ chosen: @escaping (String) -> Void) {
-        let ports = AppServices.shared.serialPorts.ports
-        let items = ports.map { port in
+        SelectorPanel.present(over: window, SerialSelectors.portSelector(ports: AppServices.shared.serialPorts.ports, chosen: chosen))
+    }
+
+    /// Asks for a baud rate (design C3).
+    func chooseBaudRate(_ chosen: @escaping (Int) -> Void) {
+        SelectorPanel.present(over: window, SerialSelectors.baudSelector(chosen: chosen))
+    }
+
+    /// "Show Serial connections" (design C5).
+    func showSerialSelector() {
+        let registry = AppServices.shared.profiles
+        guard let provider = registry.provider(for: "serial") else { return }
+        let profiles = registry.allProfiles().filter { $0.type == "serial" }
+        SelectorPanel.present(over: window, SerialSelectors.connectionsSelector(profiles: profiles, provider: provider) { [weak self] in
+            self?.model.openTab(profile: $0)
+        })
+    }
+}
+
+/// The serial selectors' contents (designs C3–C5).
+@MainActor
+enum SerialSelectors {
+    /// One row per port: external ones under "Ports", the Mac's own ones dimmed under
+    /// "Built in"; a typed path leads the list.
+    static func portSelector(ports: [SerialPortInfo], chosen: @escaping (String) -> Void) -> SelectorConfig {
+        let ordered = ports.filter { !$0.isInternal } + ports.filter(\.isInternal)
+        let items = ordered.map { port in
             SelectorItem(id: port.path, title: port.deviceName, group: port.isInternal ? "Built in" : "Ports",
-                         subtitle: port.description ?? port.path, icon: "memorychip") { chosen(port.path) }
+                         subtitle: port.description ?? port.path, icon: "cable.connector", isDimmed: port.isInternal) { chosen(port.path) }
         }
-        SelectorPanel.present(over: window, placeholder: "Serial port or a device path", items: items) { query in
+        return SelectorConfig(placeholder: "Serial port or a device path", items: items, dynamicItems: { query in
             // A path typed by hand: a device the list doesn't show, a link to one.
             guard query.hasPrefix("/") || query.hasPrefix("~") else { return [] }
             let path = (query as NSString).expandingTildeInPath
-            return [SelectorItem(id: "path", title: "Use \(path)", icon: "memorychip") { chosen(path) }]
-        }
+            return [SelectorItem(id: "path", title: "Use \(path)", icon: "pencil") { chosen(path) }]
+        }, dynamicItemsFirst: true,
+           emptyState: SelectorEmptyState(icon: "cable.connector", title: "No ports found", subtitle: "Connect a device, or type its path"),
+           trailingHint: nil)
     }
 
     /// Tabby's standard rates with 115200 selected, plus any rate typed in.
-    func chooseBaudRate(_ chosen: @escaping (Int) -> Void) {
+    static func baudSelector(chosen: @escaping (Int) -> Void) -> SelectorConfig {
         let items = BaudRates.standard.map { rate in
             SelectorItem(id: "\(rate)", title: "\(rate)", icon: "speedometer") { chosen(rate) }
         }
         let preselected = BaudRates.standard.firstIndex(of: BaudRates.quickConnectDefault) ?? 0
-        SelectorPanel.present(over: window, placeholder: "Baud rate", items: items, initialSelection: preselected) { query in
+        return SelectorConfig(placeholder: "Baud rate", items: items, initialSelection: preselected, dynamicItems: { query in
             guard let rate = Int(query.trimmingCharacters(in: .whitespaces)), rate > 0,
                   !BaudRates.standard.contains(rate) else { return [] }
-            return [SelectorItem(id: "custom", title: "Use custom rate \u{201C}\(rate)\u{201D}", icon: "speedometer") { chosen(rate) }]
-        }
+            return [SelectorItem(id: "custom", title: "Use custom rate \u{201C}\(rate)\u{201D}", icon: "pencil") { chosen(rate) }]
+        }, trailingHint: nil)
     }
 
-    /// "Show Serial connections": saved serial profiles, then a profile per port.
-    func showSerialSelector() {
-        let registry = AppServices.shared.profiles
-        let provider = registry.provider(for: "serial")
-        let profiles = registry.allProfiles().filter { $0.type == "serial" }
-        let items = profiles.enumerated().map { index, p in
-            SelectorItem(id: "s\(index)", title: p.name, group: p.isBuiltin ? (p.isTemplate ? "" : "Ports") : "Saved profiles",
-                         subtitle: provider?.description(for: p) ?? "", icon: ProfileIcons.symbol(for: p.icon ?? "fas fa-microchip"),
-                         color: p.color) { [weak self] in
-                self?.model.openTab(profile: p)
-            }
+    /// Saved serial profiles, then the "Serial connection" template, then a profile per port;
+    /// a typed `path@rate` is a quick connect row first.
+    static func connectionsSelector(profiles: [Profile], provider: ProfileProvider,
+                                    open: @escaping (Profile) -> Void) -> SelectorConfig {
+        let saved = profiles.filter { !$0.isBuiltin }
+        let templates = profiles.filter { $0.isBuiltin && $0.isTemplate }
+        let ports = profiles.filter { $0.isBuiltin && !$0.isTemplate }
+        let items = saved.map { p in
+            SelectorItem(id: "saved-\(p.id)", title: p.name, group: "Saved profiles", subtitle: provider.description(for: p),
+                         icon: ProfileIcons.symbol(for: p.icon ?? ProfileIcons.defaultIcon(forType: "serial")), color: p.color) { open(p) }
+        } + templates.map { p in
+            SelectorItem(id: "template-\(p.id)", title: p.name, subtitle: "Asks for the port and baud rate", icon: "plus") { open(p) }
+        } + ports.map { p in
+            SelectorItem(id: "port-\(p.id)", title: p.name, group: "Ports", subtitle: provider.description(for: p),
+                         icon: ProfileIcons.symbol(for: p.icon ?? ProfileIcons.defaultIcon(forType: "serial")), color: p.color) { open(p) }
         }
-        SelectorPanel.present(over: window, placeholder: "Serial port or profile", items: items) { [weak self] query in
-            guard let profile = provider?.quickConnect(query), query.hasPrefix("/") else { return [] }
-            return [SelectorItem(id: "qc", title: query, group: "Quick connect", icon: "bolt") { self?.model.openTab(profile: profile) }]
-        }
+        return SelectorConfig(placeholder: "Serial port or profile", items: items, dynamicItems: { query in
+            guard query.hasPrefix("/"), let profile = provider.quickConnect(query) else { return [] }
+            let o = SerialOptions(profile.options)
+            let target = o.port.map { port in o.baudrate.map { "\(port) at \($0) baud" } ?? port } ?? query
+            return [SelectorItem(id: "qc", title: "Quick connect", subtitle: target, icon: "bolt") { open(profile) }]
+        }, dynamicItemsFirst: true, trailingHint: StartPageView.shortcut("serial").map { "\($0) serial" })
     }
 }
 #endif
