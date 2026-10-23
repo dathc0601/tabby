@@ -167,6 +167,11 @@ public final class SyncEngine {
                 needsUpload = result.needsUpload || theirs.knownHosts != nil
             }
 
+            // Keys the account already holds are not this Mac's to offer (a Mac's first sync
+            // collects before it knows the account's key ids).
+            let accountKeyIDs = Set(merged.keyFiles.items.map(\.id))
+            report.pendingKeyFiles.removeAll { accountKeyIDs.contains($0.id) }
+
             var after = collected
             if changedLocally {
                 local.apply(merged, over: collected, parts: parts)

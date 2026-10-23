@@ -171,6 +171,21 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertTrue(declined.pendingKeyFiles.isEmpty, "a declined key is not offered again")
     }
 
+    /// Found in the M7 walk: a Mac that signs in and has a copy of a key the account already
+    /// holds was asked to upload it. The first sync on that Mac listed it as pending because
+    /// the account's key ids were not known before the vault came down.
+    func testAKeyTheAccountAlreadyHasIsNotOfferedAgain() async throws {
+        try await signInBoth()
+        _ = try a.writeKey("id_ed25519", "-----SAME KEY ON BOTH MACS-----")
+        let offered = try await a.engine.sync()
+        a.config.set("account.approvedKeyFiles", .array([.string(offered.pendingKeyFiles[0].id)]))
+        _ = try await a.engine.sync()
+
+        _ = try b.writeKey("id_ed25519", "-----SAME KEY ON BOTH MACS-----")
+        let first = try await b.engine.sync()
+        XCTAssertEqual(first.pendingKeyFiles.map(\.originalPath), [], "the account already has this key")
+    }
+
     func testPartsThatAreOffStayAsTheyAre() async throws {
         try await signInBoth()
         b.config.set("account.parts.secrets", false)
