@@ -142,10 +142,21 @@ final class AccountService {
         isRestoring = false
     }
 
+    /// Why a recovery failed, in the recovery card's words (the server says "invalid
+    /// credentials" for a wrong key, which the sign-in card words as a wrong password).
+    struct RecoveryRefused: LocalizedError {
+        var errorDescription: String? { "The email or recovery key is not right." }
+    }
+
     func recover(email: String, recoveryKey: String, newPassword: String, keepSignedIn: Bool) async throws {
         let key = try RecoveryKey(parsing: recoveryKey)
-        let s = try await AccountFlows.recover(client: try client(), email: email, recoveryKey: key, newPassword: newPassword,
+        let s: AccountSession
+        do {
+            s = try await AccountFlows.recover(client: try client(), email: email, recoveryKey: key, newPassword: newPassword,
                                                device: Self.deviceInfo, kdf: kdf ?? .generate())
+        } catch let error as SyncClientError where error.code == ErrorDTO.Code.invalidCredentials {
+            throw RecoveryRefused()
+        }
         backUpConfigBeforeSignIn()
         try? FileManager.default.removeItem(at: stateFile)
         activate(s, keepSignedIn: keepSignedIn)
