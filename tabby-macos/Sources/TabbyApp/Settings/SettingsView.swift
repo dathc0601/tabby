@@ -100,7 +100,10 @@ struct SettingsRootView: View {
                 case .configFile: ConfigFileSettingsView()
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            // Take the width the window gives and never more: a page wider than that would
+            // grow the tab and push the sidebar off the left edge.
+            .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .clipped()
             .background(chrome.surface.color)
         }
         .foregroundStyle(chrome.text.color)

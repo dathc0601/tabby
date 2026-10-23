@@ -30,15 +30,17 @@ struct ColorSchemeSettingsView: View {
             }
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("Schemes").font(ChromeFont.headline)
+                    Text("Schemes").font(ChromeFont.headline).fixedSize()
                     Text("for the \(editingLight ? "light" : "dark") appearance").foregroundStyle(chrome.textMuted.color)
-                    Spacer()
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
                     HStack(spacing: 6) {
                         Image(systemName: "magnifyingglass").foregroundStyle(chrome.textMuted.color)
                         TextField("Filter \(all.count) schemes", text: $filter).textFieldStyle(.plain)
                     }
                     .padding(.horizontal, 8)
-                    .frame(width: 220, height: 26)
+                    // Narrows before the page gets wider than the window.
+                    .frame(minWidth: 120, maxWidth: 220, minHeight: 26, maxHeight: 26)
                     .background(RoundedRectangle(cornerRadius: 6).fill(chrome.fill.color))
                 }
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
@@ -179,29 +181,53 @@ private struct CustomSchemeEditor: View {
     var body: some View {
         let edited = original.map { $0 != scheme } ?? true
         SettingsGroup(edited ? "Custom scheme · “\(scheme.name) (edited)”" : "Edit “\(scheme.name)”") {
-            HStack(spacing: 18) {
-                well("Background", \.background)
-                well("Foreground", \.foreground)
-                well("Cursor", \.cursor)
-                well("Selection", Binding(get: { scheme.selection ?? "#80808066" }, set: { var s = scheme; s.selection = $0; write(s) }))
-                Spacer()
-                Button("Reset") { if let original { write(original) } }.buttonStyle(ChromeButtonStyle()).disabled(!edited || original == nil)
-                Button("Save as…") { saveAs(scheme) }.buttonStyle(ChromeButtonStyle())
+            // In a narrow window the buttons go under the wells and the palette into four rows,
+            // so the page never gets wider than the window.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 18) {
+                    wells
+                    Spacer()
+                    buttons(edited: edited)
+                }
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 18) { wells }
+                    HStack(spacing: 8) { buttons(edited: edited) }
+                }
             }
             .padding(14)
-            VStack(alignment: .leading, spacing: 6) {
-                ForEach([0, 8], id: \.self) { row in
-                    HStack(spacing: 6) {
-                        ForEach(row..<(row + 8), id: \.self) { i in
-                            VStack(spacing: 3) {
-                                ColorPicker("", selection: color(index: i), supportsOpacity: false).labelsHidden()
-                                Text("\(i)").font(.custom("Menlo", size: 10)).foregroundStyle(chrome.textFaint.color)
-                            }
+            ViewThatFits(in: .horizontal) {
+                palette(columns: 8)
+                palette(columns: 4)
+            }
+            .padding(14)
+        }
+    }
+
+    @ViewBuilder private var wells: some View {
+        well("Background", \.background)
+        well("Foreground", \.foreground)
+        well("Cursor", \.cursor)
+        well("Selection", Binding(get: { scheme.selection ?? "#80808066" }, set: { var s = scheme; s.selection = $0; write(s) }))
+    }
+
+    @ViewBuilder private func buttons(edited: Bool) -> some View {
+        Button("Reset") { if let original { write(original) } }.buttonStyle(ChromeButtonStyle()).disabled(!edited || original == nil)
+        Button("Save as…") { saveAs(scheme) }.buttonStyle(ChromeButtonStyle()).fixedSize()
+    }
+
+    /// The 16 ANSI colours, `columns` to a row (8: normal and bright on a row each).
+    private func palette(columns: Int) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(stride(from: 0, to: 16, by: columns)), id: \.self) { row in
+                HStack(spacing: 6) {
+                    ForEach(row..<(row + columns), id: \.self) { i in
+                        VStack(spacing: 3) {
+                            ColorPicker("", selection: color(index: i), supportsOpacity: false).labelsHidden()
+                            Text("\(i)").font(.custom("Menlo", size: 10)).foregroundStyle(chrome.textFaint.color)
                         }
                     }
                 }
             }
-            .padding(14)
         }
     }
 
@@ -214,7 +240,7 @@ private struct CustomSchemeEditor: View {
             ColorPicker("", selection: Binding(get: { (RGBColor(hex: hex.wrappedValue) ?? .black).color },
                                                set: { hex.wrappedValue = Self.hex($0) }), supportsOpacity: false)
                 .labelsHidden()
-            Text(label).font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
+            Text(label).font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color).fixedSize()
         }
     }
 
