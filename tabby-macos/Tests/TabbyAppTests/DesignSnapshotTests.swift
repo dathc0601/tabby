@@ -5,6 +5,7 @@ import SwiftUI
 @testable import TabbyCore
 @testable import TabbyApp
 import TabbyAccount
+import TabbyTestSupport
 
 /// Renders the main screens to PNG files for comparing with the design canvases without a
 /// display (works while the Mac is locked). Skipped unless `TABBYMAC_SNAPSHOT_DIR` is set:
@@ -125,6 +126,63 @@ final class DesignSnapshotTests: XCTestCase {
             TestApp.pump(0.3)
             try save(view, "editor-\(page.rawValue.replacingOccurrences(of: " ", with: "-"))")
         }
+    }
+
+    /// Phase 4: the screens of the Tabby Connections canvas (C1–C10), in both schemes.
+    func testSerialAndTelnetScreens() throws {
+        let serial = Profile(type: "serial", name: "Arduino", options: ["inputMode": "readline", "outputNewlines": "crlf"], color: "#8fcf7a")
+        let telnet = Profile(type: "telnet", name: "Core switch", options: ["host": "switch.lan", "port": 23,
+                                                                             "inputMode": "local-echo", "outputNewlines": "crlf"], color: "#56c8d8")
+        let ports = [SerialPortInfo(path: "/dev/cu.usbserial-1420", description: "FTDI FT3K2PQ1"),
+                     SerialPortInfo(path: "/dev/cu.SLAB_USBtoUART", description: "CP2102 USB to UART Bridge"),
+                     SerialPortInfo(path: "/dev/cu.usbmodem2101"),
+                     SerialPortInfo(path: "/dev/cu.debug-console"), SerialPortInfo(path: "/dev/cu.Bluetooth-Incoming-Port")]
+        let provider = SerialProfileProvider(ports: { ports })
+        let router = Profile(id: "router", type: "serial", name: "Router console", options: ["port": "/dev/cu.usbserial-1420"], color: "#56c8d8")
+        for mode in ["dark", "light"] {
+            set("appearance.colorSchemeMode", .string(mode))
+            for (profile, tag) in [(serial, "serial"), (telnet, "telnet")] {
+                for page in ProfileEditorSheet.pages(for: profile.type) where page == .general || page == .advanced {
+                    try render(ProfileEditorSnapshot(profile: profile, page: page), NSSize(width: 640, height: 660),
+                               "c-editor-\(tag)-\(page.rawValue)-\(mode)")
+                }
+            }
+            try render(SelectorView(config: SerialSelectors.baudSelector { _ in }) { _ in }, SelectorPanel.size, "c3-baud-\(mode)")
+            try render(SelectorView(config: SerialSelectors.portSelector(ports: ports) { _ in }) { _ in }, SelectorPanel.size, "c4-ports-\(mode)")
+            try render(SelectorView(config: SerialSelectors.portSelector(ports: []) { _ in }) { _ in }, SelectorPanel.size, "c4-empty-\(mode)")
+            try render(SelectorView(config: SerialSelectors.connectionsSelector(profiles: [router] + provider.builtinProfiles(),
+                                                                                 provider: provider) { _ in }) { _ in },
+                       SelectorPanel.size, "c5-serial-\(mode)")
+            try render(BaudRatePopover(model: BaudRatePopoverModel(device: "cu.usbserial-1420", current: 115200) { _ in }),
+                       NSSize(width: 332, height: 560), "c2-popover-\(mode)")
+            try connectionsWindow(mode)
+        }
+    }
+
+    /// C1b and C9: a split with a serial pane (a pty with hex output) and a telnet pane (a local
+    /// raw socket), the chip over the hovered pane and the label on the other; then the telnet
+    /// pane disconnected.
+    private func connectionsWindow(_ mode: String) throws {
+        let pty = try PTYPair()
+        let echo = try EchoServer()
+        let c = window(NSSize(width: 1280, height: 560))
+        defer { TestApp.dispose(c) }
+        c.model.openTab(profile: Profile(type: "serial", name: "Router console",
+                                         options: ["port": .string(pty.replicaPath), "baudrate": 115200, "outputMode": "hex"]))
+        c.model.split(.right, profile: Profile(type: "telnet", name: "Core switch", options: ["host": "127.0.0.1", "port": .int(echo.port)]))
+        TestApp.pump(1.2)
+        pty.write("Firmware 2.4.1\r\nBuild 0193\r\nOK\r\n> ")
+        TestApp.pump(0.6)
+        let tab = try XCTUnwrap(c.model.tabs.last)
+        let views = tab.orderedPanes.compactMap { c.paneView(for: $0) }
+        let enter = try XCTUnwrap(NSEvent.enterExitEvent(with: .mouseEntered, location: .zero, modifierFlags: [], timestamp: 0,
+                                                         windowNumber: 0, context: nil, eventNumber: 0, trackingNumber: 0, userData: nil))
+        views.first?.mouseEntered(with: enter)
+        TestApp.pump(0.5)
+        try save(try XCTUnwrap(c.window?.contentView), "c1-split-\(mode)")
+        tab.orderedPanes.last?.disconnect()
+        TestApp.pump(0.8)
+        try save(try XCTUnwrap(c.window?.contentView), "c9-disconnected-\(mode)")
     }
 
     private func render<V: View>(_ view: V, _ size: NSSize, _ name: String) throws {

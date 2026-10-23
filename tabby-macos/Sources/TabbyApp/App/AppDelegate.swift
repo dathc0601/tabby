@@ -93,12 +93,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let busy = WindowManager.shared.controllers.flatMap { $0.model.tabs.flatMap(\.orderedPanes) }
             .compactMap { $0.closeWarning(sshWarnOnClose: sshWarn) }
         guard !busy.isEmpty else { return .terminateNow }
+        return Self.quitAlert(warnings: busy).runModal() == .alertFirstButtonReturn ? .terminateNow : .terminateCancel
+    }
+
+    /// Quit is the default button (design C10).
+    static func quitAlert(warnings: [String]) -> NSAlert {
         let alert = NSAlert()
         alert.messageText = "Quit TabbyMac?"
-        alert.informativeText = busy.joined(separator: "\n")
-        alert.addButton(withTitle: "Quit").hasDestructiveAction = true
+        alert.informativeText = MainWindowController.closeMessage(warnings) ?? ""
+        alert.addButton(withTitle: "Quit")
         alert.addButton(withTitle: "Cancel")
-        return alert.runModal() == .alertFirstButtonReturn ? .terminateNow : .terminateCancel
+        return alert
     }
 
     func applicationWillTerminate(_ notification: Notification) {

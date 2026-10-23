@@ -218,6 +218,11 @@ hotkeys:
   # tabby-ssh
   restart-ssh-session: []
   open-sftp: []
+  # tabby-telnet
+  restart-telnet-session: []
+  # tabby-serial
+  serial: ['⌥-K']
+  restart-serial-session: []
 profiles: []
 groups: []
 profileDefaults:

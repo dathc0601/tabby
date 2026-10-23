@@ -323,8 +323,15 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
     /// Reasons to confirm before closing these panes: busy processes, open SSH connections.
     private func closeWarnings(_ panes: [TerminalPane]) -> String? {
         let sshWarn = services.config.bool("ssh.warnOnClose")
-        let warnings = panes.compactMap { $0.closeWarning(sshWarnOnClose: sshWarn) }
-        return warnings.isEmpty ? nil : warnings.joined(separator: "\n")
+        return Self.closeMessage(panes.compactMap { $0.closeWarning(sshWarnOnClose: sshWarn) })
+    }
+
+    /// The warnings as one message, each once (two panes on one host ask once); nil when
+    /// there are none.
+    static func closeMessage(_ warnings: [String]) -> String? {
+        var seen = Set<String>()
+        let unique = warnings.filter { seen.insert($0).inserted }
+        return unique.isEmpty ? nil : unique.joined(separator: "\n")
     }
 
     /// ⌘W and the tab's Close. Pinned tabs ignore them, as in Tabby's `AppService.closeTab`.

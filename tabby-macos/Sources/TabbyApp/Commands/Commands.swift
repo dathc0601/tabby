@@ -39,6 +39,11 @@ extension MainWindowController {
         case "duplicate-tab": if let t = model.activeTab { model.duplicateTab(t.id) }
         case "pin-tab": if let t = model.activeTab { model.togglePinned(t.id) }
         case "restart-tab", "reconnect-tab", "restart-ssh-session": pane?.restart()
+        case "restart-telnet-session", "restart-serial-session":
+            // Tabby's per-type restart acts on its own kind of tab only.
+            guard let pane, "restart-\(pane.profile.type)-session" == id else { return false }
+            pane.restart()
+        case "serial": showSerialSelector()
         case "disconnect-tab": pane?.disconnect()
         case "open-sftp":
             // Tabby's "Open SFTP panel" (library backend, connected).
@@ -159,7 +164,7 @@ extension MainWindowController {
             switch entry.kind {
             case .profile(let p):
                 items.append(SelectorItem(id: "p\(i)", title: entry.title, group: entry.group, subtitle: entry.description,
-                                          icon: ProfileIcons.symbol(for: p.icon ?? (p.type == "ssh" ? "network" : "terminal")),
+                                          icon: ProfileIcons.symbol(for: p.icon ?? ProfileIcons.defaultIcon(forType: p.type)),
                                           color: p.color) { [weak self] in
                     self?.open(p, switchActivePane: switchActivePane)
                 })
@@ -180,7 +185,7 @@ extension MainWindowController {
             registry.selectorEntries(query: query).compactMap { entry -> SelectorItem? in
                 guard case let .quickConnect(providerId, q) = entry.kind,
                       let profile = registry.quickConnect(q, providerId: providerId) else { return nil }
-                return SelectorItem(id: "qc-\(providerId)", title: q, group: "Quick connect", subtitle: entry.description, icon: "bolt") {
+                return ProfileSelectorRows.quickConnect(providerId: providerId, query: q) {
                     self?.open(profile, switchActivePane: switchActivePane)
                 }
             }
@@ -289,6 +294,15 @@ extension MainWindowController {
     @objc func contextCommand(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String else { return }
         runCommand(id)
+    }
+}
+/// Rows of the profile selector (⌘E).
+@MainActor
+enum ProfileSelectorRows {
+    /// Design C8b: "Quick connect · SSH connection" with the type's icon and the query.
+    static func quickConnect(providerId: String, query: String, action: @escaping () -> Void) -> SelectorItem {
+        SelectorItem(id: "qc-\(providerId)", title: "Quick connect · \(ProfileTypes.title(providerId))", group: "Quick connect",
+                     subtitle: query, icon: ProfileIcons.symbol(for: ProfileIcons.defaultIcon(forType: providerId)), action: action)
     }
 }
 #endif

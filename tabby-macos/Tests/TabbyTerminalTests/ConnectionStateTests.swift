@@ -48,7 +48,7 @@ final class ConnectionStateTests: XCTestCase {
         XCTAssertEqual(factory.sessions.count, 6, "no sixth reconnect")
         XCTAssertEqual(pane.connectionState, .disconnected)
         XCTAssertEqual(pane.state, .ended(code: nil, canRestart: true))
-        XCTAssertTrue(engine.text.contains("Press any key"))
+        XCTAssertTrue(engine.text.contains("Session closed. Press any key to reconnect."), "design C9")
         pane.close()
     }
 

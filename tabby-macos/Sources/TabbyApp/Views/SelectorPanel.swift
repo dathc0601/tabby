@@ -12,7 +12,60 @@ struct SelectorItem: Identifiable {
     var icon: String? = nil
     var color: String? = nil
     var shortcut: String? = nil
+    /// Subdued (design C4: the Mac's built-in ports).
+    var isDimmed = false
     var action: () -> Void
+}
+
+/// What the list shows when there is nothing to pick and nothing typed (design C4c).
+struct SelectorEmptyState: Equatable {
+    var icon: String
+    var title: String
+    var subtitle: String
+}
+
+/// One presentation of the selector.
+@MainActor
+struct SelectorConfig {
+    var placeholder: String
+    var items: [SelectorItem]
+    var initialSelection = 0
+    /// Rows made from the query (free input, quick connect).
+    var dynamicItems: ((String) -> [SelectorItem])? = nil
+    /// The query's rows lead the list (designs C4b, C5b) instead of following it.
+    var dynamicItemsFirst = false
+    /// nil: "Nothing here yet".
+    var emptyState: SelectorEmptyState? = nil
+    /// The footer's right-hand text; nil for none.
+    var trailingHint: String? = SelectorPanel.profilesAndCommandsHint
+}
+
+/// The selector's rows: matches by score, each group kept together after its best match
+/// (the first row is still the best match), under a header whenever the group changes.
+enum SelectorList {
+    static func rows(items: [SelectorItem], query: String, dynamicItems: ((String) -> [SelectorItem])?,
+                     dynamicFirst: Bool) -> [SelectorItem] {
+        let matches = query.isEmpty ? items : grouped(FuzzyMatcher.filter(items, query: query) { "\($0.group) \($0.title) \($0.subtitle)" })
+        let typed = dynamicItems?(query) ?? []
+        return dynamicFirst ? typed + matches : matches + typed
+    }
+
+    static func grouped(_ ranked: [SelectorItem]) -> [SelectorItem] {
+        var order: [String] = []
+        var byGroup: [String: [SelectorItem]] = [:]
+        for item in ranked {
+            if byGroup[item.group] == nil { order.append(item.group) }
+            byGroup[item.group, default: []].append(item)
+        }
+        return order.flatMap { byGroup[$0] ?? [] }
+    }
+
+    /// The group header above row `index`, if one starts there.
+    static func header(at index: Int, in rows: [SelectorItem]) -> String? {
+        let group = rows[index].group
+        guard !group.isEmpty, index == 0 || rows[index - 1].group != group else { return nil }
+        return group
+    }
 }
 
 /// The floating fuzzy-search list used for the profile selector, quick connect and the
@@ -20,11 +73,22 @@ struct SelectorItem: Identifiable {
 /// 44 pt below the tab bar, grouped rows, keyboard hints in the footer.
 @MainActor
 final class SelectorPanel: NSPanel {
-    private static var current: SelectorPanel?
+    private(set) static var current: SelectorPanel?
     static let size = CGSize(width: 660, height: 440)
 
+    /// "⌘E profiles · ⌘⇧P commands", the footer of the general selectors.
+    static var profilesAndCommandsHint: String? {
+        guard let profiles = StartPageView.shortcut("profile-selector"), let commands = StartPageView.shortcut("command-selector") else { return nil }
+        return "\(profiles) profiles · \(commands) commands"
+    }
+
     static func present(over window: NSWindow?, placeholder: String, items: [SelectorItem],
-                        dynamicItems: ((String) -> [SelectorItem])? = nil) {
+                        initialSelection: Int = 0, dynamicItems: ((String) -> [SelectorItem])? = nil) {
+        present(over: window, SelectorConfig(placeholder: placeholder, items: items, initialSelection: initialSelection,
+                                             dynamicItems: dynamicItems))
+    }
+
+    static func present(over window: NSWindow?, _ config: SelectorConfig) {
         current?.close()
         let panel = SelectorPanel(contentRect: CGRect(origin: .zero, size: size),
                                   styleMask: [.titled, .fullSizeContentView], backing: .buffered, defer: false)
@@ -40,11 +104,15 @@ final class SelectorPanel: NSPanel {
         panel.standardWindowButton(.closeButton)?.isHidden = true
         panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
         panel.standardWindowButton(.zoomButton)?.isHidden = true
-        let view = SelectorView(placeholder: placeholder, items: items, dynamicItems: dynamicItems) { [weak panel] item in
+        let view = SelectorView(config: config) { [weak panel] item in
             panel?.close()
             if let item { DispatchQueue.main.async { item.action() } }
         }
         let host = NSHostingView(rootView: view)
+        // The content fills the panel: no title-bar inset above it, and the panel keeps its
+        // size (it grew by the title bar's height, an empty band above the search field).
+        host.safeAreaRegions = []
+        host.sizingOptions = []
         host.wantsLayer = true
         host.layer?.cornerRadius = 12
         host.layer?.masksToBounds = true
@@ -99,22 +167,30 @@ struct HoverSelection {
 }
 
 struct SelectorView: View {
-    let placeholder: String
-    let items: [SelectorItem]
-    let dynamicItems: ((String) -> [SelectorItem])?
+    let config: SelectorConfig
     let finish: (SelectorItem?) -> Void
 
+    init(config: SelectorConfig, finish: @escaping (SelectorItem?) -> Void) {
+        self.config = config
+        self.finish = finish
+    }
+
+    init(placeholder: String, items: [SelectorItem], initialSelection: Int = 0,
+         dynamicItems: ((String) -> [SelectorItem])?, finish: @escaping (SelectorItem?) -> Void) {
+        self.init(config: SelectorConfig(placeholder: placeholder, items: items, initialSelection: initialSelection,
+                                         dynamicItems: dynamicItems), finish: finish)
+    }
+
     var body: some View {
-        SelectorContent(placeholder: placeholder, items: items, dynamicItems: dynamicItems, finish: finish)
-            .chromeEnvironment()
+        SelectorContent(config: config, finish: finish).chromeEnvironment()
     }
 }
 
 private struct SelectorContent: View {
-    let placeholder: String
-    let items: [SelectorItem]
-    let dynamicItems: ((String) -> [SelectorItem])?
+    let config: SelectorConfig
     let finish: (SelectorItem?) -> Void
+    private var placeholder: String { config.placeholder }
+    private var items: [SelectorItem] { config.items }
     @State private var query = ""
     @State private var selection = 0
     @State private var hover = HoverSelection(pointer: NSEvent.mouseLocation)
@@ -123,15 +199,11 @@ private struct SelectorContent: View {
     @Environment(\.metrics) private var metrics
 
     private var filtered: [SelectorItem] {
-        let base = FuzzyMatcher.filter(items, query: query) { "\($0.group) \($0.title) \($0.subtitle)" }
-        return base + (dynamicItems?(query) ?? [])
+        SelectorList.rows(items: items, query: query, dynamicItems: config.dynamicItems, dynamicFirst: config.dynamicItemsFirst)
     }
 
     var body: some View {
         let list = filtered
-        // Group headers while browsing; with a query the order is by match, so the group moves
-        // into the row's subtitle.
-        let grouped = query.isEmpty
         VStack(spacing: 0) {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass").font(.system(size: 17)).foregroundStyle(chrome.textMuted.color)
@@ -150,9 +222,14 @@ private struct SelectorContent: View {
             .frame(height: 52)
             Rectangle().fill(chrome.separator.color).frame(height: 1)
             if list.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass").font(.system(size: 28)).foregroundStyle(chrome.textFaint.color)
-                    Text(query.isEmpty ? "Nothing here yet" : "No matches for “\(query)”").font(ChromeFont.bodyEmphasised)
+                VStack(spacing: 6) {
+                    let empty = query.isEmpty ? config.emptyState : nil
+                    Image(systemName: empty?.icon ?? "magnifyingglass").font(.system(size: 28)).foregroundStyle(chrome.textFaint.color)
+                    Text(empty?.title ?? (query.isEmpty ? "Nothing here yet" : "No matches for “\(query)”"))
+                        .font(ChromeFont.bodyEmphasised).foregroundStyle(chrome.text.color)
+                    if let subtitle = empty?.subtitle {
+                        Text(subtitle).font(ChromeFont.caption)
+                    }
                 }
                 .foregroundStyle(chrome.textMuted.color)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -161,10 +238,14 @@ private struct SelectorContent: View {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 1) {
                             ForEach(Array(list.enumerated()), id: \.element.id) { index, item in
-                                if grouped && !item.group.isEmpty && (index == 0 || list[index - 1].group != item.group) {
-                                    GroupHeader(item.group).padding(.horizontal, 10).padding(.top, index == 0 ? 4 : 10).padding(.bottom, 3)
+                                if let header = SelectorList.header(at: index, in: list) {
+                                    // The designs' header: sentence case, 11 pt semibold, faint.
+                                    Text(header).font(ChromeFont.groupHeader).foregroundStyle(chrome.textFaint.color)
+                                        .padding(.horizontal, 10).padding(.top, index == 0 ? 4 : 10).padding(.bottom, 3)
+                                } else if index > 0 && item.group.isEmpty && !list[index - 1].group.isEmpty {
+                                    Color.clear.frame(height: 6)
                                 }
-                                SelectorRow(item: item, isSelected: index == selection, showGroup: !grouped)
+                                SelectorRow(item: item, isSelected: index == selection)
                                     .id(item.id)
                                     .onTapGesture { finish(item) }
                                     .onHover { if $0, hover.shouldSelect(pointer: NSEvent.mouseLocation) { selection = index } }
@@ -175,6 +256,12 @@ private struct SelectorContent: View {
                     .onChange(of: selection) {
                         if list.indices.contains(selection) { proxy.scrollTo(list[selection].id) }
                     }
+                    .onAppear {
+                        // The preselected row (115200 in the baud-rate list) opens in view.
+                        guard list.indices.contains(config.initialSelection), config.initialSelection > 0 else { return }
+                        let id = list[config.initialSelection].id
+                        DispatchQueue.main.async { proxy.scrollTo(id, anchor: .center) }
+                    }
                 }
             }
             Rectangle().fill(chrome.separator.color).frame(height: 1)
@@ -183,8 +270,8 @@ private struct SelectorContent: View {
                 hint("↩", "open")
                 hint("esc", "close")
                 Spacer()
-                if let profiles = StartPageView.shortcut("profile-selector"), let commands = StartPageView.shortcut("command-selector") {
-                    Text("\(profiles) profiles · \(commands) commands").foregroundStyle(chrome.textFaint.color)
+                if let trailing = config.trailingHint {
+                    Text(trailing).foregroundStyle(chrome.textFaint.color)
                 }
             }
             .font(ChromeFont.caption)
@@ -195,7 +282,10 @@ private struct SelectorContent: View {
         .frame(width: SelectorPanel.size.width, height: SelectorPanel.size.height)
         .foregroundStyle(chrome.text.color)
         .background(chrome.surfaceRaised.color)
-        .onAppear { focused = true }
+        .onAppear {
+            focused = true
+            if items.indices.contains(config.initialSelection) { selection = config.initialSelection }
+        }
     }
 
     private func hint(_ key: String, _ label: String) -> some View {
@@ -209,20 +299,19 @@ private struct SelectorContent: View {
 struct SelectorRow: View {
     let item: SelectorItem
     let isSelected: Bool
-    var showGroup = false
     @Environment(\.chrome) private var chrome
     @Environment(\.metrics) private var metrics
 
     var body: some View {
         let tint = item.color.flatMap(RGBColor.init(hex:))
-        let fg = isSelected ? chrome.onAccent : chrome.text
-        let muted = isSelected ? chrome.onAccent.withAlpha(0.72) : chrome.textMuted
-        let subtitle = [showGroup ? item.group : "", item.subtitle].filter { !$0.isEmpty }.joined(separator: " · ")
+        let fg = isSelected ? chrome.onAccent : item.isDimmed ? chrome.textMuted : chrome.text
+        let muted = isSelected ? chrome.onAccent.withAlpha(0.72) : item.isDimmed ? chrome.textFaint : chrome.textMuted
+        let subtitle = item.subtitle
         HStack(spacing: 10) {
             Image(systemName: item.icon ?? "terminal")
                 .font(.system(size: 14))
                 .frame(width: 20)
-                .foregroundStyle((isSelected ? chrome.onAccent : (tint ?? chrome.textMuted)).color)
+                .foregroundStyle((isSelected ? chrome.onAccent : (tint ?? (item.isDimmed ? chrome.textFaint : chrome.textMuted))).color)
             Text(item.title).font(ChromeFont.bodyEmphasised).foregroundStyle(fg.color).lineLimit(1)
             if !subtitle.isEmpty {
                 Text(subtitle).font(ChromeFont.caption).foregroundStyle(muted.color).lineLimit(1).truncationMode(.middle)

@@ -34,6 +34,21 @@ struct StartPageView: View {
     }
 
     static let repositoryURL = URL(string: "https://github.com/dathc0601/tabby")!
+
+    /// The second line of a recent profile: where it connects, or the command it runs.
+    static func subtitle(of p: Profile) -> String? {
+        switch p.type {
+        case "ssh":
+            let host = p.options["host"]?.stringValue ?? ""
+            let user = p.options["user"]?.stringValue
+            return user.map { "\($0)@\(host)" } ?? host
+        case "local":
+            return p.options["command"]?.stringValue
+        default:
+            let d = AppServices.shared.profiles.provider(for: p.type)?.description(for: p) ?? ""
+            return d.isEmpty ? nil : d
+        }
+    }
 }
 
 private struct StartPageContent: View {
@@ -62,21 +77,12 @@ private struct StartPageContent: View {
                 shortcut: StartPageView.shortcut("profile-selector"), action: showProfiles),
         ]
         let recent = recents.enumerated().map { i, p in
-            Row(icon: ProfileIcons.symbol(for: p.icon ?? (p.type == "ssh" ? "server" : "terminal")),
-                tint: p.color.flatMap(RGBColor.init(hex:)), title: p.name, subtitle: Self.subtitle(of: p),
+            Row(icon: ProfileIcons.symbol(for: p.icon ?? ProfileIcons.defaultIcon(forType: p.type)),
+                tint: p.color.flatMap(RGBColor.init(hex:)), title: p.name, subtitle: StartPageView.subtitle(of: p),
                 shortcut: "⌘\(i + 1)", action: { openProfile(p) })
         }
         let settings = Row(icon: "gearshape", tint: nil, title: "Settings", subtitle: nil, shortcut: StartPageView.shortcut("settings"), action: showSettings)
         return (actions, recent, settings)
-    }
-
-    static func subtitle(of p: Profile) -> String? {
-        if p.type == "ssh" {
-            let host = p.options["host"]?.stringValue ?? ""
-            let user = p.options["user"]?.stringValue
-            return user.map { "\($0)@\(host)" } ?? host
-        }
-        return p.options["command"]?.stringValue
     }
 
     var body: some View {

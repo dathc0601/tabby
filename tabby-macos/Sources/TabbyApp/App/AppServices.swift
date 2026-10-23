@@ -5,6 +5,8 @@ import TabbyCore
 import TabbyTerminal
 import TabbySSH
 import TabbySSHLib
+import TabbyTelnet
+import TabbySerial
 import TabbyAccount
 
 /// Process-wide services: configuration, profiles, sessions, theme. Replaces the Angular
@@ -29,6 +31,8 @@ public final class AppServices {
     /// The library (libssh) backend; `ssh.backend: openssh` or a profile's `backend` picks
     /// `sshFactory` instead.
     @ObservationIgnored let libSSHFactory: LibSSHSessionFactory
+    /// Serial ports on this Mac, kept current as devices come and go.
+    @ObservationIgnored public let serialPorts: SerialPortList
     public let theme: ThemeManager
     let account: AccountService
 
@@ -69,7 +73,10 @@ public final class AppServices {
         let ssh = SSHProfileProvider(sshConfig: {
             try? String(contentsOfFile: NSHomeDirectory() + "/.ssh/config", encoding: .utf8)
         })
-        profiles = ProfileRegistry(config: config, providers: [local, ssh], recents: recents)
+        let serialPorts = SerialPortList()
+        self.serialPorts = serialPorts
+        let serial = SerialProfileProvider(ports: { MainActor.assumeIsolated { serialPorts.ports } })
+        profiles = ProfileRegistry(config: config, providers: [local, ssh, serial, TelnetProfileProvider()], recents: recents)
 
         let askpassPath = Self.askpassExecutablePath()
         sshFactory = SSHSessionFactory(
@@ -104,6 +111,8 @@ public final class AppServices {
             MainActor.assumeIsolated { config.value("ssh.x11Display")?.stringValue }.flatMap { $0.isEmpty ? nil : $0 }
         }
         factories["local"] = LocalSessionFactory()
+        factories["telnet"] = TelnetSessionFactory()
+        factories["serial"] = SerialSessionFactory()
         factories["ssh"] = SSHBackendFactory(openSSH: sshFactory, library: libSSHFactory,
                                              configuredBackend: { MainActor.assumeIsolated { config.value("ssh.backend")?.stringValue } })
         loadError = error

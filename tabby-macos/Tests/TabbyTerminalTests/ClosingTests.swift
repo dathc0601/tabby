@@ -51,7 +51,26 @@ func makeFakePane(type: String = "ssh", options: [String: ConfigValue] = [:],
     return (pane, engine, factory)
 }
 
+/// A session whose start throws (a telnet profile with no host).
+final class FailingSessionFactory: SessionFactory {
+    struct Failure: LocalizedError { var errorDescription: String? { "No host to connect to" } }
+    let profileType = "telnet"
+    func makeSession(profile: Profile, context: SessionContext) throws -> TerminalSession { throw Failure() }
+}
+
 final class ClosingTests: XCTestCase {
+    /// Design C9 (review): a session that can't start prints the error line with the X badge.
+    func testAStartThatFailsPrintsTheErrorLine() throws {
+        let settings = TerminalSettings(config: ConfigStore(defaults: try ConfigStore.bundledDefaults()))
+        let pane = TerminalPane(profile: Profile(id: "telnet:t", type: "telnet", name: "t"), factory: FailingSessionFactory(),
+                                context: SessionContext(), settings: settings, scheme: .tabbyDefault)
+        let engine = FakeEngine()
+        pane.attach(engine: engine)
+        pane.start()
+        XCTAssertTrue(engine.text.contains(String(decoding: ServiceMessage.error("No host to connect to"), as: UTF8.self)), engine.text)
+        pane.close()
+    }
+
     func makePane(type: String = "ssh", options: [String: ConfigValue] = [:],
                   behavior: SessionEndBehavior = .auto) throws -> (TerminalPane, FakeEngine, FakeSessionFactory) {
         try makeFakePane(type: type, options: options, behavior: behavior)

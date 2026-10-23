@@ -87,6 +87,11 @@ final class ProfileTests: XCTestCase {
         XCTAssertEqual(SSHProfileProvider.quickConnectString(SSHOptions(["host": "h", "user": "u", "port": 2022])), "u@h:2022")
     }
 
+    /// Design C1: SSH is `server.rack` everywhere; the template said "network" (telnet's glyph).
+    func testTheSSHTemplateUsesTheServerIcon() {
+        XCTAssertEqual(SSHProfileProvider().builtinProfiles().first { $0.id == "ssh:template" }?.icon, "server")
+    }
+
     func testSelectorEntries() throws {
         let r = try makeRegistry(user: try fixture())
         r.recents.push(r.profile(withId: "local:custom:fish:abcd")!)
@@ -106,5 +111,26 @@ final class ProfileTests: XCTestCase {
             XCTAssertEqual(Profile(config: p.configValue), p)
         }
         XCTAssertEqual(Profile(config: raw[0]).hotkeyId, "profile.ssh:custom:prod:1234")
+    }
+
+    // Tabby's provider defaults: SSH clears its service messages on connect, serial and
+    // telnet don't. A missing key reads as the type's default and is written only when it
+    // differs from it.
+    func testClearingServiceMessagesDefaultsPerType() {
+        XCTAssertTrue(Profile(config: ["type": "ssh"]).clearServiceMessagesOnConnect)
+        XCTAssertFalse(Profile(config: ["type": "serial"]).clearServiceMessagesOnConnect)
+        XCTAssertFalse(Profile(config: ["type": "telnet"]).clearServiceMessagesOnConnect)
+        XCTAssertFalse(Profile(type: "telnet", name: "t").clearServiceMessagesOnConnect)
+
+        var serial = Profile(config: ["type": "serial"])
+        serial.clearServiceMessagesOnConnect = true
+        XCTAssertEqual(serial.configValue["clearServiceMessagesOnConnect"], true)
+        XCTAssertTrue(Profile(config: serial.configValue).clearServiceMessagesOnConnect)
+
+        let ssh = Profile(config: ["type": "ssh"])
+        XCTAssertNil(ssh.configValue["clearServiceMessagesOnConnect"])
+        var quietSSH = ssh
+        quietSSH.clearServiceMessagesOnConnect = false
+        XCTAssertEqual(quietSSH.configValue["clearServiceMessagesOnConnect"], false)
     }
 }

@@ -1,5 +1,6 @@
 #if os(macOS)
 import XCTest
+import TabbyTestSupport
 import TabbyCore
 import TabbySSH
 @testable import TabbySSHLib

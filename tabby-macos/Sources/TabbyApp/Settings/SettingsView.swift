@@ -543,7 +543,9 @@ struct SSHSettingsView: View {
                 SettingsRow("Known hosts file") { RowPath(url: services.paths.knownHostsFile) }
                 SettingsRow("Warn when closing an open connection", isOn: ConfigBinding.bool("ssh.warnOnClose"))
                 SettingsRow("Quick connect uses") {
-                    RowPicker(selection: ConfigBinding.string("defaultQuickConnectProvider")) { Text("SSH").tag("ssh") }
+                    RowPicker(selection: ConfigBinding.string("defaultQuickConnectProvider")) {
+                        ForEach(ProfileTypes.quickConnectProviders, id: \.id) { Text(ProfileTypes.badge($0.id)).tag($0.id) }
+                    }
                 }
             }
             SettingsGroup("Agent and X11", footer: "Used by SSH connections on the built-in client (ssh.backend: library, the default).") {

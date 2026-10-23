@@ -88,6 +88,9 @@ public final class TerminalPane: TerminalEngineDelegate {
     @ObservationIgnored private var loginScripts: LoginScriptRunner?
     @ObservationIgnored private let progressDetector = ProgressDetector()
     @ObservationIgnored private var started = false
+    /// A restored pane keeps its replayed scrollback when it first connects, even if the
+    /// profile clears service messages on connect.
+    @ObservationIgnored private var keepsRestoredScrollback = false
 
     /// Ask the app to close this pane (session ended with close behaviour).
     @ObservationIgnored public var onRequestClose: ((TerminalPane) -> Void)?
@@ -120,10 +123,7 @@ public final class TerminalPane: TerminalEngineDelegate {
             workingDirectory = restore.cwd
             if let cwd = restore.cwd { self.context.workingDirectory = cwd }
         }
-        if profile.type == "ssh" {
-            let scripts = SSHOptions(profile.options).scripts
-            if !scripts.isEmpty { loginScripts = LoginScriptRunner(scripts: scripts) }
-        }
+        keepsRestoredScrollback = restore?.savedState?.isEmpty == false
     }
 
     /// The title shown in the tab: custom > dynamic (unless disabled) > profile name.
@@ -158,23 +158,40 @@ public final class TerminalPane: TerminalEngineDelegate {
             s.onClosed = { [weak self] code in self?.handleClosed(code) }
             s.onStatus = { [weak self] st in
                 self?.status = st
-                if st == .connected { self?.reconnectAttempt = 0 }
+                if st == .connected { self?.connected() }
             }
+            // Each connection runs the profile's login scripts afresh, as Tabby builds its
+            // LoginScriptProcessor per session; every type has them, not just SSH.
+            let scripts = (profile.options["scripts"]?.arrayValue ?? []).compactMap(LoginScript.init)
+            loginScripts = scripts.isEmpty ? nil : LoginScriptRunner(scripts: scripts)
             session = s
             userClosed = false
             disconnectedByHand = false
             recentInput = ""
+            started = true
             try s.start(cols: max(size.cols, 2), rows: max(size.rows, 1))
+            // A session can end inside `start` (a serial port that can't open).
+            guard session === s else { return }
             startedAt = Date()
             state = .running
-            started = true
             if let scripts = loginScripts?.unconditionalScripts() {
                 for line in scripts { s.write(Data(line.utf8)) }
             }
         } catch {
             state = .failed(error.localizedDescription)
-            engine?.feed(Data("\r\n\u{1b}[31m\(error.localizedDescription)\u{1b}[0m\r\n".utf8))
+            engine?.feed(Data("\r\n".utf8) + ServiceMessage.error(error.localizedDescription))
         }
+    }
+
+    private func connected() {
+        reconnectAttempt = 0
+        // Tabby's `clearServiceMessagesOnConnect` (ConnectableTerminalTabComponent).
+        guard profile.type != "local", profile.clearServiceMessagesOnConnect else { return }
+        if keepsRestoredScrollback {
+            keepsRestoredScrollback = false
+            return
+        }
+        engine?.clearScreen()
     }
 
     /// Starts the session once the view has laid out (no-op if already started).
@@ -219,13 +236,21 @@ public final class TerminalPane: TerminalEngineDelegate {
 
     /// Why closing this pane should ask first, or nil. A busy child process always asks; an
     /// open SSH connection asks when the profile's `warnOnClose` (else the global
-    /// `ssh.warnOnClose`) is on, as in Tabby's `SSHTabComponent.canClose`.
+    /// `ssh.warnOnClose`) is on, as in Tabby's `SSHTabComponent.canClose`; an open telnet
+    /// connection always asks (`TelnetTabComponent.canClose`).
     public func closeWarning(sshWarnOnClose: Bool) -> String? {
         if let name = activeProcessName { return "\(name) is still running." }
-        guard profile.type == "ssh", isRunning, session != nil else { return nil }
-        let options = SSHOptions(profile.options)
-        guard options.warnOnClose ?? sshWarnOnClose else { return nil }
-        return "Disconnect from \(options.host)?"
+        guard isRunning, session != nil else { return nil }
+        switch profile.type {
+        case "ssh":
+            let options = SSHOptions(profile.options)
+            guard options.warnOnClose ?? sshWarnOnClose else { return nil }
+            return "Disconnect from \(options.host)?"
+        case "telnet":
+            return "Disconnect from \(TelnetOptions(profile.options).host)?"
+        default:
+            return nil
+        }
     }
 
     // MARK: Output
@@ -284,13 +309,14 @@ public final class TerminalPane: TerminalEngineDelegate {
             onRequestClose?(self)
             return
         }
+        // A shell restarts; a connection reconnects (design C9).
         let message: String
         if isLocal {
-            message = code.map { "Process exited with code \($0)" } ?? "Process terminated"
+            message = (code.map { "Process exited with code \($0)" } ?? "Process terminated") + ". Press any key to restart."
         } else {
-            message = "Session closed"
+            message = "Session closed. Press any key to reconnect."
         }
-        engine?.feed(Data("\r\n\u{1b}[2m\(message). Press any key to restart.\u{1b}[0m\r\n".utf8))
+        engine?.feed(Data("\r\n\u{1b}[2m\(message)\u{1b}[0m\r\n".utf8))
         state = .ended(code: code, canRestart: true)
         if autoReconnect {
             if reconnectAttempt >= Self.maxReconnectAttempts {
@@ -306,9 +332,13 @@ public final class TerminalPane: TerminalEngineDelegate {
         }
     }
 
-    /// Tabby treats a session as deliberately ended when the last input was ^D or `exit`.
+    /// Tabby treats a session as deliberately ended when the last input was ^D, `exit` or
+    /// `logout`; serial and telnet tabs use `close` or `quit` instead.
     private func isExplicitlyTerminated(code: Int32?) -> Bool {
         let tail = recentInput.trimmingCharacters(in: .whitespaces)
+        if profile.type == "serial" || profile.type == "telnet" {
+            return tail.hasSuffix("close\r") || tail.hasSuffix("quit\r")
+        }
         return tail.hasSuffix("\u{04}") || tail.hasSuffix("exit\r") || tail.hasSuffix("logout\r")
     }
 
@@ -382,6 +412,13 @@ public final class TerminalPane: TerminalEngineDelegate {
     public func resetZoom() {
         fontSize = settings.fontSize
         engine?.apply(settings: settings, scheme: scheme, fontSize: fontSize)
+    }
+
+    /// Changes one option of this pane's copy of the profile without restarting (the serial
+    /// rate changed while connected); the recovery token keeps it.
+    public func updateOption(_ key: String, _ value: ConfigValue) {
+        profile.options[key] = value
+        onRecoveryStateChanged?()
     }
 
     /// Switches the pane to another profile (Tabby's "switch profile"), restarting it.
