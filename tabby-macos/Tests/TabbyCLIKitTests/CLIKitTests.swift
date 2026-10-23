@@ -96,6 +96,7 @@ final class TabbyURLTests: XCTestCase {
         let requests: [CLIRequest] = [
             .open(directory: nil), .open(directory: "/Users/me/my project"),
             .run(command: ["sh", "-c", "echo 'a b' && ls"], cwd: "/tmp"), .run(command: ["top"], cwd: nil),
+            .run(command: ["/Applications/My App/foo"], cwd: "/tmp"),
             .profile(name: "Router · console & co"), .paste(text: "line 1\nline 2 %20", escape: false), .paste(text: "x", escape: true),
             .recent(index: 3), .quickConnect(providerId: "ssh", query: "me@[::1]:22"), .path("/Users/me/deploy.sh"),
         ]

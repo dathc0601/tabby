@@ -1337,6 +1337,9 @@ msgstr "Trên tab đang mở và khi rê chuột"
 msgid "One per line"
 msgstr "Mỗi dòng một mục"
 
+msgid "Only the start is shown: {count} characters in all."
+msgstr "Chỉ hiện phần đầu: tổng cộng {count} ký tự."
+
 msgid "Open SFTP Panel"
 msgstr "Mở bảng SFTP"
 

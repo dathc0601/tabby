@@ -36,7 +36,9 @@ public enum TabbyURL {
             return .open(directory: value("directory"))
         case "run":
             let parts = items["command"] ?? []
-            let command = parts.count == 1 ? ShellWords.split(parts[0]) : parts
+            // Tabby's links carry one shell-quoted string; the helper writes one item per
+            // argument and always a cwd, so only a cwd-less single item is split.
+            let command = parts.count == 1 && items["cwd"] == nil ? ShellWords.split(parts[0]) : parts
             guard !command.isEmpty else { return nil }
             return .run(command: command, cwd: value("cwd"))
         case "profile":

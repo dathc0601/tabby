@@ -15,9 +15,24 @@ final class CLIRouter {
     var target: () -> MainWindowController = {
         WindowManager.shared.activeController ?? WindowManager.shared.newWindow(openDefaultTab: false)
     }
-    /// Asks before `run` and `paste` (title, confirm button); tests answer.
-    var confirm: (_ title: String, _ button: String, _ done: @escaping (Bool) -> Void) -> Void = { title, button, done in
-        Prompts.confirm(in: NSApp.keyWindow, title: title, message: "", confirm: button, completion: done)
+    /// Asks before `run`, `paste` and a script (title, message, confirm button); tests answer.
+    var confirm: (_ title: String, _ message: String, _ button: String, _ done: @escaping (Bool) -> Void) -> Void = { title, message, button, done in
+        Prompts.confirm(in: NSApp.keyWindow, title: title, message: message, confirm: button, completion: done)
+    }
+
+    /// What the question shows of a command or text: a link can carry kilobytes, so at most
+    /// a few lines and 200 characters, and the message says when there is more.
+    static func preview(_ text: String) -> (shown: String, note: String) {
+        let lines = text.components(separatedBy: "\n")
+        var shown = lines.prefix(5).joined(separator: "\n")
+        if shown.count > 200 { shown = String(shown.prefix(200)) }
+        guard shown.count < text.count else { return (text, "") }
+        return (shown + "…", L("Only the start is shown: {count} characters in all.", ["count": text.count]))
+    }
+
+    private func ask(_ format: String, key: String, value: String, button: String, then action: @escaping () -> Void) {
+        let preview = Self.preview(value)
+        confirm(L(format, [key: preview.shown]), preview.note, button) { ok in if ok { action() } }
     }
 
     private var ready = false
@@ -56,8 +71,8 @@ final class CLIRouter {
         case let .open(directory):
             openDirectory(resolve(directory ?? cwd, against: cwd), in: controller)
         case let .run(command, runCwd):
-            confirm(L("Run \"{command}\"?", ["command": command.joined(separator: " ")]), L("Run")) { ok in
-                guard ok, let executable = command.first else { return }
+            ask(Lkey("Run \"{command}\"?"), key: "command", value: command.joined(separator: " "), button: L("Run")) {
+                guard let executable = command.first else { return }
                 let options = LocalOptions(command: executable, args: Array(command.dropFirst()), cwd: runCwd, pauseAfterExit: true)
                 controller.model.openTab(profile: Profile(type: "local", name: command.joined(separator: " "), options: options.configValue))
             }
@@ -69,8 +84,8 @@ final class CLIRouter {
         case let .paste(text, escape):
             guard let text else { return }
             let prepared = escape ? ShellWords.quote(text) : text
-            confirm(L("Paste \"{text}\"?", ["text": prepared]), L("Paste")) { ok in
-                if ok { controller.send(prepared) }
+            ask(Lkey("Paste \"{text}\"?"), key: "text", value: prepared, button: L("Paste")) {
+                controller.send(prepared)
             }
         case let .recent(index):
             let recents = AppServices.shared.profiles.recents.load()
@@ -116,8 +131,8 @@ final class CLIRouter {
         guard FileManager.default.fileExists(atPath: path), ["sh", "command"].contains((path as NSString).pathExtension) else {
             return fail(L("Cannot handle scripts of this type"), in: controller)
         }
-        confirm(L("Run \"{command}\"?", ["command": path]), L("Run")) { [weak self] ok in
-            if ok { self?.runScript(path, in: controller) }
+        ask(Lkey("Run \"{command}\"?"), key: "command", value: path, button: L("Run")) { [weak self] in
+            self?.runScript(path, in: controller)
         }
     }
 

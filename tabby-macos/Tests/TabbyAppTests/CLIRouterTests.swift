@@ -13,6 +13,7 @@ final class CLIRouterTests: XCTestCase {
     var router: CLIRouter!
     var controller: MainWindowController!
     var asked: [String] = []
+    var messages: [String] = []
     var answer = true
     var directory: URL!
 
@@ -22,7 +23,11 @@ final class CLIRouterTests: XCTestCase {
         controller = WindowManager.shared.newWindow(openDefaultTab: false)
         router = CLIRouter()
         router.target = { [unowned self] in self.controller }
-        router.confirm = { [unowned self] title, _, done in self.asked.append(title); done(self.answer) }
+        router.confirm = { [unowned self] title, message, _, done in
+            self.asked.append(title)
+            self.messages.append(message)
+            done(self.answer)
+        }
         router.becomeReady()
         directory = FileManager.default.temporaryDirectory.appendingPathComponent("cli-\(UUID().uuidString.prefix(6))")
         try? FileManager.default.createDirectory(at: directory.appendingPathComponent("sub"), withIntermediateDirectories: true)
@@ -117,6 +122,24 @@ final class CLIRouterTests: XCTestCase {
         XCTAssertEqual(asked, ["Paste \"'it'\\''s here'\"?"], "shell-escaped, as `tabby paste -e`")
         TestApp.pump(until: { pane.engine?.snapshotText(maxLines: 20).contains("'it'\\''s here'") == true })
         XCTAssertTrue(pane.engine?.snapshotText(maxLines: 20).contains("'it'\\''s here'") == true)
+    }
+
+    /// Review: a link can carry kilobytes; the question must stay readable and show that
+    /// there is more, so the end of a command can't hide off-screen.
+    func testALongRunOrPasteShowsAShortPreviewAndSaysSo() throws {
+        answer = false
+        let long = String(repeating: "a", count: 5000) + "; rm -rf ~"
+        router.handle(.paste(text: long, escape: false), cwd: "/")
+        let title = try XCTUnwrap(asked.last)
+        XCTAssertLessThan(title.count, 260, title)
+        XCTAssertTrue(title.contains("…"))
+        XCTAssertEqual(messages.last, "Only the start is shown: 5010 characters in all.")
+        router.handle(.run(command: (1...40).map { "argument-number-\($0)" }, cwd: nil), cwd: "/")
+        XCTAssertFalse(asked.last?.contains("argument-number-40") ?? true, "the end of a long command is cut, and the message says so")
+        router.handle(.paste(text: (1...20).map { "echo \($0)" }.joined(separator: "\n"), escape: false), cwd: "/")
+        XCTAssertLessThanOrEqual(asked.last?.components(separatedBy: "\n").count ?? 99, 6, "a few lines at most")
+        router.handle(.paste(text: "short", escape: false), cwd: "/")
+        XCTAssertEqual(messages.last, "", "nothing to add for a short text")
     }
 
     func testAPathOpensADirectoryOrRunsAScript() throws {

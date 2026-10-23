@@ -76,6 +76,35 @@ final class HelperProcessTests: XCTestCase {
         XCTAssertEqual(TabbyURL.parse(url), .paste(text: "git status", escape: false), "★ one trailing newline (from echo) is dropped")
     }
 
+    #if os(macOS)
+    /// Review: run from PATH (the documented /usr/local/bin/tabby symlink), argv[0] is the
+    /// bare word `tabby`; the helper must still find the app it lives in.
+    func testThroughASymlinkOnPathItFindsItsOwnApp() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("tabby-app-\(UUID().uuidString.prefix(6))")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let macOS = root.appendingPathComponent("Fake.app/Contents/MacOS")
+        let bin = root.appendingPathComponent("bin")
+        try FileManager.default.createDirectory(at: macOS, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: productsDirectory.appendingPathComponent("tabby"), to: macOS.appendingPathComponent("tabby"))
+        let plist: [String: Any] = ["CFBundleShortVersionString": "9.9.9", "CFBundleIdentifier": "test.fake.tabbymac", "CFBundleExecutable": "Fake"]
+        try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
+            .write(to: root.appendingPathComponent("Fake.app/Contents/Info.plist"))
+        try FileManager.default.createSymbolicLink(at: bin.appendingPathComponent("tabby"), withDestinationURL: macOS.appendingPathComponent("tabby"))
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = ["-c", "tabby --version"]
+        process.environment = ["PATH": bin.path + ":/usr/bin:/bin", "HOME": NSHomeDirectory()]
+        let out = Pipe()
+        process.standardOutput = out
+        try process.run()
+        let text = String(decoding: out.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        process.waitUntilExit()
+        XCTAssertEqual(text.trimmingCharacters(in: .whitespacesAndNewlines), "9.9.9")
+    }
+    #endif
+
     func testNoArgumentsOnlyStartsTheApp() throws {
         let run = try tabby([])
         XCTAssertEqual(run.status, 0)

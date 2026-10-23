@@ -32,7 +32,8 @@ func absolute(_ path: String) -> String {
 
 /// The app this helper belongs to, or the installed one.
 func appURL() -> URL? {
-    let me = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath()
+    // The executed file (argv[0] is the bare word "tabby" when it runs from PATH).
+    let me = (Bundle.main.executableURL ?? URL(fileURLWithPath: CommandLine.arguments[0])).resolvingSymlinksInPath()
     let bundle = me.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
     if bundle.pathExtension == "app" { return bundle }
     #if canImport(AppKit)

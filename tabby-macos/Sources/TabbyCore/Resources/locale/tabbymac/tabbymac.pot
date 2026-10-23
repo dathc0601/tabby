@@ -925,6 +925,9 @@ msgstr ""
 msgid "One per line"
 msgstr ""
 
+msgid "Only the start is shown: {count} characters in all."
+msgstr ""
+
 msgid "Open a new tab when the app starts"
 msgstr ""
 
