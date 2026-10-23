@@ -770,6 +770,9 @@ msgstr "Tìm…"
 msgid "Fingerprint"
 msgstr "Dấu vân tay"
 
+msgid "Flash the Dock icon"
+msgstr "Nhấp nháy biểu tượng trên Dock"
+
 msgid "Flex tabs"
 msgstr "Tab co giãn"
 
@@ -2350,6 +2353,9 @@ msgstr "Chào mừng đến với TabbyMac"
 
 msgid "What to sync"
 msgstr "Đồng bộ những gì"
+
+msgid "When the bell rings while TabbyMac is in the background"
+msgstr "Khi chuông reo lúc TabbyMac đang chạy nền"
 
 msgid "When the output contains the text, TabbyMac types the reply and presses Return."
 msgstr "Khi đầu ra chứa đoạn chữ này, TabbyMac sẽ gõ câu trả lời và nhấn Return."

@@ -543,6 +543,8 @@ public final class TerminalPane: TerminalEngineDelegate {
     }
 
     public func engineBell(_ engine: TerminalEngine) {
+        // Tabby: `if (!this.hasFocus) this.displayActivity()`.
+        if !isFocused { hasActivity = true }
         onBell?(self)
     }
 

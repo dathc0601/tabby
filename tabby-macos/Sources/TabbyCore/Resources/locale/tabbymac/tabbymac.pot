@@ -559,6 +559,9 @@ msgstr ""
 msgid "Fingerprint"
 msgstr ""
 
+msgid "Flash the Dock icon"
+msgstr ""
+
 msgid "Flex tabs"
 msgstr ""
 
@@ -1643,6 +1646,9 @@ msgid "Welcome to TabbyMac"
 msgstr ""
 
 msgid "What to sync"
+msgstr ""
+
+msgid "When the bell rings while TabbyMac is in the background"
 msgstr ""
 
 msgid "When the output contains the text, TabbyMac types the reply and presses Return."

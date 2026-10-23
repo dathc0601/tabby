@@ -283,9 +283,16 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
         }
     }
 
+    /// SwiftTerm reports the bell to its delegate only in audible mode; TabbyMac needs it in
+    /// every mode (tab activity, the Dock bounce). `super` still beeps or flashes.
+    public override func bell(source: Terminal) {
+        super.bell(source: source)
+        engineDelegate?.engineBell(self)
+    }
+
+    /// The audible bell (SwiftTerm calls this from `bell(source: Terminal)` in `.sound` mode).
     public func bell(source: TerminalView) {
         NSSound.beep()
-        engineDelegate?.engineBell(self)
     }
 
     public func clipboardCopy(source: TerminalView, content: Data) {

@@ -15,6 +15,9 @@ public struct TerminalSettings: Equatable {
     public var cursorBlink: Bool
     public var scrollbackLines: Int
     public var bell: BellMode
+    /// Tabby's `terminal.bellFlashFrame`: the bell bounces the Dock icon while the app is in
+    /// the background (Electron's `flashFrame`).
+    public var bellFlashFrame: Bool
     public var copyOnSelect: Bool
     public var rightClick: RightClick
     public var pasteOnMiddleClick: Bool
@@ -39,6 +42,7 @@ public struct TerminalSettings: Equatable {
         cursorBlink = c.value("terminal.cursorBlink")?.boolValue ?? true
         scrollbackLines = c.int("terminal.scrollbackLines") ?? 25000
         bell = BellMode(rawValue: c.string("terminal.bell") ?? "off") ?? .off
+        bellFlashFrame = c.bool("terminal.bellFlashFrame")
         copyOnSelect = c.bool("terminal.copyOnSelect")
         rightClick = RightClick(rawValue: c.string("terminal.rightClick") ?? "menu") ?? .menu
         pasteOnMiddleClick = c.value("terminal.pasteOnMiddleClick")?.boolValue ?? true

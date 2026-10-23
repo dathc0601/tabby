@@ -326,6 +326,20 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
                                       detail: pane.title + whereIs(pane), actionTitle: L("Show"), action: focusAction(pane)))
     }
 
+    /// Bounces the Dock icon once (Electron's `flashFrame` on macOS); tests replace it.
+    static var requestAttention: () -> Void = { NSApp.requestUserAttention(.informationalRequest) }
+
+    func paneRang(_ pane: TerminalPane) {
+        paneRang(pane, appIsActive: NSApp.isActive)
+    }
+
+    /// Tabby: `if (config.terminal.bellFlashFrame) hostWindow.flashFrame()`, which Electron
+    /// only does while the window is not focused.
+    func paneRang(_ pane: TerminalPane, appIsActive: Bool) {
+        guard services.terminalSettings.bellFlashFrame, !appIsActive else { return }
+        Self.requestAttention()
+    }
+
     /// " in tab 3", or nothing when the pane is gone.
     private func whereIs(_ pane: TerminalPane) -> String {
         model.tabs.firstIndex { $0.panes[pane.id] != nil }.map { " " + L("in tab {number}", ["number": $0 + 1]) } ?? ""

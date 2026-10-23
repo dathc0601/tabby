@@ -66,7 +66,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .application: return ["config file", "import", "startup", "restore tabs", "contrast", "accessibility"] // l10n-ignore: English search keywords (titles are matched translated)
         case .appearance: return ["theme", "dark", "light", "system", "font", "size", "weight", "cursor", "blink", "bold", "tabs", "flex", "index", "icon", "close button"] // l10n-ignore: English search keywords (titles are matched translated)
         case .colorScheme: return ["scheme", "colors", "colours", "palette", "dark", "light"] // l10n-ignore: English search keywords (titles are matched translated)
-        case .terminal: return ["scrollback", "bell", "meta", "option", "right click", "copy on select", "paste", "bracketed", "progress", "default profile"] // l10n-ignore: English search keywords (titles are matched translated)
+        case .terminal: return ["scrollback", "bell", "flash", "dock icon", "meta", "option", "right click", "copy on select", "paste", "bracketed", "progress", "default profile"] // l10n-ignore: English search keywords (titles are matched translated)
         case .window: return ["frame", "title bar", "tab bar", "location", "spaciness", "vibrancy", "opacity", "dock", "quake", "always on top", "global hotkey", "full screen", "cycle", "pane"] // l10n-ignore: English search keywords (titles are matched translated)
         case .profiles: return ["profile", "connection", "group", "ssh", "local", "default", "hidden"] // l10n-ignore: English search keywords (titles are matched translated)
         case .ssh: return ["host key", "known hosts", "warn", "quick connect", "keychain"] // l10n-ignore: English search keywords (titles are matched translated)
@@ -531,6 +531,8 @@ struct TerminalSettingsView: View {
                         Text(L("Audible")).tag("audible")
                     }
                 }
+                SettingsRow(L("Flash the Dock icon"), subtitle: L("When the bell rings while TabbyMac is in the background"),
+                           isOn: ConfigBinding.bool("terminal.bellFlashFrame"))
                 SettingsRow(L("Scrollback")) {
                     RowStepper(value: Binding(get: { Double(ConfigBinding.int("terminal.scrollbackLines").wrappedValue) },
                                               set: { ConfigBinding.int("terminal.scrollbackLines").wrappedValue = Int($0) }),
