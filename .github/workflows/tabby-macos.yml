@@ -64,3 +64,4 @@ jobs:
           xcodebuild -project TabbyMac.xcodeproj -scheme TabbyMac -configuration Debug \
             -derivedDataPath build -skipPackagePluginValidation CODE_SIGNING_ALLOWED=NO build
           test -x build/Build/Products/Debug/TabbyMac.app/Contents/MacOS/tabby-askpass
+          build/Build/Products/Debug/TabbyMac.app/Contents/MacOS/tabby --version
