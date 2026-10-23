@@ -46,8 +46,8 @@ final class CatalogTests: XCTestCase {
 
     /// Rewrites the template with `TABBYMAC_WRITE_POT=1` (`scripts/l10n-extract.sh`).
     func testTheAppCatalogTemplateIsCurrent() throws {
-        let tabby = try Self.tabbyMsgids()
-        let own = Set(try Self.usedKeys().map(\.text)).subtracting(tabby).sorted()
+        let tabby = L10n.Catalog.normalizedKeys(try Self.tabbyMsgids())
+        let own = Set(try Self.usedKeys().map(\.text)).filter { !tabby.contains(L10n.Catalog.normalize($0).core) }.sorted()
         let expected = Self.pot(own)
         if ProcessInfo.processInfo.environment["TABBYMAC_WRITE_POT"] == "1" {
             try FileManager.default.createDirectory(at: Self.template.deletingLastPathComponent(), withIntermediateDirectories: true)

@@ -3,15 +3,53 @@ import Foundation
 /// The strings of the current language. `L()` reads it from any thread (session messages
 /// are written off the main thread), so the catalog sits behind a lock.
 public enum L10n {
-    /// Catalog layers, searched in order: TabbyMac's own catalog, then Tabby's.
+    /// Catalog layers, searched in order: TabbyMac's own catalog, then Tabby's. A key with no
+    /// exact entry is matched ignoring case and a trailing "…", "..." or ":" (menu items end
+    /// in "…", Tabby writes "New Tab" where TabbyMac writes "New tab"), and keeps its own
+    /// ending.
     public struct Catalog: Sendable {
         public let layers: [[String: String]]
-        public init(layers: [[String: String]]) { self.layers = layers }
+        private let folded: [[String: String]]
+
+        public init(layers: [[String: String]]) {
+            self.layers = layers
+            folded = layers.map { layer in
+                var index: [String: String] = [:]
+                for (key, value) in layer.sorted(by: { $0.key < $1.key }) {
+                    let core = Self.normalize(key).core
+                    if index[core] == nil { index[core] = Self.trimEnding(value) }
+                }
+                return index
+            }
+        }
         public static let empty = Catalog(layers: [])
 
         public func lookup(_ key: String) -> String? {
             for layer in layers { if let value = layer[key] { return value } }
+            let (core, ending) = Self.normalize(key)
+            for index in folded { if let value = index[core] { return value + ending } }
             return nil
+        }
+
+        static let endings = ["…", "...", ":", "："]
+
+        /// The lowercased text without its trailing ellipsis or colon, and that ending.
+        public static func normalize(_ key: String) -> (core: String, ending: String) {
+            let trimmed = key.trimmingCharacters(in: .whitespaces)
+            for ending in endings where trimmed.hasSuffix(ending) {
+                return (String(trimmed.dropLast(ending.count)).trimmingCharacters(in: .whitespaces).lowercased(), ending)
+            }
+            return (trimmed.lowercased(), "")
+        }
+
+        static func trimEnding(_ text: String) -> String {
+            for ending in endings where text.hasSuffix(ending) { return String(text.dropLast(ending.count)) }
+            return text
+        }
+
+        /// The normalized forms of `keys`, for deciding whether a catalog covers a key.
+        public static func normalizedKeys<S: Sequence>(_ keys: S) -> Set<String> where S.Element == String {
+            Set(keys.map { normalize($0).core })
         }
     }
 

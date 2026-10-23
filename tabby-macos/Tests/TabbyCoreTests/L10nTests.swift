@@ -121,6 +121,21 @@ final class L10nTests: XCTestCase {
         XCTAssertNil(catalog.lookup("Nope"))
     }
 
+    /// Menu items end in "…" and TabbyMac uses sentence case where Tabby's msgid may not; the
+    /// translation is still Tabby's.
+    func testCaseAndATrailingEllipsisOrColonDoNotHideATranslation() {
+        let catalog = L10n.Catalog(layers: [["Settings": "Einstellungen", "New Tab": "Neuer Tab", "Rename...": "Umbenennen...",
+                                              "Host:": "Host:", "Close": "Schließen"]])
+        XCTAssertEqual(catalog.lookup("Settings…"), "Einstellungen…")
+        XCTAssertEqual(catalog.lookup("New tab"), "Neuer Tab")
+        XCTAssertEqual(catalog.lookup("Rename…"), "Umbenennen…")
+        XCTAssertEqual(catalog.lookup("Host"), "Host")
+        XCTAssertEqual(catalog.lookup("Close:"), "Schließen:")
+        XCTAssertEqual(catalog.lookup("Close"), "Schließen", "an exact match first")
+        XCTAssertNil(catalog.lookup("Close tab"))
+        XCTAssertTrue(L10n.Catalog.normalizedKeys(["New Tab", "Settings..."]).contains(L10n.Catalog.normalize("settings…").core))
+    }
+
     func testTheBundledGermanCatalogTranslates() {
         L10n.load(language: "de-DE")
         XCTAssertEqual(L10n.language, "de-DE")
