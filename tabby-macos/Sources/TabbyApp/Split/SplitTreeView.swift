@@ -288,8 +288,13 @@ final class PaneContainerView: NSView {
         }, apply: { [weak self] in
             guard let self else { return }
             let theme = AppServices.shared.theme
+            let scheme = theme.scheme(for: self.pane.profile)
             self.engine.transparentBackground = theme.vibrancy
-            self.pane.applyAppearance(settings: AppServices.shared.terminalSettings, scheme: theme.scheme(for: self.pane.profile))
+            self.pane.applyAppearance(settings: AppServices.shared.terminalSettings, scheme: scheme)
+            // The margin around the terminal shows its background (Tabby binds the tab's
+            // background colour to the scheme's); with vibrancy the window shows through.
+            self.layer?.backgroundColor = theme.vibrancy ? nil : scheme.backgroundRGB.nsColor.cgColor
+            self.needsLayout = true
             self.updateRing()
         })
     }
@@ -300,7 +305,8 @@ final class PaneContainerView: NSView {
 
     override func layout() {
         super.layout()
-        engine.frame = bounds
+        let margin = CGFloat(AppServices.shared.theme.metrics.terminalMargin)
+        engine.frame = bounds.insetBy(dx: margin, dy: margin)
         dimView.frame = bounds
         if let chipHost {
             let size = chipHost.fittingSize
