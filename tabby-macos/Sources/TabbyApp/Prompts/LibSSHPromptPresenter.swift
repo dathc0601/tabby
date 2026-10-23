@@ -78,7 +78,13 @@ final class LibSSHPromptPresenter: SSHSessionUI {
     }
 
     func notify(title: String, detail: String, isError: Bool, for session: LibSSHSession) {
-        let window = window(for: session)
+        showToast(title: title, detail: detail, isError: isError, for: session)
+    }
+
+    /// A forward's toast in the window that shows `session`; it never switches tabs (found in
+    /// the M8 walk: a background tab's toast slid that tab under another tab's password card).
+    func showToast(title: String, detail: String, isError: Bool, for session: AnyObject) {
+        let window = PromptPlacement.window(of: session)
         let controller = WindowManager.shared.controllers.first { $0.window === window } ?? WindowManager.shared.activeController
         controller?.toasts.show(ToastCenter.Toast(symbol: "point.3.connected.trianglepath.dotted", tint: isError ? .danger : .success,
                                                   title: title, detail: detail))
