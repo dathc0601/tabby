@@ -264,8 +264,15 @@ final class AccountService {
                     await self.syncNow()
                 } else if self.hasLocalChanges {
                     await self.syncNow()
-                } else if (try? await engine.remoteHasChanged()) == true {
-                    await self.syncNow()
+                } else {
+                    do {
+                        if try await engine.remoteHasChanged() { await self.syncNow() }
+                    } catch let error as SyncClientError where error.code == ErrorDTO.Code.unauthorized {
+                        // Removed from another Mac (or the account is gone): the sync signs out.
+                        await self.syncNow()
+                    } catch {
+                        // Offline and the like: try again at the next poll.
+                    }
                 }
             }
         }

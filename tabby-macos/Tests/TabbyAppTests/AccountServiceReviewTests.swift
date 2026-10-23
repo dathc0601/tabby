@@ -109,6 +109,25 @@ final class AccountServiceReviewTests: XCTestCase {
         XCTAssertFalse(a.hasLocalChanges, "Sync now still works")
     }
 
+    /// Found in the M7 walk: removed from the other Mac, this one stayed signed in for minutes.
+    /// With nothing to upload the poll only asks whether the vault changed, and dropped the 401.
+    func testThePollSignsOutARemovedDevice() async throws {
+        let server = InMemorySyncServer()
+        let (a, _, _) = try makeService(server)
+        _ = try await a.register(email: "gone@example.com", password: "pw", keepSignedIn: true)
+        await a.finishRegistration()
+        let (b, _, _) = try makeService(server, poll: 0.1)
+        try await b.signIn(email: "gone@example.com", password: "pw", keepSignedIn: false)
+        XCTAssertFalse(b.hasLocalChanges)
+
+        await a.refreshDevices()
+        let other = try XCTUnwrap(a.devices.first { !$0.isCurrent })
+        try await a.removeDevice(other.id)
+        let deadline = Date().addingTimeInterval(3)
+        while b.isSignedIn, Date() < deadline { try await Task.sleep(nanoseconds: 50_000_000) }
+        XCTAssertFalse(b.isSignedIn, "the poll notices the removal")
+    }
+
     // I1 (app side): a change made while a sync runs is synced afterwards.
     func testAChangeDuringASyncIsSyncedAfterwards() async throws {
         let server = InMemorySyncServer()
