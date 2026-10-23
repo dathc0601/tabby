@@ -78,6 +78,18 @@ final class TelnetSessionTests: XCTestCase {
         session.kill()
     }
 
+    // Review: writes before the connection is ready (typing while connecting, login scripts
+    // with no expect, which the pane sends right after start) were dropped.
+    func testWhatIsWrittenWhileConnectingIsSentOnceConnected() throws {
+        let server = try ScriptedTCPServer()
+        let (session, r) = make(port: server.port)
+        try session.start(cols: 80, rows: 24)
+        session.write(Data("wake\r".utf8))
+        XCTAssertTrue(spinMainLoop { r.statuses.contains(.connected) })
+        XCTAssertTrue(spinMainLoop { server.received == Data("wake\r".utf8) }, "received \(Array(server.received))")
+        session.kill()
+    }
+
     func testARawSocketIsPlainBytes() throws {
         let echo = try EchoServer()
         let (session, r) = make(port: echo.port)

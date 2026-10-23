@@ -40,6 +40,10 @@ public final class TelnetSession: TerminalSession, ServiceOutputSource, LocalEch
     private var connection: NWConnection?
     private var opened = false
     private var ended = false
+    /// Input before the connection is up (typing while connecting, login scripts without an
+    /// expect), sent once it opens; bounded like `LibSSHSession`'s.
+    private var earlyInput = Data()
+    static let earlyInputLimit = 64 * 1024
 
     public init(options: TelnetOptions) {
         self.options = options
@@ -68,7 +72,10 @@ public final class TelnetSession: TerminalSession, ServiceOutputSource, LocalEch
     }
 
     public func write(_ data: Data) {
-        guard opened else { return }
+        guard opened else {
+            if !ended, earlyInput.count + data.count <= Self.earlyInputLimit { earlyInput.append(data) }
+            return
+        }
         send(telnet.send(data))
     }
 
@@ -93,6 +100,10 @@ public final class TelnetSession: TerminalSession, ServiceOutputSource, LocalEch
             opened = true
             service(ServiceMessage.line("Connected", badge: .telnet))
             onStatus?(.connected)
+            if !earlyInput.isEmpty {
+                send(telnet.send(earlyInput))
+                earlyInput = Data()
+            }
             receive()
         case .waiting(let error), .failed(let error):
             // `.waiting` is a refused or unreachable connect that Network would retry.
