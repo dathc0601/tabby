@@ -23,20 +23,20 @@ struct ColorSchemeSettingsView: View {
         let light = ColorScheme(config: config.value(Self.lightKey)) ?? .tabbyDefaultLight
         let current = editingLight ? light : dark
         let shown = FuzzyMatcher.filter(all, query: filter) { $0.name }
-        SettingsPage("Color scheme") {
+        SettingsPage(L("Color scheme")) {
             HStack(spacing: 14) {
-                ModeCard(title: "Dark appearance", symbol: "moon", scheme: dark, isEditing: !editingLight) { editingLight = false }
-                ModeCard(title: "Light appearance", symbol: "sun.max", scheme: light, isEditing: editingLight) { editingLight = true }
+                ModeCard(title: L("Dark appearance"), symbol: "moon", scheme: dark, isEditing: !editingLight) { editingLight = false }
+                ModeCard(title: L("Light appearance"), symbol: "sun.max", scheme: light, isEditing: editingLight) { editingLight = true }
             }
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("Schemes").font(ChromeFont.headline).fixedSize()
-                    Text("for the \(editingLight ? "light" : "dark") appearance").foregroundStyle(chrome.textMuted.color)
+                    Text(L("Schemes")).font(ChromeFont.headline).fixedSize()
+                    Text(editingLight ? L("for the light appearance") : L("for the dark appearance")).foregroundStyle(chrome.textMuted.color)
                         .lineLimit(1)
                     Spacer(minLength: 8)
                     HStack(spacing: 6) {
                         Image(systemName: "magnifyingglass").foregroundStyle(chrome.textMuted.color)
-                        TextField("Filter \(all.count) schemes", text: $filter).textFieldStyle(.plain)
+                        TextField(L("Filter {allCount} schemes", ["allCount": all.count]), text: $filter).textFieldStyle(.plain)
                     }
                     .padding(.horizontal, 8)
                     // Narrows before the page gets wider than the window.
@@ -66,7 +66,7 @@ struct ColorSchemeSettingsView: View {
 
     /// Adds the scheme to `terminal.customColorSchemes` under a new name and selects it.
     private func saveAs(_ scheme: ColorScheme) {
-        Prompts.text(in: NSApp.keyWindow, title: "Save colour scheme as", value: "\(scheme.name) (custom)", confirm: "Save") { name, _ in
+        Prompts.text(in: NSApp.keyWindow, title: L("Save colour scheme as"), value: L("{name} (custom)", ["name": scheme.name]), confirm: L("Save")) { name, _ in
             guard let name = name?.trimmingCharacters(in: .whitespaces), !name.isEmpty else { return }
             let config = AppServices.shared.config
             var custom = (config.value("terminal.customColorSchemes")?.arrayValue ?? []).filter { $0["name"]?.stringValue != name }
@@ -105,7 +105,7 @@ private struct ModeCard: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(isEditing ? "The scheme grid and editor change this appearance" : "Edit the \(title.lowercased())")
+        .help(isEditing ? L("The scheme grid and editor change this appearance") : L("Edit this appearance"))
     }
 }
 
@@ -116,10 +116,10 @@ struct SchemePreview: View {
         let fg = scheme.foregroundRGB.color
         let p = scheme.paletteRGB
         VStack(alignment: .leading, spacing: 3) {
-            (Text("alex@mbp").foregroundColor(p[2].color).bold() + Text(" ~/Projects").foregroundColor(p[4].color)
-                + Text(" % swift build").foregroundColor(fg))
-            (Text("error:").foregroundColor(p[1].color).bold() + Text(" missing return in closure").foregroundColor(fg))
-            (Text("warning:").foregroundColor(p[3].color) + Text(" unused variable ").foregroundColor(fg) + Text("x").foregroundColor(p[6].color))
+            (Text("alex@mbp").foregroundColor(p[2].color).bold() + Text(" ~/Projects").foregroundColor(p[4].color) // l10n-ignore: sample terminal output
+                + Text(" % swift build").foregroundColor(fg)) // l10n-ignore: sample terminal output
+            (Text("error:").foregroundColor(p[1].color).bold() + Text(" missing return in closure").foregroundColor(fg)) // l10n-ignore: sample terminal output
+            (Text("warning:").foregroundColor(p[3].color) + Text(" unused variable ").foregroundColor(fg) + Text("x").foregroundColor(p[6].color)) // l10n-ignore: sample terminal output
             HStack(spacing: 2) {
                 ForEach(0..<8, id: \.self) { i in RoundedRectangle(cornerRadius: 2).fill(p[i].color).frame(width: 14, height: 8) }
             }
@@ -143,7 +143,7 @@ struct SchemeTile: View {
         let p = scheme.paletteRGB
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                Text("Aa").font(.system(size: 13, weight: .semibold)).foregroundStyle(scheme.foregroundRGB.color)
+                Text("Aa").font(.system(size: 13, weight: .semibold)).foregroundStyle(scheme.foregroundRGB.color) // l10n-ignore: sample terminal output
                 Spacer()
                 HStack(spacing: 3) {
                     ForEach([1, 2, 3, 4, 5, 6], id: \.self) { i in Circle().fill(p[i].color).frame(width: 7, height: 7) }
@@ -180,7 +180,7 @@ private struct CustomSchemeEditor: View {
 
     var body: some View {
         let edited = original.map { $0 != scheme } ?? true
-        SettingsGroup(edited ? "Custom scheme · “\(scheme.name) (edited)”" : "Edit “\(scheme.name)”") {
+        SettingsGroup(edited ? L("Custom scheme · “{name} (edited)”", ["name": scheme.name]) : L("Edit “{name}”", ["name": scheme.name])) {
             // In a narrow window the buttons go under the wells and the palette into four rows,
             // so the page never gets wider than the window.
             ViewThatFits(in: .horizontal) {
@@ -206,15 +206,15 @@ private struct CustomSchemeEditor: View {
     }
 
     @ViewBuilder private var wells: some View {
-        well("Background", \.background)
-        well("Foreground", \.foreground)
-        well("Cursor", \.cursor)
-        well("Selection", Binding(get: { scheme.selection ?? "#80808066" }, set: { var s = scheme; s.selection = $0; write(s) }))
+        well(L("Background"), \.background)
+        well(L("Foreground"), \.foreground)
+        well(L("Cursor"), \.cursor)
+        well(L("Selection"), Binding(get: { scheme.selection ?? "#80808066" }, set: { var s = scheme; s.selection = $0; write(s) }))
     }
 
     @ViewBuilder private func buttons(edited: Bool) -> some View {
-        Button("Reset") { if let original { write(original) } }.buttonStyle(ChromeButtonStyle()).disabled(!edited || original == nil)
-        Button("Save as…") { saveAs(scheme) }.buttonStyle(ChromeButtonStyle()).fixedSize()
+        Button(L("Reset")) { if let original { write(original) } }.buttonStyle(ChromeButtonStyle()).disabled(!edited || original == nil)
+        Button(L("Save as…")) { saveAs(scheme) }.buttonStyle(ChromeButtonStyle()).fixedSize()
     }
 
     /// The 16 ANSI colours, `columns` to a row (8: normal and bright on a row each).

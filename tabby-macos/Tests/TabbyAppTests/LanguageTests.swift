@@ -52,6 +52,17 @@ final class LanguageTests: XCTestCase {
         XCTAssertEqual(AppDelegate.quitAlert(warnings: []).buttons.last?.title, "Abbrechen")
     }
 
+    /// 5.4b: settings pages, hotkey names and profile types.
+    func testHotkeyNamesAndProfileTypesAreTranslated() throws {
+        AppServices.shared.config.set("language", .string("de-DE"))
+        let newTab = try XCTUnwrap(HotkeyCatalog.byId["new-tab"])
+        XCTAssertEqual(newTab.name, "New tab", "the English name stays for config and search")
+        XCTAssertEqual(newTab.title, "Neuer Tab")
+        XCTAssertEqual(HotkeyCatalog.byId["pane-nav-3"]?.title, "Fokusbereich 3")
+        XCTAssertEqual(HotkeyCatalog.byId["pane-nav-3"]?.name, "Focus pane 3")
+        XCTAssertEqual(ProfileTypes.title("local"), "Lokales Terminal")
+    }
+
     func testSettingsSectionsShowTranslatedTitlesAndStillMatchEnglish() {
         AppServices.shared.config.set("language", .string("de-DE"))
         XCTAssertEqual(SettingsSection.application.title, "Anwendung")

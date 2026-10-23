@@ -74,7 +74,7 @@ final class CatalogTests: XCTestCase {
         #"\b(title|subtitle|placeholder|message|detail|footer|confirm|cancel|help|label|text|prompt|group|actionTitle):\s*$"#,
         #"ServiceMessage\.\w+\(\s*$"#,
     ].map { try! NSRegularExpression(pattern: $0) }
-    static let prose = try! NSRegularExpression(pattern: #"^[A-Z][a-z’']+(?:[  ]\S+)*$"#)
+    static let prose = try! NSRegularExpression(pattern: #"^[A-Z][a-z’']+[.,:!?]?(?:[ \x{00A0}]\S+)*$"#)
     static let wrapped = try! NSRegularExpression(pattern: #"\b(L|Lkey)\(\s*$"#)
     static let skippedLines = try! NSRegularExpression(pattern: #"NSLog\(|print\(|fatalError\(|assert|precondition\(|\.custom\(|NSFont\(name:|os_log|Logger\(|Notification\.Name\(|forResource:|setFrameAutosaveName|DispatchQueue\(label|identifier:"#)
 
@@ -87,12 +87,6 @@ final class CatalogTests: XCTestCase {
         "Sources/TabbyApp/Account/AccountService.swift",
         "Sources/TabbyApp/Account/AccountSettingsView.swift",
         "Sources/TabbyApp/Account/AccountViews.swift",
-        "Sources/TabbyApp/Settings/ColorSchemeSettingsView.swift",
-        "Sources/TabbyApp/Settings/ConfigFileSettingsView.swift",
-        "Sources/TabbyApp/Settings/HotkeysSettingsView.swift",
-        "Sources/TabbyApp/Settings/ProfilesSettingsView.swift",
-        "Sources/TabbyApp/Settings/ProfileTypes.swift",
-        "Sources/TabbyApp/Settings/SettingsView.swift",
         "Sources/TabbyApp/Split/SplitOverlays.swift",
         "Sources/TabbyApp/Split/SplitTreeView.swift",
         "Sources/TabbyApp/Views/BaudRatePopover.swift",
@@ -113,9 +107,7 @@ final class CatalogTests: XCTestCase {
         "Sources/TabbyCore/Config/ConfigStore.swift",
         "Sources/TabbyCore/Config/ConfigValue.swift",
         "Sources/TabbyCore/Config/Migrations.swift",
-        "Sources/TabbyCore/Hotkeys/HotkeyCatalog.swift",
         "Sources/TabbyCore/Hotkeys/Keystroke.swift",
-        "Sources/TabbyCore/Profiles/ProfileOptions.swift",
         "Sources/TabbyCore/Profiles/ProfileProvider.swift",
         "Sources/TabbyCore/Profiles/ProfileRegistry.swift",
         "Sources/TabbyCore/Profiles/StreamProcessing.swift",
@@ -165,6 +157,7 @@ final class CatalogTests: XCTestCase {
         XCTAssertEqual(hits(#"x = "Menlo" // l10n-ignore"#), [])
         XCTAssertEqual(hits(#"Text("\(count)")"#), [])
         XCTAssertEqual(hits(#"let id = "new-tab""#), [])
+        XCTAssertEqual(hits(#"message = "Imported. Some changes apply""#), ["Imported. Some changes apply"])
     }
 
     // MARK: Helpers

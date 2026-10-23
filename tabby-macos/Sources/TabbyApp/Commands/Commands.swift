@@ -207,7 +207,7 @@ extension MainWindowController {
         var items: [SelectorItem] = []
         for entry in HotkeyCatalog.entries where entry.id != "command-selector" {
             let binding = HotkeyBinding.bindings(from: config.value("hotkeys.\(entry.id)")).first
-            items.append(SelectorItem(id: entry.id, title: entry.name, group: entry.group, shortcut: binding?.symbolicDescription) { [weak self] in
+            items.append(SelectorItem(id: entry.id, title: entry.title, group: entry.groupTitle, shortcut: binding?.symbolicDescription) { [weak self] in
                 _ = self?.runCommand(entry.id)
             })
         }

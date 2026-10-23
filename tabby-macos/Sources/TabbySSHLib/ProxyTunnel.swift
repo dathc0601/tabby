@@ -29,7 +29,7 @@ enum ProxyTunnel {
         }
     }
 
-    private static func fail(_ text: String) -> SSHConnectionError { .connectFailed("Proxy: \(text)") }
+    private static func fail(_ text: String) -> SSHConnectionError { .connectFailed(L("Proxy: {text}", ["text": text])) }
 
     /// A blocking TCP socket connected within `timeout` (non-blocking connect + poll: macOS
     /// ignores send timeouts for connect()).

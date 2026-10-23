@@ -5,17 +5,17 @@ import Observation
 import TabbyCore
 
 enum SettingsSection: String, CaseIterable, Identifiable {
-    case application = "Application"
-    case appearance = "Appearance"
-    case colorScheme = "Color scheme"
-    case terminal = "Terminal"
-    case window = "Window"
-    case profiles = "Profiles & connections"
-    case ssh = "SSH"
-    case hotkeys = "Hotkeys"
-    case vault = "Vault"
-    case account = "Account & sync"
-    case configFile = "Config file"
+    case application = "Application" // l10n-ignore: id
+    case appearance = "Appearance" // l10n-ignore: id
+    case colorScheme = "Color scheme" // l10n-ignore: id
+    case terminal = "Terminal" // l10n-ignore: id
+    case window = "Window" // l10n-ignore: id
+    case profiles = "Profiles & connections" // l10n-ignore: id
+    case ssh = "SSH" // l10n-ignore: id
+    case hotkeys = "Hotkeys" // l10n-ignore: id
+    case vault = "Vault" // l10n-ignore: id
+    case account = "Account & sync" // l10n-ignore: id
+    case configFile = "Config file" // l10n-ignore: id
 
     var id: String { rawValue }
 
@@ -135,7 +135,7 @@ struct SettingsSidebar: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass").font(.system(size: 12)).foregroundStyle(chrome.textMuted.color)
-                TextField("Search settings", text: $navigation.search)
+                TextField(L("Search settings"), text: $navigation.search)
                     .textFieldStyle(.plain)
                     .font(ChromeFont.body)
                     .onSubmit {
@@ -313,7 +313,7 @@ struct RowPath: View {
             Text((url.path as NSString).abbreviatingWithTildeInPath)
                 .font(.custom("Menlo", size: 11)).foregroundStyle(chrome.textMuted.color)
                 .lineLimit(1).truncationMode(.middle).textSelection(.enabled)
-            Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+            Button(L("Show in Finder")) { NSWorkspace.shared.activateFileViewerSelecting([url]) }
                 .buttonStyle(ChromeButtonStyle())
         }
     }
@@ -327,23 +327,23 @@ struct ApplicationSettingsView: View {
     var body: some View {
         let services = AppServices.shared
         let _ = services.configRevision
-        SettingsPage("Application") {
+        SettingsPage(L("Application")) {
             SettingsGroup {
                 SettingsRow(L("Language"), subtitle: L("Automatic follows the system language")) { LanguagePicker() }
             }
-            SettingsGroup("Configuration", footer: importMessage) {
-                SettingsRow("Config file") { RowPath(url: services.paths.configFile) }
-                SettingsRow("Import from Tabby", subtitle: "Replaces these settings with \((ConfigPaths.electronTabbyConfig.path as NSString).abbreviatingWithTildeInPath)") {
-                    Button("Import…") { importConfig() }.buttonStyle(ChromeButtonStyle())
+            SettingsGroup(L("Configuration"), footer: importMessage) {
+                SettingsRow(L("Config file")) { RowPath(url: services.paths.configFile) }
+                SettingsRow(L("Import from Tabby"), subtitle: L("Replaces these settings with {path}", ["path": (ConfigPaths.electronTabbyConfig.path as NSString).abbreviatingWithTildeInPath])) {
+                    Button(L("Import…")) { importConfig() }.buttonStyle(ChromeButtonStyle())
                 }
             }
-            SettingsGroup("Startup") {
-                SettingsRow("Restore tabs on startup", isOn: ConfigBinding.bool("recoverTabs"))
-                SettingsRow("Open a new tab when the app starts", isOn: ConfigBinding.bool("terminal.autoOpen"))
-                SettingsRow("Show the Welcome tab", isOn: ConfigBinding.bool("enableWelcomeTab"))
+            SettingsGroup(L("Startup")) {
+                SettingsRow(L("Restore tabs on startup"), isOn: ConfigBinding.bool("recoverTabs"))
+                SettingsRow(L("Open a new tab when the app starts"), isOn: ConfigBinding.bool("terminal.autoOpen"))
+                SettingsRow(L("Show the Welcome tab"), isOn: ConfigBinding.bool("enableWelcomeTab"))
             }
-            SettingsGroup("Accessibility") {
-                SettingsRow("Minimum contrast ratio", subtitle: "Text that is harder to read than this is brightened or darkened") {
+            SettingsGroup(L("Accessibility")) {
+                SettingsRow(L("Minimum contrast ratio"), subtitle: L("Text that is harder to read than this is brightened or darkened")) {
                     RowStepper(value: ConfigBinding.double("terminal.minimumContrastRatio"), range: 1...21, step: 0.5) { String(format: "%.1f", $0) }
                 }
             }
@@ -352,15 +352,15 @@ struct ApplicationSettingsView: View {
 
     private func importConfig() {
         let alert = NSAlert()
-        alert.messageText = "Import Tabby's configuration?"
-        alert.informativeText = "Your current TabbyMac settings, profiles and hotkeys will be replaced."
-        alert.addButton(withTitle: "Import")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = L("Import Tabby's configuration?")
+        alert.informativeText = L("Your current TabbyMac settings, profiles and hotkeys will be replaced.")
+        alert.addButton(withTitle: L("Import"))
+        alert.addButton(withTitle: L("Cancel"))
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         do {
             importMessage = try AppServices.shared.importElectronTabbyConfig()
-                ? "Imported. Some changes apply to new tabs only."
-                : "No Tabby config found at \(ConfigPaths.electronTabbyConfig.path)."
+                ? L("Imported. Some changes apply to new tabs only.")
+                : L("No Tabby config found at {path}.", ["path": ConfigPaths.electronTabbyConfig.path])
         } catch {
             importMessage = error.localizedDescription
         }
@@ -371,49 +371,49 @@ struct AppearanceSettingsView: View {
     var body: some View {
         let config = AppServices.shared.config
         let _ = AppServices.shared.configRevision
-        SettingsPage("Appearance") {
-            SettingsGroup("Theme") {
-                SettingsRow("Appearance", subtitle: "The window takes its colours from the active colour scheme") {
+        SettingsPage(L("Appearance")) {
+            SettingsGroup(L("Theme")) {
+                SettingsRow(L("Appearance"), subtitle: L("The window takes its colours from the active colour scheme")) {
                     RowSegments(selection: ConfigBinding.string("appearance.colorSchemeMode")) {
-                        Text("System").tag("auto")
-                        Text("Dark").tag("dark")
-                        Text("Light").tag("light")
+                        Text(L("System")).tag("auto")
+                        Text(L("Dark")).tag("dark")
+                        Text(L("Light")).tag("light")
                     }
                 }
             }
-            SettingsGroup("Terminal font") {
-                SettingsRow("Font") {
+            SettingsGroup(L("Terminal font")) {
+                SettingsRow(L("Font")) {
                     RowPicker(selection: ConfigBinding.string("terminal.font")) {
                         ForEach(Self.monospacedFamilies(including: config.string("terminal.font")), id: \.self) { Text($0).tag($0) }
                     }
                 }
-                SettingsRow("Size") {
+                SettingsRow(L("Size")) {
                     RowStepper(value: ConfigBinding.double("terminal.fontSize"), range: 6...72, step: 1) { "\(Int($0)) pt" }
                 }
-                SettingsRow("Weight") {
+                SettingsRow(L("Weight")) {
                     RowPicker(selection: ConfigBinding.int("terminal.fontWeight")) {
                         ForEach([300, 400, 500, 600, 700], id: \.self) { Text("\($0)").tag($0) }
                     }
                 }
-                SettingsRow("Fallback font") { RowField(placeholder: "None", text: ConfigBinding.optionalString("terminal.fallbackFont")) }
-                SettingsRow("Draw bold text in bright colours", isOn: ConfigBinding.bool("terminal.drawBoldTextInBrightColors"))
+                SettingsRow(L("Fallback font")) { RowField(placeholder: L("None"), text: ConfigBinding.optionalString("terminal.fallbackFont")) }
+                SettingsRow(L("Draw bold text in bright colours"), isOn: ConfigBinding.bool("terminal.drawBoldTextInBrightColors"))
             }
-            SettingsGroup("Cursor") {
-                SettingsRow("Shape") {
+            SettingsGroup(L("Cursor")) {
+                SettingsRow(L("Shape")) {
                     RowSegments(selection: ConfigBinding.string("terminal.cursor")) {
-                        Text("Block").tag("block")
-                        Text("Beam").tag("beam")
-                        Text("Underline").tag("underline")
+                        Text(L("Block")).tag("block")
+                        Text(L("Beam")).tag("beam")
+                        Text(L("Underline")).tag("underline")
                     }
                 }
-                SettingsRow("Blink", isOn: ConfigBinding.bool("terminal.cursorBlink"))
+                SettingsRow(L("Blink"), isOn: ConfigBinding.bool("terminal.cursorBlink"))
             }
-            SettingsGroup("Tabs") {
-                SettingsRow("Flex tabs", subtitle: "Tabs stretch to fill the tab bar instead of using a fixed width",
+            SettingsGroup(L("Tabs")) {
+                SettingsRow(L("Flex tabs"), subtitle: L("Tabs stretch to fill the tab bar instead of using a fixed width"),
                             isOn: ConfigBinding.bool("appearance.flexTabs"))
-                SettingsRow("Show tab index", isOn: ConfigBinding.inverted("terminal.hideTabIndex"))
-                SettingsRow("Show profile icon", isOn: ConfigBinding.bool("terminal.showTabProfileIcon"))
-                SettingsRow("Show close button", subtitle: "On the active tab and on hover",
+                SettingsRow(L("Show tab index"), isOn: ConfigBinding.inverted("terminal.hideTabIndex"))
+                SettingsRow(L("Show profile icon"), isOn: ConfigBinding.bool("terminal.showTabProfileIcon"))
+                SettingsRow(L("Show close button"), subtitle: L("On the active tab and on hover"),
                             isOn: ConfigBinding.inverted("terminal.hideCloseButton"))
             }
         }
@@ -434,62 +434,62 @@ struct WindowSettingsView: View {
     var body: some View {
         let _ = AppServices.shared.configRevision
         let percent: (Double) -> String = { "\(Int(($0 * 100).rounded()))%" }
-        SettingsPage("Window") {
-            SettingsGroup("Frame") {
-                SettingsRow("Window frame") {
+        SettingsPage(L("Window")) {
+            SettingsGroup(L("Frame")) {
+                SettingsRow(L("Window frame")) {
                     RowPicker(selection: ConfigBinding.string("appearance.frame")) {
-                        Text("Hidden title bar").tag("thin")
-                        Text("Native").tag("native")
+                        Text(L("Hidden title bar")).tag("thin")
+                        Text(L("Native")).tag("native")
                     }
                 }
-                SettingsRow("Tab bar location") {
+                SettingsRow(L("Tab bar location")) {
                     RowSegments(selection: ConfigBinding.string("appearance.tabsLocation")) {
-                        Text("Top").tag("top")
-                        Text("Bottom").tag("bottom")
-                        Text("Left").tag("left")
-                        Text("Right").tag("right")
+                        Text(L("Top")).tag("top")
+                        Text(L("Bottom")).tag("bottom")
+                        Text(L("Left")).tag("left")
+                        Text(L("Right")).tag("right")
                     }
                 }
-                SettingsRow("Spaciness", subtitle: "Scales paddings and the tab bar height (38 pt at 1.0)") {
+                SettingsRow(L("Spaciness"), subtitle: L("Scales paddings and the tab bar height (38 pt at 1.0)")) {
                     RowSlider(value: ConfigBinding.double("appearance.spaciness"), range: 0.8...1.5, step: 0.05) { String(format: "%.2g", $0) }
                 }
             }
-            SettingsGroup("Transparency") {
-                SettingsRow("Vibrancy", subtitle: "Translucent, blurred window background", isOn: ConfigBinding.bool("appearance.vibrancy"))
-                SettingsRow("Window opacity") {
+            SettingsGroup(L("Transparency")) {
+                SettingsRow(L("Vibrancy"), subtitle: L("Translucent, blurred window background"), isOn: ConfigBinding.bool("appearance.vibrancy"))
+                SettingsRow(L("Window opacity")) {
                     RowSlider(value: ConfigBinding.double("appearance.opacity"), range: 0.5...1, format: percent)
                 }
             }
-            SettingsGroup("Tabs") {
-                SettingsRow("Show tabs in full screen", isOn: ConfigBinding.bool("appearance.tabsInFullscreen"))
-                SettingsRow("Cycle through tabs", subtitle: "Next tab on the last tab goes back to the first",
+            SettingsGroup(L("Tabs")) {
+                SettingsRow(L("Show tabs in full screen"), isOn: ConfigBinding.bool("appearance.tabsInFullscreen"))
+                SettingsRow(L("Cycle through tabs"), subtitle: L("Next tab on the last tab goes back to the first"),
                             isOn: ConfigBinding.bool("appearance.cycleTabs"))
-                SettingsRow("Closing the last tab closes the window", isOn: ConfigBinding.bool("appearance.lastTabClosesWindow"))
-                SettingsRow("Pane resize step") {
+                SettingsRow(L("Closing the last tab closes the window"), isOn: ConfigBinding.bool("appearance.lastTabClosesWindow"))
+                SettingsRow(L("Pane resize step")) {
                     RowSlider(value: ConfigBinding.double("terminal.paneResizeStep"), range: 0.05...0.25, format: percent)
                 }
             }
-            SettingsGroup("Dock", footer: "Docked windows slide in and out with the global hotkey, like a Quake console.") {
-                SettingsRow("Dock to screen edge") {
+            SettingsGroup(L("Dock"), footer: L("Docked windows slide in and out with the global hotkey, like a Quake console.")) {
+                SettingsRow(L("Dock to screen edge")) {
                     RowPicker(selection: ConfigBinding.string("appearance.dock")) {
-                        Text("Off").tag("off")
-                        Text("Top").tag("top")
-                        Text("Bottom").tag("bottom")
-                        Text("Left").tag("left")
-                        Text("Right").tag("right")
+                        Text(L("Off")).tag("off")
+                        Text(L("Top")).tag("top")
+                        Text(L("Bottom")).tag("bottom")
+                        Text(L("Left")).tag("left")
+                        Text(L("Right")).tag("right")
                     }
                 }
-                SettingsRow("Docked size") {
+                SettingsRow(L("Docked size")) {
                     RowSlider(value: ConfigBinding.double("appearance.dockFill"), range: 0.2...1, format: percent)
                 }
-                SettingsRow("Docked width") {
+                SettingsRow(L("Docked width")) {
                     RowSlider(value: ConfigBinding.double("appearance.dockSpace"), range: 0.2...1, format: percent)
                 }
-                SettingsRow("Always on top when docked", isOn: ConfigBinding.bool("appearance.dockAlwaysOnTop"))
-                SettingsRow("Show / hide (global)") {
+                SettingsRow(L("Always on top when docked"), isOn: ConfigBinding.bool("appearance.dockAlwaysOnTop"))
+                SettingsRow(L("Show / hide (global)")) {
                     HStack(spacing: 4) {
                         let keys = HotkeyBinding.bindings(from: AppServices.shared.config.value("hotkeys.toggle-window"))
-                        if keys.isEmpty { Text("Not set").foregroundStyle(.secondary) }
+                        if keys.isEmpty { Text(L("Not set")).foregroundStyle(.secondary) }
                         ForEach(Array(keys.enumerated()), id: \.offset) { _, b in Keycap(b.symbolicDescription) }
                     }
                 }
@@ -502,45 +502,45 @@ struct TerminalSettingsView: View {
     var body: some View {
         let services = AppServices.shared
         let _ = services.configRevision
-        SettingsPage("Terminal") {
-            SettingsGroup("Input") {
-                SettingsRow("Copy on select", isOn: ConfigBinding.bool("terminal.copyOnSelect"))
-                SettingsRow("Right click") {
+        SettingsPage(L("Terminal")) {
+            SettingsGroup(L("Input")) {
+                SettingsRow(L("Copy on select"), isOn: ConfigBinding.bool("terminal.copyOnSelect"))
+                SettingsRow(L("Right click")) {
                     RowPicker(selection: ConfigBinding.string("terminal.rightClick")) {
-                        Text("Context menu").tag("menu")
-                        Text("Paste").tag("paste")
-                        Text("Copy, or paste when nothing is selected").tag("clipboard")
-                        Text("Nothing").tag("off")
+                        Text(L("Context menu")).tag("menu")
+                        Text(L("Paste")).tag("paste")
+                        Text(L("Copy, or paste when nothing is selected")).tag("clipboard")
+                        Text(L("Nothing")).tag("off")
                     }
                 }
-                SettingsRow("Paste on middle click", isOn: ConfigBinding.bool("terminal.pasteOnMiddleClick"))
-                SettingsRow("Option key acts as Meta", isOn: ConfigBinding.bool("terminal.altIsMeta"))
-                SettingsRow("Scroll to bottom on input", isOn: ConfigBinding.bool("terminal.scrollOnInput"))
+                SettingsRow(L("Paste on middle click"), isOn: ConfigBinding.bool("terminal.pasteOnMiddleClick"))
+                SettingsRow(L("Option key acts as Meta"), isOn: ConfigBinding.bool("terminal.altIsMeta"))
+                SettingsRow(L("Scroll to bottom on input"), isOn: ConfigBinding.bool("terminal.scrollOnInput"))
             }
-            SettingsGroup("Clipboard") {
-                SettingsRow("Warn before pasting multiple lines", isOn: ConfigBinding.bool("terminal.warnOnMultilinePaste"))
-                SettingsRow("Bracketed paste", isOn: ConfigBinding.bool("terminal.bracketedPaste"))
-                SettingsRow("Trim whitespace when pasting", isOn: ConfigBinding.bool("terminal.trimWhitespaceOnPaste"))
-                SettingsRow("Replace newlines with spaces", isOn: ConfigBinding.bool("terminal.replaceNewlinesWithSpacesOnPaste"))
+            SettingsGroup(L("Clipboard")) {
+                SettingsRow(L("Warn before pasting multiple lines"), isOn: ConfigBinding.bool("terminal.warnOnMultilinePaste"))
+                SettingsRow(L("Bracketed paste"), isOn: ConfigBinding.bool("terminal.bracketedPaste"))
+                SettingsRow(L("Trim whitespace when pasting"), isOn: ConfigBinding.bool("terminal.trimWhitespaceOnPaste"))
+                SettingsRow(L("Replace newlines with spaces"), isOn: ConfigBinding.bool("terminal.replaceNewlinesWithSpacesOnPaste"))
             }
-            SettingsGroup("Output") {
-                SettingsRow("Bell") {
+            SettingsGroup(L("Output")) {
+                SettingsRow(L("Bell")) {
                     RowSegments(selection: ConfigBinding.string("terminal.bell")) {
-                        Text("Off").tag("off")
-                        Text("Visual").tag("visual")
-                        Text("Audible").tag("audible")
+                        Text(L("Off")).tag("off")
+                        Text(L("Visual")).tag("visual")
+                        Text(L("Audible")).tag("audible")
                     }
                 }
-                SettingsRow("Scrollback") {
+                SettingsRow(L("Scrollback")) {
                     RowStepper(value: Binding(get: { Double(ConfigBinding.int("terminal.scrollbackLines").wrappedValue) },
                                               set: { ConfigBinding.int("terminal.scrollbackLines").wrappedValue = Int($0) }),
                                range: 1000...1_000_000, step: 1000) { "\(Int($0).formatted()) lines" }
                 }
-                SettingsRow("Detect progress in output", subtitle: "Shows a percentage in the tab when a command prints one",
+                SettingsRow(L("Detect progress in output"), subtitle: L("Shows a percentage in the tab when a command prints one"),
                             isOn: ConfigBinding.bool("terminal.detectProgress"))
             }
-            SettingsGroup("New tabs") {
-                SettingsRow("Default profile") {
+            SettingsGroup(L("New tabs")) {
+                SettingsRow(L("Default profile")) {
                     RowPicker(selection: ConfigBinding.string("terminal.profile")) {
                         ForEach(services.profiles.allProfiles(includeHidden: true).filter { !$0.isTemplate }, id: \.id) { p in
                             Text(p.name).tag(p.id)
@@ -556,23 +556,23 @@ struct SSHSettingsView: View {
     var body: some View {
         let services = AppServices.shared
         let _ = services.configRevision
-        SettingsPage("SSH") {
-            SettingsGroup("Connections", footer: "~/.ssh/known_hosts is read as well. Passwords you choose to remember are kept in the login keychain.") {
-                SettingsRow("Verify host keys", subtitle: "Ask before connecting to a host whose key is unknown or changed",
+        SettingsPage(L("SSH")) {
+            SettingsGroup(L("Connections"), footer: L("~/.ssh/known_hosts is read as well. Passwords you choose to remember are kept in the login keychain.")) {
+                SettingsRow(L("Verify host keys"), subtitle: L("Ask before connecting to a host whose key is unknown or changed"),
                             isOn: ConfigBinding.bool("ssh.verifyHostKeys"))
-                SettingsRow("Known hosts file") { RowPath(url: services.paths.knownHostsFile) }
-                SettingsRow("Warn when closing an open connection", isOn: ConfigBinding.bool("ssh.warnOnClose"))
-                SettingsRow("Quick connect uses") {
+                SettingsRow(L("Known hosts file")) { RowPath(url: services.paths.knownHostsFile) }
+                SettingsRow(L("Warn when closing an open connection"), isOn: ConfigBinding.bool("ssh.warnOnClose"))
+                SettingsRow(L("Quick connect uses")) {
                     RowPicker(selection: ConfigBinding.string("defaultQuickConnectProvider")) {
                         ForEach(ProfileTypes.quickConnectProviders, id: \.id) { Text(ProfileTypes.badge($0.id)).tag($0.id) }
                     }
                 }
             }
-            SettingsGroup("Agent and X11", footer: "Used by SSH connections on the built-in client (ssh.backend: library, the default).") {
-                SettingsRow("SSH agent", subtitle: "A socket path; empty uses the system agent (SSH_AUTH_SOCK)") {
-                    RowField(placeholder: "System (SSH_AUTH_SOCK)", text: ConfigBinding.optionalString("ssh.agentPath"), width: 260)
+            SettingsGroup(L("Agent and X11"), footer: L("Used by SSH connections on the built-in client (ssh.backend: library, the default).")) {
+                SettingsRow(L("SSH agent"), subtitle: L("A socket path; empty uses the system agent (SSH_AUTH_SOCK)")) {
+                    RowField(placeholder: L("System (SSH_AUTH_SOCK)"), text: ConfigBinding.optionalString("ssh.agentPath"), width: 260)
                 }
-                SettingsRow("X11 display", subtitle: "Where forwarded X11 connections go; empty uses $DISPLAY") {
+                SettingsRow(L("X11 display"), subtitle: L("Where forwarded X11 connections go; empty uses $DISPLAY")) {
                     RowField(placeholder: ProcessInfo.processInfo.environment["DISPLAY"] ?? "localhost:0",
                              text: ConfigBinding.optionalString("ssh.x11Display"), width: 260)
                 }

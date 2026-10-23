@@ -35,9 +35,9 @@ struct ConfigFileSettingsView: View {
     static func problem(in text: String) -> String? {
         do {
             let value = try YAMLCoding.parse(text)
-            return value.objectValue != nil || value == .null ? nil : "The top level must be a mapping"
+            return value.objectValue != nil || value == .null ? nil : L("The top level must be a mapping")
         } catch {
-            return (error as? LocalizedError)?.errorDescription ?? "Not valid YAML"
+            return (error as? LocalizedError)?.errorDescription ?? L("Not valid YAML")
         }
     }
 
@@ -58,7 +58,7 @@ struct ConfigFileSettingsView: View {
             AppServices.shared.flushSave()
             saveError = nil
         } catch {
-            saveError = "Not saved: \((error as? LocalizedError)?.errorDescription ?? "\(error)")"
+            saveError = L("Not saved: {reason}", ["reason": (error as? LocalizedError)?.errorDescription ?? "\(error)"])
         }
     }
 }
@@ -254,27 +254,27 @@ struct ConfigFileHeader: View {
     }
 
     private var title: some View {
-        Text("Config file").font(ChromeFont.title).fixedSize()
+        Text(L("Config file")).font(ChromeFont.title).fixedSize()
     }
 
     @ViewBuilder private var status: some View {
         if showDefaults {
-            Label("Defaults (read only)", systemImage: "lock").foregroundStyle(chrome.textMuted.color)
+            Label(L("Defaults (read only)"), systemImage: "lock").foregroundStyle(chrome.textMuted.color)
         } else if let problem {
             Label(problem, systemImage: "exclamationmark.triangle.fill").foregroundStyle(chrome.danger.color)
         } else {
-            Label("Valid YAML", systemImage: "checkmark.circle.fill").foregroundStyle(chrome.success.color)
+            Label(L("Valid YAML"), systemImage: "checkmark.circle.fill").foregroundStyle(chrome.success.color)
         }
     }
 
     private var toggle: some View {
-        Toggle("Show defaults", isOn: $showDefaults).toggleStyle(.switch).controlSize(.small).fixedSize()
+        Toggle(L("Show defaults"), isOn: $showDefaults).toggleStyle(.switch).controlSize(.small).fixedSize()
     }
 
     @ViewBuilder private var actions: some View {
-        Button("Show in Finder", action: showInFinder).buttonStyle(ChromeButtonStyle()).fixedSize()
-        Button("Revert", action: revert).buttonStyle(ChromeButtonStyle()).disabled(showDefaults).fixedSize()
-        Button("Save", action: save)
+        Button(L("Show in Finder"), action: showInFinder).buttonStyle(ChromeButtonStyle()).fixedSize()
+        Button(L("Revert"), action: revert).buttonStyle(ChromeButtonStyle()).disabled(showDefaults).fixedSize()
+        Button(L("Save"), action: save)
             .buttonStyle(ChromeButtonStyle(kind: .primary))
             .keyboardShortcut("s", modifiers: .command)
             .disabled(showDefaults || problem != nil)

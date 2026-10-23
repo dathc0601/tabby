@@ -174,7 +174,7 @@ struct HostKeyPromptCard: View {
 
         init(host: String, changed: Bool) {
             if changed {
-                title = "Warning: remote host's key has suddenly changed!"
+                title = L("Warning: remote host's key has suddenly changed!")
                 message = L("You could be under a man-in-the-middle attack right now, or the host key of {host} could have just been changed.", ["host": host])
                 confirm = L("Accept new key")
                 rejectIsDefault = true
