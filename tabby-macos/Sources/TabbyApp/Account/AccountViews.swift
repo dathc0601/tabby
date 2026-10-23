@@ -182,11 +182,62 @@ private struct PopoverRow: View {
 
 // MARK: - Sign in, create account, recovery key, restore
 
+enum RecoveryKeyPurpose: Equatable {
+    case signUp, regenerated, viewed
+}
+
+/// What the recovery key card says: the second step of signing up, a key just regenerated,
+/// or the current key shown again (Settings › Account & sync › View…).
+struct RecoveryKeyTexts: Equatable {
+    var step: String?
+    var title: String
+    var message: String
+    var footer: String?
+    var confirm: String
+    /// The "I've stored the recovery key somewhere safe" box must be ticked first.
+    var needsSavedConfirmation: Bool
+
+    init(purpose: RecoveryKeyPurpose, profiles: Int) {
+        switch purpose {
+        case .signUp:
+            step = "Step 2 of 2"
+            title = "Save your recovery key"
+            message = "If you forget your password, this key is the only way to decrypt your synced profiles and private keys. TabbyMac can't reset it for you."
+            footer = Plural.count(profiles, "profile") + " on this Mac will upload next"
+            confirm = "Start syncing"
+            needsSavedConfirmation = true
+        case .regenerated:
+            step = nil
+            title = "Your new recovery key"
+            message = "The old key no longer works. Keep this one somewhere safe: with your email it unlocks your synced data if you forget your password."
+            footer = nil
+            confirm = "Done"
+            needsSavedConfirmation = true
+        case .viewed:
+            step = nil
+            title = "Your recovery key"
+            message = "With your email it unlocks your synced data if you forget your password."
+            footer = nil
+            confirm = "Done"
+            needsSavedConfirmation = false
+        }
+    }
+}
+
+/// Change password…: the new password is typed twice, as at sign-up.
+enum NewPasswordCheck {
+    static func problem(new: String, again: String) -> String? {
+        if PasswordStrength.score(new) < 2 { return "The new password is too short." }
+        if new != again { return "The passwords don't match; nothing was changed." }
+        return nil
+    }
+}
+
 enum AccountSheetMode: Equatable {
     case signIn
     case register
     case forgotPassword
-    case recoveryKey(String)
+    case recoveryKey(String, RecoveryKeyPurpose = .signUp)
     case restored
 }
 
@@ -233,7 +284,7 @@ struct AccountSheet: View {
             case .signIn: signIn
             case .register: register
             case .forgotPassword: forgot
-            case .recoveryKey(let key): recovery(key)
+            case let .recoveryKey(key, purpose): recovery(key, purpose: purpose)
             case .restored: restored
             }
         }
@@ -393,13 +444,12 @@ struct AccountSheet: View {
     }
 
     // A3
-    private func recovery(_ key: String) -> some View {
+    private func recovery(_ key: String, purpose: RecoveryKeyPurpose) -> some View {
         let groups = key.split(separator: "-").map(String.init)
         let profiles = (account.local.config.user["profiles"]?.arrayValue ?? []).count
+        let texts = RecoveryKeyTexts(purpose: purpose, profiles: profiles)
         return Group {
-            header("key.fill", "Save your recovery key",
-                   "If you forget your password, this key is the only way to decrypt your synced profiles and private keys. TabbyMac can't reset it for you.",
-                   step: "Step 2 of 2")
+            header("key.fill", texts.title, texts.message, step: texts.step)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
                 ForEach(Array(groups.enumerated()), id: \.offset) { _, g in
                     Text(g).font(.custom("Menlo", size: 15).weight(.semibold)).frame(maxWidth: .infinity, minHeight: 34)
@@ -415,18 +465,21 @@ struct AccountSheet: View {
                 Button { RecoveryKeyExport.print(key) } label: { Label("Print", systemImage: "printer") }
             }
             .buttonStyle(ChromeButtonStyle())
-            Toggle("I've stored the recovery key somewhere safe", isOn: $savedKey).toggleStyle(.checkbox)
+            if texts.needsSavedConfirmation {
+                Toggle("I've stored the recovery key somewhere safe", isOn: $savedKey).toggleStyle(.checkbox)
+            }
             HStack {
-                Text(profiles == 1 ? "1 profile on this Mac will upload next" : "\(profiles) profiles on this Mac will upload next")
-                    .font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
+                if let footer = texts.footer {
+                    Text(footer).font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
+                }
                 Spacer()
-                Button("Start syncing") {
-                    Task { await account.finishRegistration() }
+                Button(texts.confirm) {
+                    if purpose == .signUp { Task { await account.finishRegistration() } }
                     dismiss()
                 }
                 .buttonStyle(ChromeButtonStyle(kind: .primary, large: true))
                 .keyboardShortcut(.defaultAction)
-                .disabled(!savedKey)
+                .disabled(texts.needsSavedConfirmation && !savedKey)
             }
         }
     }

@@ -26,21 +26,8 @@ struct AccountSettingsView: View {
     }
 
     private var signedOut: some View {
-        HStack(spacing: 18) {
-            Image(systemName: "arrow.triangle.2.circlepath.icloud").font(.system(size: 26)).foregroundStyle(chrome.accent.color)
-                .frame(width: 52, height: 52).background(Circle().fill(chrome.accentFill.color))
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Use TabbyMac on every Mac").font(ChromeFont.headline)
-                Text("Sign in to sync profiles, passwords, private keys and settings. Everything is encrypted on this Mac before it leaves it.")
-                    .font(ChromeFont.callout).foregroundStyle(chrome.textMuted.color).fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer()
-            Button("Create account") { AccountSheets.present(.register, in: NSApp.keyWindow) }.buttonStyle(ChromeButtonStyle(large: true))
-            Button("Sign in…") { AccountSheets.present(.signIn, in: NSApp.keyWindow) }.buttonStyle(ChromeButtonStyle(kind: .primary, large: true))
-        }
-        .padding(22)
-        .background(RoundedRectangle(cornerRadius: 10).fill(chrome.surfaceRaised.color))
-        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(chrome.border.color, lineWidth: 0.5))
+        SignedOutAccountCard(createAccount: { AccountSheets.present(.register, in: NSApp.keyWindow) },
+                             signIn: { AccountSheets.present(.signIn, in: NSApp.keyWindow) })
     }
 
     @ViewBuilder
@@ -106,13 +93,18 @@ struct AccountSettingsView: View {
             SettingsRow("Recovery key", subtitle: session.recoveryKey == nil ? "Not on this Mac yet (it arrives with the next sync)" : "Unlocks the account if you forget the password") {
                 HStack(spacing: 6) {
                     Button("View…") { askPassword(title: "Show the recovery key") { pw in
-                        let key = try await account.revealRecoveryKey(password: pw)
-                        message = key.map { "Recovery key: \($0)" } ?? "The recovery key is not on this Mac yet."
+                        if let key = try await account.revealRecoveryKey(password: pw) {
+                            message = nil
+                            AccountSheets.present(.recoveryKey(key, .viewed), in: NSApp.keyWindow)
+                        } else {
+                            message = "The recovery key is not on this Mac yet."
+                        }
                     } }
                     .disabled(session.recoveryKey == nil)
-                    Button("Regenerate…") { askPassword(title: "Make a new recovery key", message: "The current key stops working.") { pw in
+                    Button("Regenerate…") { askPassword(title: "Make a new recovery key", message: "The current key stops working. Your TabbyMac account password:") { pw in
                         let key = try await account.regenerateRecoveryKey(password: pw)
-                        AccountSheets.present(.recoveryKey(key.displayString), in: NSApp.keyWindow)
+                        message = nil
+                        AccountSheets.present(.recoveryKey(key.displayString, .regenerated), in: NSApp.keyWindow)
                     } }
                 }
                 .buttonStyle(ChromeButtonStyle())
@@ -181,7 +173,7 @@ struct AccountSettingsView: View {
         return f.localizedString(for: date, relativeTo: Date())
     }
 
-    private func askPassword(title: String, message text: String = "", confirm: String = "Continue",
+    private func askPassword(title: String, message text: String = "Your TabbyMac account password.", confirm: String = "Continue",
                              _ action: @escaping (String) async throws -> Void) {
         Prompts.text(in: NSApp.keyWindow, title: title, message: text, secure: true, confirm: confirm) { value, _ in
             guard let value, !value.isEmpty else { return }
@@ -193,17 +185,21 @@ struct AccountSettingsView: View {
 
     private func changePassword(_ account: AccountService) {
         askPassword(title: "Current password") { old in
-            Prompts.text(in: NSApp.keyWindow, title: "New password", message: "At least 8 characters.", secure: true, confirm: "Change") { new, _ in
-                guard let new, PasswordStrength.score(new) >= 2 else {
-                    message = "The new password is too short."
-                    return
-                }
-                Task {
-                    do {
-                        try await account.changePassword(old: old, new: new)
-                        message = "Password changed. Your other Macs stay signed in."
-                    } catch {
-                        message = error.localizedDescription
+            Prompts.text(in: NSApp.keyWindow, title: "New password", message: "At least 8 characters.", secure: true, confirm: "Continue") { new, _ in
+                guard let new else { return }
+                Prompts.text(in: NSApp.keyWindow, title: "Type the new password again", secure: true, confirm: "Change") { again, _ in
+                    guard let again else { return }
+                    if let problem = NewPasswordCheck.problem(new: new, again: again) {
+                        message = problem
+                        return
+                    }
+                    Task {
+                        do {
+                            try await account.changePassword(old: old, new: new)
+                            message = "Password changed. Your other Macs stay signed in."
+                        } catch {
+                            message = error.localizedDescription
+                        }
                     }
                 }
             }
@@ -290,6 +286,49 @@ struct VaultSettingsView: View {
             revealed[secret] = nil
             refresh += 1
         }
+    }
+}
+/// Settings › Account & sync while signed out.
+struct SignedOutAccountCard: View {
+    let createAccount: () -> Void
+    let signIn: () -> Void
+    @Environment(\.chrome) private var chrome
+
+    /// One row when it fits; in a narrow window the buttons go under the text.
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 18) {
+                icon
+                text.frame(minWidth: 220, alignment: .leading)
+                Spacer(minLength: 0)
+                buttons
+            }
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 14) { icon; text }
+                HStack(spacing: 8) { Spacer(minLength: 0); buttons }
+            }
+        }
+        .padding(22)
+        .background(RoundedRectangle(cornerRadius: 10).fill(chrome.surfaceRaised.color))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(chrome.border.color, lineWidth: 0.5))
+    }
+
+    private var icon: some View {
+        Image(systemName: "arrow.triangle.2.circlepath.icloud").font(.system(size: 26)).foregroundStyle(chrome.accent.color)
+            .frame(width: 52, height: 52).background(Circle().fill(chrome.accentFill.color))
+    }
+
+    private var text: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Use TabbyMac on every Mac").font(ChromeFont.headline)
+            Text("Sign in to sync profiles, passwords, private keys and settings. Everything is encrypted on this Mac before it leaves it.")
+                .font(ChromeFont.callout).foregroundStyle(chrome.textMuted.color).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @ViewBuilder private var buttons: some View {
+        Button("Create account", action: createAccount).buttonStyle(ChromeButtonStyle(large: true)).fixedSize()
+        Button("Sign in…", action: signIn).buttonStyle(ChromeButtonStyle(kind: .primary, large: true)).fixedSize()
     }
 }
 #endif

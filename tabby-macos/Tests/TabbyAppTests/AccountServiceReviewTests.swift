@@ -128,6 +128,23 @@ final class AccountServiceReviewTests: XCTestCase {
         XCTAssertFalse(b.isSignedIn, "the poll notices the removal")
     }
 
+    /// Found in the M7 walk: a recovery key that no longer works said "The email or password
+    /// is not right." on the recovery card, which has no password to be wrong.
+    func testAWrongRecoveryKeySaysSo() async throws {
+        let server = InMemorySyncServer()
+        let (a, _, _) = try makeService(server)
+        _ = try await a.register(email: "key@example.com", password: "pw", keepSignedIn: true)
+        await a.finishRegistration()
+        let (b, _, _) = try makeService(server)
+        let wrong = RecoveryKey.generate().displayString
+        do {
+            try await b.recover(email: "key@example.com", recoveryKey: wrong, newPassword: "a-new-password", keepSignedIn: false)
+            XCTFail("a wrong key reset the password")
+        } catch {
+            XCTAssertEqual(error.localizedDescription, "The email or recovery key is not right.")
+        }
+    }
+
     // I1 (app side): a change made while a sync runs is synced afterwards.
     func testAChangeDuringASyncIsSyncedAfterwards() async throws {
         let server = InMemorySyncServer()
