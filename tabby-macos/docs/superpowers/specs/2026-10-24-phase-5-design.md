@@ -45,10 +45,11 @@ The catalog test catches that.
 ### Languages
 
 `language` in `config.yaml` (default `null`, as in Tabby). `Languages.all` is Tabby's list
-in Tabby's order with each language's own name, then `vi-VN` "Tiếng Việt":
+in Tabby's order with each language's own name, and `vi-VN` "Tiếng Việt" after Türkçe
+(Latin scripts first, as Tabby orders them):
 
 af-ZA, id-ID, cs-CZ, da-DK, de-DE, en-GB, en-US, es-ES, fr-FR, hr-HR, it-IT, pl-PL, pt-PT,
-pt-BR, sv-SE, tr-TR, bg-BG, ru-RU, sr-SP, uk-UA, ja-JP, ko-KR, zh-CN, zh-TW, vi-VN.
+pt-BR, sv-SE, tr-TR, vi-VN, bg-BG, ru-RU, sr-SP, uk-UA, ja-JP, ko-KR, zh-CN, zh-TW.
 
 With `language: null`, the app follows the system's preferred languages. The first one
 that matches a code exactly wins. ★ Failing that, a language-only match is used:

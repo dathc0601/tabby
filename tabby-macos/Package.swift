@@ -50,6 +50,7 @@ let package = Package(
             resources: [
                 .copy("Resources/defaults.yaml"),
                 .copy("Resources/schemes"),
+                .copy("Resources/locale"),
             ]
         ),
         .target(
