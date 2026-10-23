@@ -213,9 +213,9 @@ terminal on `.connected`, as Tabby's `ConnectableTerminalTabComponent` does.
 **Opening a tab** (in `WindowModel` before the pane is made; Tabby does this in
 `getNewTabParameters`):
 1. ★ With no `port`, a **serial port selector** opens: one row per port, with the
-   description as subtitle; a typed `/dev/…` path is offered too. With no ports a toast says
-   "No serial ports found" and no tab opens. Tabby silently takes the first port and crashes
-   when there is none.
+   description as subtitle; a typed path (`/dev/…`, `~/…`) is offered too, so the selector
+   also works when no port is listed. Tabby silently takes the first port and crashes when
+   there is none.
 2. With `baudrate` null, the **baud rate selector** opens: standard rates with 115200
    preselected. ★ A typed number offers `Use custom rate "<n>"`.
 3. Cancelling either selector opens no tab.

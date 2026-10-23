@@ -353,6 +353,52 @@ behaves the same), so the forward would take that program's local traffic. Every
 passed after the fixes in Findings. Left for the owner: X11 with XQuartz, dropping files from
 Finder, Show in Finder, and M4 again with `ssh.backend: openssh`.
 
+## M9 Serial and telnet (phase 4)
+
+Build the app as for M7 and use a test config folder (`TABBYMAC_CONFIG_DIRECTORY`). No
+hardware is needed for most items:
+
+- **A serial device:** `scripts/fake-serial-device.py --link ~/tabbymac-m9/tty` plays a device
+  on a pseudo-terminal and prints every chunk it receives. It answers `AT` with `OK`, `login`
+  with a login prompt, and `bin` with the bytes 00–1f. Ctrl-C unplugs it.
+- **A telnet server:** `docker run --rm -d --name tabbymac-m9-telnetd -p 127.0.0.1:2323:23
+  busybox telnetd -F -l /bin/sh`.
+- **A raw socket peer:** `nc -l 127.0.0.1 <port>` on a port nothing else listens on.
+
+The integration tests already cover the port settings, hang-up, telnet negotiation and the
+stream modes, so these items cover what only the window shows. Never open a port you don't
+own: only list it.
+
+- [ ] ⌥K (Show Serial connections) lists the "Serial connection" template, saved serial
+      profiles and one profile per external port. The Mac's internal ports (debug console,
+      Bluetooth) get none. The New menu on Settings › Profiles has Serial and Telnet.
+- [ ] The template asks for the port (a typed path such as `~/tabbymac-m9/tty` is offered
+      as "Use /Users/…/tabbymac-m9/tty"), then the baud rate (115200 selected; typing 250000 offers it as a custom
+      rate). The tab opens with " Serial  Port opened"; `AT` answers `OK`.
+- [ ] Chip: `tty · 115200`, Connected; its Baud rate button changes the rate and the label.
+      The rate survives quitting and relaunching (no questions on restore).
+- [ ] Line by line: `> ` prompt; typing edits locally; Return sends the line (the device
+      prints it); device output clears the prompt and it comes back. Hexadecimal input
+      `41 54 0d` sends `AT\r`; Hexadecimal output shows `bin` as a dump.
+- [ ] Newlines: "Force CRLF" input newlines makes the device receive `\r\n` for Return.
+- [ ] Unplugging (Ctrl-C the device) prints "Port closed" and "… session closed", then "Press
+      any key to restart"; with the device running again, a key reconnects.
+- [ ] A second tab on the same port says it is busy; `close` + Return in Auto mode closes
+      the tab.
+- [ ] A login script on a serial profile (expect `login:`, send `root`) answers the device's
+      `login` prompt.
+- [ ] Telnet profile to 127.0.0.1:2323: "Connecting to 127.0.0.1", "Connected", a shell;
+      `stty size` matches the pane and follows a resize; chip `127.0.0.1:2323`; Quick connect
+      `127.0.0.1:2323` works too.
+- [ ] ⌘W on a connected telnet tab asks "Disconnect from 127.0.0.1?"; `exit` in the shell
+      prints "Connection closed" and "127.0.0.1: session closed", and a key reconnects.
+- [ ] Raw socket connection template to an `nc -l` peer: typed lines are echoed locally and
+      reach nc with CRLF; nc's lines show in the tab.
+- [ ] Profile editor: the Serial and Telnet pages save their settings (device menu, baud rate
+      menu with "Ask every time", data/stop bits, parity, flow control, stream processing,
+      "Clear terminal after connection"); Settings › SSH › Quick connect uses lists SSH,
+      Serial and Telnet; the Hotkeys page lists the serial and telnet entries.
+
 ## Findings
 
 | Date | Milestone | Finding | Fix |

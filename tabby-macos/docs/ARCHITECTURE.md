@@ -8,10 +8,12 @@ modules with plain protocols and registries instead.
 
 | Module | Platform | Role | Tabby counterpart |
 |---|---|---|---|
-| `TabbyCore` | macOS, Linux | Config store and migrations, profiles and groups, hotkeys and chord matching, split layout tree, recovery tokens, colour schemes and chrome palette, ssh_config import and generation | `tabby-core`, parts of `tabby-terminal`, `tabby-ssh`, `tabby-community-color-schemes` |
-| `TabbyTerminal` | macOS, Linux (except `SwiftTermEngine`) | `PTYProcess`, `TerminalSession`, `LocalSession`, `TerminalPane` controller, output processing, `SwiftTermEngine` view | `tabby-terminal`, `tabby-local`, `app/lib/pty.ts` |
+| `TabbyCore` | macOS, Linux | Config store and migrations, profiles and groups, hotkeys and chord matching, split layout tree, recovery tokens, colour schemes and chrome palette, ssh_config import and generation, serial and telnet providers, stream processing, the telnet protocol | `tabby-core`, parts of `tabby-terminal`, `tabby-ssh`, `tabby-community-color-schemes` |
+| `TabbyTerminal` | macOS, Linux (except `SwiftTermEngine`) | `PTYProcess`, `TerminalSession`, `LocalSession`, `ProcessedSession`, `TerminalPane` controller, output processing, `SwiftTermEngine` view | `tabby-terminal`, `tabby-local`, `app/lib/pty.ts` |
 | `TabbySSH` | macOS, Linux | `SSHSession` over system OpenSSH (the `openssh` backend), askpass server, password stores | `tabby-ssh` |
 | `TabbySSHLib` | macOS | The `library` backend over libssh (`CLibSSH`): `SSHConnection`, `LibSSHSession`, `SSHConnector` (sharing, jump hosts), port forwards, `SFTPClient` | `tabby-ssh` (russh) |
+| `TabbySerial` | macOS | `SerialPort` (termios, `IOSSIOSPEED`, exclusive open), `SerialPortList` (IOKit, hot-plug), `SerialSession` | `tabby-serial` (serialport) |
+| `TabbyTelnet` | macOS | `TelnetSession` over Network.framework | `tabby-telnet` |
 | `TabbyIPC` | macOS, Linux | Unix-socket messages between the app and `tabby-askpass` | none |
 | `TabbyApp` | macOS | Window, tab bar, split views, hotkeys, menus, selector, settings, prompts | `tabby-core` components, `tabby-settings`, `tabby-electron` |
 | `tabby-askpass` | macOS, Linux | `SSH_ASKPASS` helper | none |
@@ -76,6 +78,26 @@ libssh (spec: `docs/superpowers/specs/2026-10-23-phase-3-ssh-backend-design.md`)
 - Tests run against a throwaway unprivileged `/usr/sbin/sshd` on a free port
   (`Tests/TabbySSHLibTests/TestSSHD.swift`); nothing touches `~/.ssh`.
 
+**Serial and telnet, phase 4.** Spec:
+`docs/superpowers/specs/2026-10-23-phase-4-serial-telnet-design.md`.
+- The byte-level logic is in TabbyCore and tested on Linux. `StreamProcessor` is Tabby's
+  `TerminalStreamProcessor`: local echo, a line editor for the line-by-line and hex input
+  modes, hexdump output, newline translation. `TelnetProtocol` is the negotiation, as a state
+  machine.
+- `ProcessedSession` (TabbyTerminal) wraps a raw serial or telnet session with the profile's
+  stream processing. Service lines skip it, as in Tabby. SSH and local sessions are not
+  wrapped.
+- `SerialPort` opens `/dev/cu.*` in raw mode with the profile's line settings. Rates termios
+  lacks go through `IOSSIOSPEED`. The port is exclusive (`TIOCEXCL`, plus a per-process list).
+  Reads run on a dispatch source, and a read of nothing is the device going away.
+  `SerialPortList` follows IOKit hot-plug.
+- A serial profile without a port or rate asks for them before its tab opens (`WindowModel`
+  → `completeSerialProfile`). The answers stay with the tab and its recovery token.
+- `TelnetSession` runs on `NWConnection`. A connection is a raw socket until the peer sends
+  IAC.
+- Login scripts and `clearServiceMessagesOnConnect` now apply to every type. Tests use pty
+  pairs and an in-process scripted TCP server (`Tests/Support`).
+
 **UI separation.** Views are SwiftUI over `@Observable` models (`WindowModel`, `TabModel`,
 `TerminalPane`, `ThemeManager`). AppKit hosts the window, split tree and terminal view.
 `ObservationLoop` bridges model changes to AppKit layout. The phase 2 design's tokens
@@ -107,6 +129,9 @@ through `MainWindowController.runCommand(_:)` using Tabby's hotkey ids.
 | `tabby-core/src/components/selectorModal.component.*` | `SelectorPanel` |
 | `tabby-settings/src/components/*` | `TabbyApp/Settings` |
 | `tabby-electron/src/services/docking.service.ts` | `DockController` |
+| `tabby-serial/src/*` | `TabbyCore/Serial`, `TabbySerial`, `SerialSelectors` |
+| `tabby-telnet/src/*` | `TabbyCore/Telnet`, `TabbyTelnet` |
+| `tabby-terminal/src/middleware/streamProcessing.ts`, `loginScriptProcessing.ts` | `StreamProcessor`, `ProcessedSession`, `LoginScriptRunner` |
 
 ## Roadmap
 
@@ -123,8 +148,9 @@ through `MainWindowController.runCommand(_:)` using Tabby's hotkey ids.
    transfers, live port forwards, the keyboard-interactive panel, shared connections, jump
    hosts, SOCKS/HTTP proxies, agent and X11 forwarding, Test connection. On-screen checks in
    M8.
-4. **Serial and telnet.** New `ProfileProvider`s and `SessionFactory`s, using ORSSerialPort
-   or IOKit for serial.
+4. **Serial and telnet (phase 4).** Serial ports over termios and IOKit, telnet and raw
+   sockets over Network.framework, Tabby's stream processing, login scripts for every type.
+   On-screen checks in M9; the final look follows the owner's Claude Design screens.
 5. **More of Tabby.** `tabby://` URL and CLI handlers, localization from
-   `../locale/*.po`, process-completion notifications per tab, login scripts for local
-   shells, SwiftTerm 2.x once Xcode 26 is the baseline.
+   `../locale/*.po`, process-completion notifications per tab, SwiftTerm 2.x once Xcode 26
+   is the baseline.

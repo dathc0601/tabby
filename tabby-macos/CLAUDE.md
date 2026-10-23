@@ -32,11 +32,17 @@ Read `README.md` and `docs/ARCHITECTURE.md` before larger changes.
   Test connection. Needs `brew install libssh` to build. Its on-screen checks are M8, walked
   on 2026-10-23 against Docker test servers (fixes in the Findings table); open: X11 with
   XQuartz, dropping files from Finder, Show in Finder, and M4 again on `ssh.backend: openssh`.
+- Phase 4 (started 2026-10-23, spec `docs/superpowers/specs/2026-10-23-phase-4-serial-telnet-design.md`,
+  branch `claude/phase-4-serial-telnet`): serial (`TabbySerial`) and telnet (`TabbyTelnet`)
+  sessions, Tabby's stream processing (`StreamProcessor`, `ProcessedSession`), login scripts
+  for every type. The screens still follow the existing components; the owner is making
+  Claude Design screens for them (milestone 4.5). On-screen checks are M9.
+- Serial tests use pty pairs (`Tests/Support/PTYPair.swift`); never open a real `/dev/cu.*`
+  in tests or walks, only list it. `scripts/fake-serial-device.py` is the walk's device.
 - SSH integration tests start their own unprivileged sshd (`TestSSHD`); wrap runs that might
   hang with a deadline (macOS has no `timeout`), and never call `Process.waitUntilExit()` from
   an async test (it needs a run loop).
-- Roadmap after phase 3: phase 4 serial/telnet, phase 5 URL/CLI, localization, per-tab
-  "notify when done".
+- Roadmap after phase 4: phase 5 URL/CLI, localization, per-tab "notify when done".
 - Screens can be checked without a display:
   `TABBYMAC_SNAPSHOT_DIR=/tmp/shots swift test --filter DesignSnapshotTests`.
 - Linux: run `docker run --rm -v "$PWD/..":/src -w /src/tabby-macos swift:6.1-noble swift test

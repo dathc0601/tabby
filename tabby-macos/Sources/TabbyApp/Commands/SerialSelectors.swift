@@ -52,19 +52,15 @@ extension MainWindowController {
     /// the selector opens nothing.
     func chooseSerialPort(_ chosen: @escaping (String) -> Void) {
         let ports = AppServices.shared.serialPorts.ports
-        guard !ports.isEmpty else {
-            toasts.show(ToastCenter.Toast(symbol: "memorychip", tint: .danger, title: "No serial ports found",
-                                          detail: "Plug in a device, or type its path with quick connect."))
-            return
-        }
         let items = ports.map { port in
             SelectorItem(id: port.path, title: port.deviceName, group: port.isInternal ? "Built in" : "Ports",
                          subtitle: port.description ?? port.path, icon: "memorychip") { chosen(port.path) }
         }
-        SelectorPanel.present(over: window, placeholder: "Serial port", items: items) { query in
-            // A path typed by hand (a device the list doesn't show, a pty).
-            guard query.hasPrefix("/dev/") else { return [] }
-            return [SelectorItem(id: "path", title: "Use \(query)", icon: "memorychip") { chosen(query) }]
+        SelectorPanel.present(over: window, placeholder: "Serial port or a device path", items: items) { query in
+            // A path typed by hand: a device the list doesn't show, a link to one.
+            guard query.hasPrefix("/") || query.hasPrefix("~") else { return [] }
+            let path = (query as NSString).expandingTildeInPath
+            return [SelectorItem(id: "path", title: "Use \(path)", icon: "memorychip") { chosen(path) }]
         }
     }
 
