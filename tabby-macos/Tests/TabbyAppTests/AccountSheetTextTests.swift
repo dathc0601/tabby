@@ -16,6 +16,15 @@ final class AccountSheetTextTests: XCTestCase {
 
     /// Found in the M7 walk: Regenerate… showed "Step 2 of 2", "1 profile on this Mac will
     /// upload next" and "Start syncing", and View… only wrote the key below the fold.
+    /// Found in the M7 walk: Change password… took the new password once; a typo there leaves
+    /// only the recovery key to get back in. Like sign-up, it is typed twice.
+    func testANewPasswordMustBeTypedTwice() {
+        XCTAssertEqual(NewPasswordCheck.problem(new: "short", again: "short"), "The new password is too short.")
+        XCTAssertEqual(NewPasswordCheck.problem(new: "a-long-new-password", again: "a-long-new-passwork"),
+                       "The passwords don't match; nothing was changed.")
+        XCTAssertNil(NewPasswordCheck.problem(new: "a-long-new-password", again: "a-long-new-password"))
+    }
+
     func testRegeneratedAndViewedKeysAreNotASignUp() {
         let regenerated = RecoveryKeyTexts(purpose: .regenerated, profiles: 1)
         XCTAssertNil(regenerated.step)

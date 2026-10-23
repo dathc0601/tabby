@@ -198,17 +198,21 @@ struct AccountSettingsView: View {
 
     private func changePassword(_ account: AccountService) {
         askPassword(title: "Current password") { old in
-            Prompts.text(in: NSApp.keyWindow, title: "New password", message: "At least 8 characters.", secure: true, confirm: "Change") { new, _ in
-                guard let new, PasswordStrength.score(new) >= 2 else {
-                    message = "The new password is too short."
-                    return
-                }
-                Task {
-                    do {
-                        try await account.changePassword(old: old, new: new)
-                        message = "Password changed. Your other Macs stay signed in."
-                    } catch {
-                        message = error.localizedDescription
+            Prompts.text(in: NSApp.keyWindow, title: "New password", message: "At least 8 characters.", secure: true, confirm: "Continue") { new, _ in
+                guard let new else { return }
+                Prompts.text(in: NSApp.keyWindow, title: "Type the new password again", secure: true, confirm: "Change") { again, _ in
+                    guard let again else { return }
+                    if let problem = NewPasswordCheck.problem(new: new, again: again) {
+                        message = problem
+                        return
+                    }
+                    Task {
+                        do {
+                            try await account.changePassword(old: old, new: new)
+                            message = "Password changed. Your other Macs stay signed in."
+                        } catch {
+                            message = error.localizedDescription
+                        }
                     }
                 }
             }

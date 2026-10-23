@@ -224,6 +224,15 @@ struct RecoveryKeyTexts: Equatable {
     }
 }
 
+/// Change password…: the new password is typed twice, as at sign-up.
+enum NewPasswordCheck {
+    static func problem(new: String, again: String) -> String? {
+        if PasswordStrength.score(new) < 2 { return "The new password is too short." }
+        if new != again { return "The passwords don't match; nothing was changed." }
+        return nil
+    }
+}
+
 enum AccountSheetMode: Equatable {
     case signIn
     case register
