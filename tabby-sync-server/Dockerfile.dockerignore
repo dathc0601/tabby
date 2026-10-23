@@ -1,0 +1,12 @@
+# Build context is the repository root; send only what the Dockerfile copies.
+*
+!tabby-macos/Package.swift
+!tabby-macos/Package.resolved
+!tabby-macos/Sources
+!tabby-macos/Tests
+!tabby-sync-server/Package.swift
+!tabby-sync-server/Package.resolved
+!tabby-sync-server/Sources
+!tabby-sync-server/Tests
+**/.build
+**/.swiftpm

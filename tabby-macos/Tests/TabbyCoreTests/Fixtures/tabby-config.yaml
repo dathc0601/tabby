@@ -1,0 +1,72 @@
+version: 8
+hotkeys:
+  split-right:
+    - ⌘-Shift-X
+  close-tab:
+    - ⌘-W
+  profile:
+    ssh-custom-prod-1234: [⌘-⌥-1]
+  copy-current-path:
+    - - Ctrl-A
+      - C
+terminal:
+  fontSize: 16
+  font: JetBrains Mono
+  colorScheme:
+    name: Dracula
+    foreground: '#f8f8f2'
+    background: '#1e1f29'
+    cursor: '#bbbbbb'
+    colors: ['#000000', '#ff5555', '#50fa7b', '#f1fa8c', '#bd93f9', '#ff79c6', '#8be9fd', '#bbbbbb',
+             '#555555', '#ff5555', '#50fa7b', '#f1fa8c', '#bd93f9', '#ff79c6', '#8be9fd', '#ffffff']
+appearance:
+  dock: top
+  vibrancy: true
+  tabsLocation: bottom
+profiles:
+  - type: ssh
+    name: prod
+    group: 1d1a0c7e-4a2c-4f0f-9cf2-8f4a6d1e2b3c
+    id: ssh:custom:prod:1234
+    options:
+      host: prod.example.com
+      user: deploy
+      auth: publicKey
+      privateKeys:
+        - file:///Users/me/.ssh/id_ed25519
+      jumpHost: ssh:custom:bastion:5678
+      forwardedPorts:
+        - type: Local
+          host: 127.0.0.1
+          port: 8080
+          targetAddress: localhost
+          targetPort: 80
+          description: web
+  - type: ssh
+    name: bastion
+    id: ssh:custom:bastion:5678
+    options:
+      host: bastion.example.com
+      port: 2222
+      user: me
+  - type: local
+    name: fish
+    id: local:custom:fish:abcd
+    options:
+      command: /opt/homebrew/bin/fish
+      args: [-l]
+      env:
+        FOO: bar
+groups:
+  - id: 1d1a0c7e-4a2c-4f0f-9cf2-8f4a6d1e2b3c
+    name: Work
+    defaults:
+      ssh:
+        options:
+          keepaliveInterval: 15000
+profileDefaults:
+  ssh:
+    options:
+      x11: true
+someUnknownPluginKey:
+  nested: value

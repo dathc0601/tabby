@@ -1,0 +1,57 @@
+import Foundation
+import TabbyCore
+
+/// The `terminal.*` settings a terminal pane needs, read from `ConfigStore`.
+public struct TerminalSettings: Equatable {
+    public enum CursorShape: String { case block, beam, underline }
+    public enum BellMode: String { case off, visual, audible }
+    public enum RightClick: String { case menu, paste, clipboard, off }
+
+    public var fontName: String
+    public var fontSize: Double
+    public var fontWeight: Int
+    public var fallbackFont: String?
+    public var cursor: CursorShape
+    public var cursorBlink: Bool
+    public var scrollbackLines: Int
+    public var bell: BellMode
+    public var copyOnSelect: Bool
+    public var rightClick: RightClick
+    public var pasteOnMiddleClick: Bool
+    public var altIsMeta: Bool
+    public var bracketedPaste: Bool
+    public var warnOnMultilinePaste: Bool
+    public var trimWhitespaceOnPaste: Bool
+    public var replaceNewlinesWithSpacesOnPaste: Bool
+    public var detectProgress: Bool
+    public var scrollOnInput: Bool
+    public var drawBoldTextInBrightColors: Bool
+    public var minimumContrastRatio: Double
+    public var useSchemeBackground: Bool
+    public var environment: [String: String]
+
+    public init(config c: ConfigStore) {
+        fontName = c.string("terminal.font") ?? "Menlo"
+        fontSize = c.double("terminal.fontSize") ?? 14
+        fontWeight = c.int("terminal.fontWeight") ?? 400
+        fallbackFont = c.string("terminal.fallbackFont")
+        cursor = CursorShape(rawValue: c.string("terminal.cursor") ?? "block") ?? .block
+        cursorBlink = c.value("terminal.cursorBlink")?.boolValue ?? true
+        scrollbackLines = c.int("terminal.scrollbackLines") ?? 25000
+        bell = BellMode(rawValue: c.string("terminal.bell") ?? "off") ?? .off
+        copyOnSelect = c.bool("terminal.copyOnSelect")
+        rightClick = RightClick(rawValue: c.string("terminal.rightClick") ?? "menu") ?? .menu
+        pasteOnMiddleClick = c.value("terminal.pasteOnMiddleClick")?.boolValue ?? true
+        altIsMeta = c.bool("terminal.altIsMeta")
+        bracketedPaste = c.value("terminal.bracketedPaste")?.boolValue ?? true
+        warnOnMultilinePaste = c.value("terminal.warnOnMultilinePaste")?.boolValue ?? true
+        trimWhitespaceOnPaste = c.value("terminal.trimWhitespaceOnPaste")?.boolValue ?? true
+        replaceNewlinesWithSpacesOnPaste = c.bool("terminal.replaceNewlinesWithSpacesOnPaste")
+        detectProgress = c.value("terminal.detectProgress")?.boolValue ?? true
+        scrollOnInput = c.value("terminal.scrollOnInput")?.boolValue ?? true
+        drawBoldTextInBrightColors = c.value("terminal.drawBoldTextInBrightColors")?.boolValue ?? true
+        minimumContrastRatio = c.double("terminal.minimumContrastRatio") ?? 4
+        useSchemeBackground = c.string("terminal.background") == "colorScheme"
+        environment = (c.value("terminal.environment")?.objectValue ?? [:]).compactMapValues(\.stringValue)
+    }
+}

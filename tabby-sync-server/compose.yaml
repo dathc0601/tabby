@@ -1,0 +1,44 @@
+# tabby-sync-server with Postgres. Copy .env.example to .env (next to this file), fill in
+# the secrets, then:
+#
+#   docker compose up -d --build
+#
+# The server listens on 127.0.0.1:8080 only; a reverse proxy on the host (Caddy or nginx,
+# see README.md, also for Cloudflare) terminates TLS for tabby-sync.dcstyle.info.
+
+services:
+  server:
+    build:
+      context: ..
+      dockerfile: tabby-sync-server/Dockerfile
+    image: tabby-sync-server
+    environment:
+      ENVIRONMENT: production
+      SERVER_SECRET: ${SERVER_SECRET:?set SERVER_SECRET in .env}
+      DATABASE_URL: postgres://tabby:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/tabby_sync?sslmode=disable
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      REGISTRATIONS_PER_DAY: ${REGISTRATIONS_PER_DAY:-20}
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: tabby
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: tabby_sync
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tabby -d tabby_sync"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  db-data:

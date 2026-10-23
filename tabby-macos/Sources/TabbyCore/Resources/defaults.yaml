@@ -1,0 +1,254 @@
+# Default configuration for TabbyMac.
+#
+# Merged from Tabby's ConfigProviders for the macOS platform:
+#   tabby-core/src/configDefaults.yaml + configDefaults.macos.yaml
+#   tabby-terminal/src/config.ts, tabby-local/src/config.ts, tabby-ssh/src/config.ts,
+#   tabby-settings/src/config.ts, tabby-electron/src/config.ts
+#
+# Semantics match Tabby's ConfigProxy: non-empty mappings are "structural" and are merged
+# key by key with the user's config.yaml. Arrays and mappings marked `__nonStructural: true`
+# are leaves and are replaced wholesale. Only values that differ from these defaults are
+# written back to config.yaml.
+#
+# Strings that YAML 1.1 would read as booleans (off, on, yes, no) are quoted.
+
+accessibility:
+  animations: true
+appearance:
+  dock: 'off'
+  dockScreen: current
+  dockFill: 0.5
+  dockSpace: 1
+  dockHideOnBlur: false
+  dockAlwaysOnTop: true
+  flexTabs: false
+  tabsLocation: top
+  tabsInFullscreen: false
+  cycleTabs: true
+  theme: Follow the color scheme
+  frame: thin
+  css: '/* * { color: blue !important; } */'
+  opacity: 1.0
+  vibrancy: false
+  vibrancyType: 'blur'
+  lastTabClosesWindow: false
+  spaciness: 1
+  colorSchemeMode: 'dark'
+terminal:
+  showBuiltinProfiles: true
+  showRecentProfiles: 3
+  paneResizeStep: 0.1
+  focusFollowsMouse: false
+  identification: null
+  # tabby-terminal
+  frontend: 'xterm-webgl'
+  font: Menlo
+  fontSize: 14
+  fontWeight: 400
+  fontWeightBold: 700
+  fallbackFont: null
+  linePadding: 0
+  bell: 'off'
+  bellFlashFrame: false
+  bracketedPaste: true
+  background: theme
+  ligatures: false
+  cursor: block
+  cursorBlink: true
+  hideTabIndex: false
+  showTabProfileIcon: false
+  hideCloseButton: false
+  hideTabOptionsButton: false
+  rightClick: menu
+  pasteOnMiddleClick: true
+  copyOnSelect: false
+  copyAsHTML: true
+  scrollOnInput: true
+  altIsMeta: false
+  wordSeparator: ' ()[]{}''"'
+  colorScheme:
+    __nonStructural: true
+    name: Tabby Default
+    foreground: '#cacaca'
+    background: '#171717'
+    cursor: '#bbbbbb'
+    colors: ['#000000', '#ff615a', '#b1e969', '#ebd99c', '#5da9f6', '#e86aff', '#82fff7', '#dedacf',
+             '#313131', '#f58c80', '#ddf88f', '#eee5b2', '#a5c7ff', '#ddaaff', '#b7fff9', '#ffffff']
+  lightColorScheme:
+    __nonStructural: true
+    name: Tabby Default Light
+    foreground: '#4d4d4c'
+    background: '#ffffff'
+    cursor: '#4d4d4c'
+    colors: ['#000000', '#c82829', '#718c00', '#eab700', '#4271ae', '#8959a8', '#3e999f', '#ffffff',
+             '#000000', '#c82829', '#718c00', '#eab700', '#4271ae', '#8959a8', '#3e999f', '#ffffff']
+  customColorSchemes: []
+  warnOnMultilinePaste: true
+  searchRegexAlwaysEnabled: false
+  searchOptions:
+    regex: false
+    wholeWord: false
+    caseSensitive: false
+  detectProgress: true
+  scrollbackLines: 25000
+  drawBoldTextInBrightColors: true
+  sixel: true
+  minimumContrastRatio: 4
+  paletteGenerate: false
+  paletteHarmonious: false
+  replaceNewlinesWithSpacesOnPaste: false
+  trimWhitespaceOnPaste: true
+  # tabby-local
+  autoOpen: true
+  environment:
+    __nonStructural: true
+  profile: 'local:default'
+ssh:
+  warnOnClose: false
+  agentType: auto
+  agentPath: null
+  x11Display: null
+  knownHosts: []
+  verifyHostKeys: true
+hotkeys:
+  profile:
+    __nonStructural: true
+  profile-selectors:
+    __nonStructural: true
+  group-selectors:
+    __nonStructural: true
+  settings-tab:
+    __nonStructural: true
+  # tabby-core (macOS)
+  toggle-fullscreen: ['Ctrl-⌘-F']
+  # TabbyMac: personal account (not in Tabby)
+  sync-now: ['⌘-Shift-S']
+  close-tab: ['⌘-W']
+  reopen-tab: ['⌘-Shift-T']
+  toggle-last-tab: []
+  rename-tab: ['⌘-R']
+  next-tab: ['Ctrl-Tab']
+  previous-tab: ['Ctrl-Shift-Tab']
+  next-mru-tab: []
+  previous-mru-tab: []
+  move-tab-left: ['⌘-Shift-Left']
+  move-tab-right: ['⌘-Shift-Right']
+  rearrange-panes: ['Ctrl-Shift']
+  tab-1: ['⌘-1']
+  tab-2: ['⌘-2']
+  tab-3: ['⌘-3']
+  tab-4: ['⌘-4']
+  tab-5: ['⌘-5']
+  tab-6: ['⌘-6']
+  tab-7: ['⌘-7']
+  tab-8: ['⌘-8']
+  tab-9: ['⌘-9']
+  tab-10: []
+  duplicate-tab: []
+  pin-tab: []
+  restart-tab: []
+  reconnect-tab: []
+  disconnect-tab: []
+  explode-tab: ['⌘-Shift-.']
+  combine-tabs: ['⌘-Shift-,']
+  split-right: ['⌘-Shift-D']
+  split-bottom: ['⌘-D']
+  split-left: []
+  split-top: []
+  pane-nav-right: ['⌘-⌥-Right']
+  pane-nav-down: ['⌘-⌥-Down']
+  pane-nav-up: ['⌘-⌥-Up']
+  pane-nav-left: ['⌘-⌥-Left']
+  pane-nav-previous: ['⌘-⌥-[']
+  pane-nav-next: ['⌘-⌥-]']
+  pane-nav-1: []
+  pane-nav-2: []
+  pane-nav-3: []
+  pane-nav-4: []
+  pane-nav-5: []
+  pane-nav-6: []
+  pane-nav-7: []
+  pane-nav-8: []
+  pane-nav-9: []
+  pane-maximize: ['⌘-⌥-Enter']
+  close-pane: ['⌘-Shift-W']
+  pane-increase-vertical: []
+  pane-decrease-vertical: []
+  pane-increase-horizontal: []
+  pane-decrease-horizontal: []
+  profile-selector: ['⌘-E']
+  switch-profile: ['⌘-Shift-E']
+  command-selector: ['⌘-Shift-P']
+  switch-meta-option: ['⌘-⌥-O']
+  # tabby-terminal (macOS)
+  copy-current-path: []
+  ctrl-c: ['Ctrl-C']
+  copy: ['⌘-C']
+  paste: ['⌘-V']
+  clear: ['⌘-K']
+  select-all: ['⌘-A']
+  zoom-in: ['⌘-=', '⌘-Shift-=']
+  zoom-out: ['⌘--', '⌘-Shift--']
+  reset-zoom: ['⌘-0']
+  home: ['⌘-Left', 'Home']
+  end: ['⌘-Right', 'End']
+  previous-word: ['⌥-Left']
+  next-word: ['⌥-Right']
+  delete-previous-word: ['⌥-Backspace']
+  delete-line: ['⌘-Backspace']
+  delete-next-word: ['⌥-Delete']
+  search: ['⌘-F']
+  pane-focus-all: ['⌘-Shift-I']
+  focus-all-tabs: ['⌘-⌥-Shift-I']
+  insert-new-line: ['⌥-Shift-Enter']
+  scroll-to-top: ['Shift-PageUp']
+  scroll-page-up: ['⌥-PageUp']
+  scroll-up: ['Ctrl-Shift-Up']
+  scroll-down: ['Ctrl-Shift-Down']
+  scroll-page-down: ['⌥-PageDown']
+  scroll-to-bottom: ['Shift-PageDown']
+  # tabby-local, tabby-settings, tabby-electron (macOS)
+  new-tab: ['⌘-T']
+  settings: ['⌘-,']
+  new-window: ['⌘-N']
+  toggle-window: ['Ctrl-Space']
+  # tabby-ssh
+  restart-ssh-session: []
+  open-sftp: []
+profiles: []
+groups: []
+profileDefaults:
+  __nonStructural: true
+  ssh:
+    disableDynamicTitle: true
+recoverTabs: true
+enableAnalytics: false
+enableWelcomeTab: true
+enableAutomaticUpdates: true
+hideTray: false
+version: 1
+vault: null
+encrypted: false
+enableExperimentalFeatures: false
+pluginBlacklist: []
+commandBlacklist: []
+providerBlacklist: []
+profileBlacklist: []
+hacks:
+  disableGPU: false
+  disableVibrancyWhileDragging: false
+  enableFluentBackground: false
+  globalHotkey: null
+language: null
+defaultQuickConnectProvider: ssh
+showProfileTree: false
+# TabbyMac personal account and sync (not in Tabby). Stays on this Mac; never synced.
+account:
+  auto: true
+  parts:
+    profiles: true
+    secrets: true
+    knownHosts: true
+    settings: true
+  approvedKeyFiles: []
+  declinedKeyFiles: []

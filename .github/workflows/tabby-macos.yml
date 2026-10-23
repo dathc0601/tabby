@@ -1,0 +1,64 @@
+name: TabbyMac (Swift)
+on:
+  push:
+    paths: ['tabby-macos/**', 'tabby-sync-server/**', '.github/workflows/tabby-macos.yml']
+  pull_request:
+    paths: ['tabby-macos/**', 'tabby-sync-server/**', '.github/workflows/tabby-macos.yml']
+  workflow_dispatch:
+
+jobs:
+  linux-core:
+    name: Core tests (Linux)
+    runs-on: ubuntu-24.04
+    container: swift:6.1-noble
+    defaults:
+      run:
+        working-directory: tabby-macos
+    steps:
+      - uses: actions/checkout@v5
+      - run: swift test
+
+  sync-server:
+    name: Sync server (Linux)
+    runs-on: ubuntu-24.04
+    # Hummingbird 2.28 needs swift-tools 6.2; the server also builds ../tabby-macos's
+    # TabbySyncProtocol target.
+    container: swift:6.2-noble
+    defaults:
+      run:
+        working-directory: tabby-sync-server
+    steps:
+      - uses: actions/checkout@v5
+      - run: swift test
+
+  macos:
+    name: Build and test (macOS)
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: tabby-macos
+    steps:
+      - uses: actions/checkout@v5
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app || true; xcodebuild -version
+      - name: Swift package build (all targets, including the AppKit app layer)
+        run: swift build
+      - name: Unit tests
+        run: swift test
+      - name: Crash reports
+        # `swift test` only prints "Exited with unexpected signal code N" when the test
+        # process crashes; the system crash report has the backtrace.
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crash-reports
+          path: ~/Library/Logs/DiagnosticReports/
+          if-no-files-found: ignore
+      - name: Xcode app bundle
+        run: |
+          brew install xcodegen
+          cd Xcode
+          xcodegen generate
+          xcodebuild -project TabbyMac.xcodeproj -scheme TabbyMac -configuration Debug \
+            -derivedDataPath build -skipPackagePluginValidation CODE_SIGNING_ALLOWED=NO build
+          test -x build/Build/Products/Debug/TabbyMac.app/Contents/MacOS/tabby-askpass

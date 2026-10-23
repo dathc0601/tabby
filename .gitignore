@@ -40,3 +40,6 @@ crowdin.yml
 
 # built from tabby-uac/ by CI; see .github/workflows/build.yml
 extras/UAC.exe
+
+# Claude Design export for the TabbyMac redesign (kept out of git on purpose)
+Tabby Design Canvas.zip
