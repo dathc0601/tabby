@@ -122,5 +122,54 @@ final class SerialPortTests: XCTestCase {
         spinMainLoop(timeout: 0.2) { false }
         XCTAssertEqual(hangups, 0)
     }
+    // Review: a write blocked by a device that isn't reading (flow control, a slow line) held
+    // the port's queue for up to 5 s per write, then dropped the rest; reads stalled behind it
+    // and close() waited for it.
+    func testClosingDoesNotWaitForAStuckWrite() throws {
+        let pty = try PTYPair()
+        let port = SerialPort(path: pty.replicaPath)
+        try port.open(settings())
+        port.write(Data(repeating: 0x41, count: 1 << 20))
+        spinMainLoop(timeout: 0.3) { false }
+        let start = Date()
+        port.close()
+        XCTAssertLessThan(Date().timeIntervalSince(start), 0.5)
+    }
+
+    func testReadsGoOnWhileAWriteWaits() throws {
+        let pty = try PTYPair()
+        let port = SerialPort(path: pty.replicaPath)
+        var received = Data()
+        port.onData = { received.append($0) }
+        try port.open(settings())
+        defer { port.close() }
+        port.write(Data(repeating: 0x41, count: 1 << 20))
+        spinMainLoop(timeout: 0.3) { false }
+        pty.write("hello")
+        XCTAssertTrue(spinMainLoop(timeout: 2) { received == Data("hello".utf8) })
+    }
+
+    func testALongWriteArrivesWholeAfterAStall() throws {
+        let pty = try PTYPair()
+        let port = SerialPort(path: pty.replicaPath)
+        try port.open(settings())
+        defer { port.close() }
+        let payload = Data((0..<300_000).map { UInt8($0 % 251) })
+        port.write(payload)
+        spinMainLoop(timeout: 6) { false }
+        XCTAssertEqual(pty.read(count: payload.count, timeout: 10), payload)
+    }
+
+    // Review: the descriptor closed later on the port's queue while the port was already given
+    // back, so reopening a real port at once (Reconnect) met its exclusive mode: "busy".
+    func testClosingClosesTheDescriptorBeforeReturning() throws {
+        let pty = try PTYPair()
+        let port = SerialPort(path: pty.replicaPath)
+        try port.open(settings())
+        let fd = port.fileDescriptor
+        port.close()
+        XCTAssertEqual(fcntl(fd, F_GETFD), -1)
+        XCTAssertEqual(errno, EBADF)
+    }
 }
 #endif
