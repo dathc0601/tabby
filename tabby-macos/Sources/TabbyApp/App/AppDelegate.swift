@@ -1,7 +1,6 @@
 #if canImport(AppKit)
 import AppKit
 import QuartzCore
-import UserNotifications
 import TabbyCore
 import TabbySSH
 import TabbyAccount
@@ -57,11 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        if Bundle.main.bundleIdentifier != nil {
-            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, error in
-                if let error { NSLog("TabbyMac: notifications unavailable: \(error.localizedDescription)") }
-            }
-        }
+        Notifier.shared.start()
 
         let controller = WindowManager.shared.newWindow(openDefaultTab: false)
         let restored = RecoveryCoordinator.shared.restore(into: controller)

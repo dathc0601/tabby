@@ -404,6 +404,17 @@ struct TabContextMenu: View {
         if tab.content == nil {
             Button(L("Rename Tab…")) { actions.command("rename-tab", tab) }
             Button(L("Duplicate Tab")) { actions.command("duplicate-tab", tab) }
+            let notify = NotifyMenu.items(for: tab.focusedPane)
+            if !notify.isEmpty {
+                Divider()
+                ForEach(notify) { entry in
+                    if let command = entry.command {
+                        Toggle(entry.title, isOn: Binding(get: { entry.checked }, set: { _ in actions.command(command, tab) }))
+                    } else {
+                        Text(entry.title)
+                    }
+                }
+            }
         }
         Button(tab.isPinned ? L("Unpin Tab") : L("Pin Tab")) { actions.command("pin-tab", tab) }
         Menu(L("Colour")) {

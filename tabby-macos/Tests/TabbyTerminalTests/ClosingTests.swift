@@ -10,8 +10,11 @@ final class FakeSession: TerminalSession {
     private(set) var isRunning = false
     private(set) var killCount = 0
     private(set) var written: [Data] = []
+    /// What `activeProcessName()` reports (the shell's foreground child).
+    var foregroundProcess: String?
 
     func start(cols: Int, rows: Int) throws { isRunning = true }
+    func activeProcessName() -> String? { isRunning ? foregroundProcess : nil }
     func write(_ data: Data) { written.append(data) }
     func resize(cols: Int, rows: Int) {}
     func kill() {

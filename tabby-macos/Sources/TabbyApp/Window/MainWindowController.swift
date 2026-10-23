@@ -1,7 +1,6 @@
 #if canImport(AppKit)
 import AppKit
 import SwiftUI
-import UserNotifications
 import TabbyCore
 import TabbyTerminal
 
@@ -305,12 +304,35 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
                     self.window?.makeKeyAndOrderFront(nil)
                 }))
         }
-        guard !appIsActive, Bundle.main.bundleURL.pathExtension == "app" else { return }
-        let content = UNMutableNotificationContent()
-        content.title = pane.title
-        content.body = code.map { L("Process exited with code {code}", ["code": $0]) } ?? L("Session ended")
-        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
-        UNUserNotificationCenter.current().add(request)
+        guard !appIsActive else { return }
+        Notifier.shared.post(title: pane.title,
+                             body: code.map { L("Process exited with code {code}", ["code": $0]) } ?? L("Session ended"),
+                             pane: pane.id)
+    }
+
+    /// "Notify when done" (Tabby: `new Notification('Process completed', { body: name })`).
+    /// ★ The user asked for it, so the toast shows even when the pane is in view; the banner
+    /// goes out too where macOS allows it.
+    func notifyProcessCompleted(_ pane: TerminalPane, processName: String) {
+        Notifier.shared.post(title: L("Process completed"), body: processName, pane: pane.id)
+        toasts.show(ToastCenter.Toast(symbol: "checkmark.circle", tint: .success, title: L("Process completed"),
+                                      detail: processName + whereIs(pane), actionTitle: L("Show"), action: focusAction(pane)))
+    }
+
+    /// "Notify on activity" (Tabby: `new Notification('Tab activity', { body: tab.title })`).
+    func notifyActivity(_ pane: TerminalPane) {
+        Notifier.shared.post(title: L("Tab activity"), body: pane.title, pane: pane.id)
+        toasts.show(ToastCenter.Toast(symbol: "bell", tint: .accent, title: L("Tab activity"),
+                                      detail: pane.title + whereIs(pane), actionTitle: L("Show"), action: focusAction(pane)))
+    }
+
+    /// " in tab 3", or nothing when the pane is gone.
+    private func whereIs(_ pane: TerminalPane) -> String {
+        model.tabs.firstIndex { $0.panes[pane.id] != nil }.map { " " + L("in tab {number}", ["number": $0 + 1]) } ?? ""
+    }
+
+    private func focusAction(_ pane: TerminalPane) -> () -> Void {
+        { [weak pane] in if let pane { Notifier.shared.focus(paneID: pane.id) } }
     }
 
     func modelDidBecomeEmpty() {

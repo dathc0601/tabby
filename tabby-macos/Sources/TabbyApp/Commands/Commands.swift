@@ -93,6 +93,8 @@ extension MainWindowController {
                 send("\u{03}")
             }
         case "paste": engineView?.engine.pasteFromClipboard()
+        case NotifyMenu.whenDone: pane.map { $0.setNotifyWhenDone(!$0.notifyWhenDone) }
+        case NotifyMenu.onActivity: pane.map { $0.setNotifyOnActivity(!$0.notifyOnActivity) }
         case "select-all": engineView?.engine.selectAll()
         case "clear": engineView?.engine.clearBuffer()
         case "search": engineView?.toggleSearch()
@@ -279,6 +281,15 @@ extension MainWindowController {
         item(L("Broadcast Input to All Panes"), "pane-focus-all", checked: model.activeTab?.broadcastInput == true)
         item(L("Select All"), "select-all")
         item(L("Clear"), "clear")
+        let notify = NotifyMenu.items(for: pane)
+        if !notify.isEmpty { menu.addItem(.separator()) }
+        for entry in notify {
+            if let command = entry.command {
+                item(entry.title, command, checked: entry.checked)
+            } else {
+                menu.addItem(NSMenuItem(title: entry.title, action: nil, keyEquivalent: ""))
+            }
+        }
         menu.addItem(.separator())
         item(L("Switch Profile…"), "switch-profile")
         if pane.connectionState != nil {

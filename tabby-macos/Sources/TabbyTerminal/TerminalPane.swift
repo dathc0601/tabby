@@ -66,6 +66,11 @@ public final class TerminalPane: TerminalEngineDelegate {
             return reconnectAttempt > 0 ? reconnecting : .disconnected
         }
     }
+    /// Tabby's "Notify when done" (`TaskCompletionContextMenu`): armed while a foreground
+    /// process runs, fires `onProcessCompleted` once when it is gone. Not saved.
+    public private(set) var notifyWhenDone = false
+    /// Tabby's "Notify on activity": fires `onActivityNotification` on the next output, once.
+    public private(set) var notifyOnActivity = false
     public var isFocused = false {
         didSet { if isFocused { hasActivity = false } }
     }
@@ -102,6 +107,14 @@ public final class TerminalPane: TerminalEngineDelegate {
     /// (it does when it is not the active app).
     @ObservationIgnored public var onProcessEnded: ((TerminalPane, Int32?) -> Void)?
     @ObservationIgnored public var onRecoveryStateChanged: (() -> Void)?
+    /// "Notify when done" fired: the pane and the name of the process it waited for.
+    @ObservationIgnored public var onProcessCompleted: ((TerminalPane, String) -> Void)?
+    /// "Notify on activity" fired.
+    @ObservationIgnored public var onActivityNotification: ((TerminalPane) -> Void)?
+    /// How often "Notify when done" looks at the foreground process (Tabby: every second).
+    @ObservationIgnored public var completionPollInterval: TimeInterval = 1
+    @ObservationIgnored private var watchedProcess: String?
+    @ObservationIgnored private var completionGeneration = 0
     /// Sees keyboard input before it is sent (used for broadcasting to other panes).
     @ObservationIgnored public var onUserInput: ((TerminalPane, Data) -> Void)?
     /// Sees a paste once it is prepared and confirmed (used for broadcasting to other panes).
@@ -213,6 +226,8 @@ public final class TerminalPane: TerminalEngineDelegate {
     /// Ends the session on purpose (closing the pane).
     public func close() {
         userClosed = true
+        setNotifyWhenDone(false)
+        notifyOnActivity = false
         reconnectAttempt = 0
         progressClearWork?.cancel()
         session?.onClosed = nil
@@ -253,10 +268,46 @@ public final class TerminalPane: TerminalEngineDelegate {
         }
     }
 
+    // MARK: Notify when done / on activity
+
+    /// Arms or disarms "Notify when done"; arming needs a running foreground process.
+    public func setNotifyWhenDone(_ on: Bool) {
+        completionGeneration += 1
+        guard on, let name = activeProcessName else {
+            notifyWhenDone = false
+            watchedProcess = nil
+            return
+        }
+        notifyWhenDone = true
+        watchedProcess = name
+        scheduleCompletionCheck(completionGeneration)
+    }
+
+    public func setNotifyOnActivity(_ on: Bool) {
+        notifyOnActivity = on
+    }
+
+    private func scheduleCompletionCheck(_ generation: Int) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + completionPollInterval) { [weak self] in
+            guard let self, self.notifyWhenDone, generation == self.completionGeneration else { return }
+            if self.activeProcessName != nil {
+                self.scheduleCompletionCheck(generation)
+                return
+            }
+            let name = self.watchedProcess ?? ""
+            self.setNotifyWhenDone(false)
+            self.onProcessCompleted?(self, name)
+        }
+    }
+
     // MARK: Output
 
     private func handleOutput(_ data: Data) {
         engine?.feed(data)
+        if notifyOnActivity {
+            notifyOnActivity = false
+            onActivityNotification?(self)
+        }
         if !isFocused && !hasActivity { hasActivity = true }
         let needsText = settings.detectProgress || loginScripts?.isDone == false
         guard needsText else { return }
@@ -284,6 +335,8 @@ public final class TerminalPane: TerminalEngineDelegate {
         let behaviour = profile.behaviorOnSessionEnd
         let isLocal = profile.type == "local"
         let pause = isLocal && LocalOptions(profile.options).pauseAfterExit
+        // ★ The session-ended notice below covers it; the arm just goes.
+        if notifyWhenDone { setNotifyWhenDone(false) }
         // Closing a pane by hand ends its process too; that is not news worth a toast.
         if !userClosed { onProcessEnded?(self, code) }
 

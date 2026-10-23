@@ -506,6 +506,9 @@ msgstr "Hiện tại"
 msgid "Current password"
 msgstr "Mật khẩu hiện tại"
 
+msgid "Current process: {name}"
+msgstr "Tiến trình hiện tại: {name}"
+
 msgid "Cursor"
 msgstr "Con trỏ"
 
@@ -1277,6 +1280,12 @@ msgstr "Không làm gì"
 msgid "Nothing here yet"
 msgstr "Chưa có gì ở đây"
 
+msgid "Notify on activity"
+msgstr "Thông báo khi có hoạt động"
+
+msgid "Notify when done"
+msgstr "Thông báo khi xong"
+
 msgid "OK"
 msgstr "OK"
 
@@ -2005,6 +2014,9 @@ msgstr "Hệ thống"
 
 msgid "System (SSH_AUTH_SOCK)"
 msgstr "Hệ thống (SSH_AUTH_SOCK)"
+
+msgid "Tab activity"
+msgstr "Hoạt động trên tab"
 
 msgid "Tab bar location"
 msgstr "Vị trí thanh tab"
