@@ -106,13 +106,18 @@ struct AccountSettingsView: View {
             SettingsRow("Recovery key", subtitle: session.recoveryKey == nil ? "Not on this Mac yet (it arrives with the next sync)" : "Unlocks the account if you forget the password") {
                 HStack(spacing: 6) {
                     Button("View…") { askPassword(title: "Show the recovery key") { pw in
-                        let key = try await account.revealRecoveryKey(password: pw)
-                        message = key.map { "Recovery key: \($0)" } ?? "The recovery key is not on this Mac yet."
+                        if let key = try await account.revealRecoveryKey(password: pw) {
+                            message = nil
+                            AccountSheets.present(.recoveryKey(key, .viewed), in: NSApp.keyWindow)
+                        } else {
+                            message = "The recovery key is not on this Mac yet."
+                        }
                     } }
                     .disabled(session.recoveryKey == nil)
-                    Button("Regenerate…") { askPassword(title: "Make a new recovery key", message: "The current key stops working.") { pw in
+                    Button("Regenerate…") { askPassword(title: "Make a new recovery key", message: "The current key stops working. Your TabbyMac account password:") { pw in
                         let key = try await account.regenerateRecoveryKey(password: pw)
-                        AccountSheets.present(.recoveryKey(key.displayString), in: NSApp.keyWindow)
+                        message = nil
+                        AccountSheets.present(.recoveryKey(key.displayString, .regenerated), in: NSApp.keyWindow)
                     } }
                 }
                 .buttonStyle(ChromeButtonStyle())
@@ -181,7 +186,7 @@ struct AccountSettingsView: View {
         return f.localizedString(for: date, relativeTo: Date())
     }
 
-    private func askPassword(title: String, message text: String = "", confirm: String = "Continue",
+    private func askPassword(title: String, message text: String = "Your TabbyMac account password.", confirm: String = "Continue",
                              _ action: @escaping (String) async throws -> Void) {
         Prompts.text(in: NSApp.keyWindow, title: title, message: text, secure: true, confirm: confirm) { value, _ in
             guard let value, !value.isEmpty else { return }
