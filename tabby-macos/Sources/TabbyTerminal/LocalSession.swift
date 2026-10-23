@@ -89,7 +89,7 @@ public enum ShellDetector {
     /// `local:default` ("OS default") plus one entry per `/etc/shells` line.
     public static func detectShells() -> [Shell] {
         let login = loginShell()
-        var shells = [Shell(id: "default", name: "OS default (\((login as NSString).lastPathComponent))",
+        var shells = [Shell(id: "default", name: L("OS default ({name})", ["name": (login as NSString).lastPathComponent]),
                             command: login, args: ["--login"])]
         if let text = try? String(contentsOfFile: "/etc/shells", encoding: .utf8) {
             shells += Shell.parseEtcShells(text).filter { FileManager.default.isExecutableFile(atPath: $0.command) }

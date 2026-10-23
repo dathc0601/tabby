@@ -388,7 +388,7 @@ struct AppearanceSettingsView: View {
                     }
                 }
                 SettingsRow(L("Size")) {
-                    RowStepper(value: ConfigBinding.double("terminal.fontSize"), range: 6...72, step: 1) { "\(Int($0)) pt" }
+                    RowStepper(value: ConfigBinding.double("terminal.fontSize"), range: 6...72, step: 1) { "\(Int($0)) pt" } // l10n-ignore: a unit
                 }
                 SettingsRow(L("Weight")) {
                     RowPicker(selection: ConfigBinding.int("terminal.fontWeight")) {
@@ -534,7 +534,7 @@ struct TerminalSettingsView: View {
                 SettingsRow(L("Scrollback")) {
                     RowStepper(value: Binding(get: { Double(ConfigBinding.int("terminal.scrollbackLines").wrappedValue) },
                                               set: { ConfigBinding.int("terminal.scrollbackLines").wrappedValue = Int($0) }),
-                               range: 1000...1_000_000, step: 1000) { "\(Int($0).formatted()) lines" }
+                               range: 1000...1_000_000, step: 1000) { L("{count} lines", ["count": Int($0).formatted()]) }
                 }
                 SettingsRow(L("Detect progress in output"), subtitle: L("Shows a percentage in the tab when a command prints one"),
                             isOn: ConfigBinding.bool("terminal.detectProgress"))

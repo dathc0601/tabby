@@ -102,7 +102,7 @@ public enum SOCKS5 {
         guard data.count >= 4 else { return .needMore }
         guard data[0] == 5 else { return .failure(L("the SOCKS proxy does not speak SOCKS5")) }
         guard data[1] == 0 else {
-            let reason = ReplyCode(rawValue: data[1])?.reason ?? "error \(data[1])"
+            let reason = ReplyCode(rawValue: data[1])?.reason ?? L("error {code}", ["code": data[1]])
             return .failure(L("the SOCKS proxy could not connect ({reason})", ["reason": reason]))
         }
         guard let (_, length) = address(data, at: 3) else {

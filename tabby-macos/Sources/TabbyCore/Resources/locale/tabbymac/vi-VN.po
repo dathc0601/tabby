@@ -8,6 +8,9 @@ msgstr ""
 msgid "1 Mac"
 msgstr "1 máy Mac"
 
+msgid "1 character"
+msgstr "1 ký tự"
+
 msgid "1 key"
 msgstr "1 khoá"
 
@@ -1277,6 +1280,9 @@ msgstr "Chưa có gì ở đây"
 msgid "OK"
 msgstr "OK"
 
+msgid "OS default ({name})"
+msgstr "Mặc định của hệ điều hành ({name})"
+
 msgid "Odd"
 msgstr "Lẻ"
 
@@ -2462,6 +2468,9 @@ msgstr "danh tính mặc định"
 msgid "development build"
 msgstr "bản dựng phát triển"
 
+msgid "error {code}"
+msgstr "lỗi {code}"
+
 msgid "esc close"
 msgstr "esc đóng"
 
@@ -2558,6 +2567,9 @@ msgstr "lỗi không xác định"
 msgid "{approvedCount} approved, {declinedCount} kept on this Mac only"
 msgstr "{approvedCount} đã chấp thuận, {declinedCount} chỉ giữ trên máy Mac này"
 
+msgid "{count} lines"
+msgstr "{count} dòng"
+
 msgid "{done} of {size}"
 msgstr "{done} trên {size}"
 
@@ -2587,6 +2599,9 @@ msgstr "{name} · nhấn một tổ hợp phím"
 
 msgid "{n} Macs"
 msgstr "{n} máy Mac"
+
+msgid "{n} characters"
+msgstr "{n} ký tự"
 
 msgid "{n} key files are waiting for your answer"
 msgstr "{n} tệp khoá đang chờ bạn trả lời"

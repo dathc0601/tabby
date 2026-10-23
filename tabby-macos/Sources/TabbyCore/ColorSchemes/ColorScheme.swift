@@ -99,7 +99,7 @@ public enum XresourcesParser {
         }
         var colors: [String] = []
         var i = 0
-        while let c = values["color\(i)"], !c.isEmpty {
+        while let c = values["color\(i)"], !c.isEmpty { // l10n-ignore: a config key
             colors.append(c)
             i += 1
         }

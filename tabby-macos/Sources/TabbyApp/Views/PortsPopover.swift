@@ -75,7 +75,7 @@ final class PortForwardsModel {
     }
 
     static func route(_ f: ForwardedPort) -> String {
-        f.type == .dynamic ? "\(f.host):\(f.port) · SOCKS proxy" : "\(f.host):\(f.port) → \(f.targetAddress):\(f.targetPort)"
+        f.type == .dynamic ? "\(f.host):\(f.port) · " + L("SOCKS proxy") : "\(f.host):\(f.port) → \(f.targetAddress):\(f.targetPort)"
     }
 
     private static func port(_ text: String) -> Int? {

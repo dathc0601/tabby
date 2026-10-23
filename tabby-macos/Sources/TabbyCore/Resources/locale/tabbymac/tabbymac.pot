@@ -7,6 +7,9 @@ msgstr ""
 msgid "1 Mac"
 msgstr ""
 
+msgid "1 character"
+msgstr ""
+
 msgid "1 key"
 msgstr ""
 
@@ -1741,6 +1744,9 @@ msgstr ""
 msgid "development build"
 msgstr ""
 
+msgid "error {code}"
+msgstr ""
+
 msgid "esc close"
 msgstr ""
 
@@ -1834,6 +1840,9 @@ msgstr ""
 msgid "{approvedCount} approved, {declinedCount} kept on this Mac only"
 msgstr ""
 
+msgid "{count} lines"
+msgstr ""
+
 msgid "{done} of {size}"
 msgstr ""
 
@@ -1862,6 +1871,9 @@ msgid "{name} · press a key combination"
 msgstr ""
 
 msgid "{n} Macs"
+msgstr ""
+
+msgid "{n} characters"
 msgstr ""
 
 msgid "{n} key files are waiting for your answer"

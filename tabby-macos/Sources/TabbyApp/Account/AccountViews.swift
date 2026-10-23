@@ -553,7 +553,7 @@ struct PasswordStrength: View {
                 }
             }
             .frame(width: 120)
-            Text(password.isEmpty ? L("At least 8 characters; a password manager suggestion is fine.") : "\(label) · \(password.count) characters")
+            Text(password.isEmpty ? L("At least 8 characters; a password manager suggestion is fine.") : "\(label) · " + Plural.count(password.count, one: "1 character", other: "{n} characters"))
                 .font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
         }
     }

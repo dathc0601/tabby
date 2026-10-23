@@ -86,6 +86,8 @@ final class CatalogTests: XCTestCase {
     static let prose = try! NSRegularExpression(pattern: #"^[A-Z][a-z’']*[.,:!?…]?(?:[ \x{00A0}]\S+)*$"#)
     /// Two lower-case words in a row: "cannot resolve \(host)", "\(name) is still running".
     static let fragment = try! NSRegularExpression(pattern: #"\b[a-z]{2,} [a-z]{2,}\b"#)
+    /// A value with a word beside it: "\(n) lines".
+    static let wordAfterValue = try! NSRegularExpression(pattern: #"(^|\s)[a-z]{3,}(\s|$)"#)
     static let wrapped = try! NSRegularExpression(pattern: #"\b(L|Lkey)\(\s*$|\b(one|other):\s*$"#)
     static let skippedLines = try! NSRegularExpression(pattern: #"NSLog\(|(?<![.\w])print\(|fatalError\(|assert|precondition\(|\.custom\(|NSFont\(name:|os_log|Logger\(|Notification\.Name\(|forResource:|setFrameAutosaveName|DispatchQueue\(label|identifier:"#)
 
@@ -122,6 +124,8 @@ final class CatalogTests: XCTestCase {
         XCTAssertEqual(hits(#"let id = "new-tab""#), [])
         XCTAssertEqual(hits(#"throw fail("cannot resolve \(host)")"#), [#"cannot resolve \(host)"#])
         XCTAssertEqual(hits(#"let key = "terminal.font""#), [])
+        XCTAssertEqual(hits(#"{ "\(Int($0)) lines" }"#), [#"\(Int($0)) lines"#])
+        XCTAssertEqual(hits(#"let id = "local:\(name)""#), [])
         XCTAssertEqual(hits(#"case .connecting: return "Connecting…""#), ["Connecting…"])
         XCTAssertEqual(hits(#"let s = "\(a) · \(b)""#), [], "no words outside the interpolations")
         XCTAssertEqual(hits(#"Keycap("esc close")"#), ["esc close"])
@@ -253,7 +257,9 @@ final class CatalogTests: XCTestCase {
                 let plain = literal.replacingOccurrences(of: #"\\\([^)]*\)"#, with: "0", options: .regularExpression)
                 let looksLikeProse = plain.count > 2 && prose.firstMatch(in: plain, range: NSRange(location: 0, length: (plain as NSString).length)) != nil
                 let words = literal.replacingOccurrences(of: #"\\\([^)]*\)"#, with: " ", options: .regularExpression)
-                let isFragment = fragment.firstMatch(in: words, range: NSRange(location: 0, length: (words as NSString).length)) != nil
+                let wordsRange = NSRange(location: 0, length: (words as NSString).length)
+                let isFragment = fragment.firstMatch(in: words, range: wordsRange) != nil
+                    || (literal.contains("\\(") && wordAfterValue.firstMatch(in: words, range: wordsRange) != nil)
                 if shown || looksLikeProse || isFragment { hits.append("\(n + 1): \(literal)") }
             }
         }

@@ -258,5 +258,36 @@ final class DesignSnapshotTests: XCTestCase {
             try save(try XCTUnwrap(c.window?.contentView), "settings-\(section)")
         }
     }
+
+    /// Phase 5: the main screens in German (Tabby's catalog) and Vietnamese (TabbyMac's).
+    func testLocalizedScreens() throws {
+        defer { AppServices.shared.config.set("language", .null) }
+        for language in ["de-DE", "vi-VN"] {
+            AppServices.shared.config.set("language", .string(language))
+            let c = window()
+            defer { TestApp.dispose(c) }
+            TestApp.pump(0.5)
+            try save(try XCTUnwrap(c.window?.contentView), "\(language)-start")
+            c.model.openTab(profile: TestApp.profile("~/Projects", "sleep 30"))
+            c.model.openWelcome()
+            TestApp.pump(0.6)
+            try save(try XCTUnwrap(c.window?.contentView), "\(language)-welcome")
+            for section in SettingsSection.allCases {
+                c.model.openSettings(section: section)
+                TestApp.pump(0.5)
+                try save(try XCTUnwrap(c.window?.contentView), "\(language)-settings-\(section)")
+            }
+            let serial = Profile(type: "serial", name: "Router console", options: ["port": "/dev/cu.usbserial-1420", "baudrate": 115200])
+            for page in ProfileEditorSheet.Page.allCases where page != .ciphers {
+                try render(ProfileEditorSnapshot(profile: serial, page: page), NSSize(width: 640, height: 660),
+                           "\(language)-editor-serial-\(page.rawValue.replacingOccurrences(of: " ", with: "-"))")
+            }
+            try render(PasteWarningCard(text: "cd /srv/api\nsudo systemctl restart api") { _, _ in }, NSSize(width: 460, height: 300), "\(language)-card-paste")
+            try render(HostKeyPromptCard(host: "prod-web-01.acme.internal:22", keyType: "ssh-ed25519",
+                                         fingerprint: "SHA256:qX3m9vT2pKcY8hN1rB7eW4uF6sJ0aL5dZ2gH9xC3oVk") { _ in },
+                       NSSize(width: 480, height: 380), "\(language)-card-hostkey")
+            try render(SignedOutAccountCard(createAccount: {}, signIn: {}), NSSize(width: 420, height: 220), "\(language)-account-signed-out")
+        }
+    }
 }
 #endif

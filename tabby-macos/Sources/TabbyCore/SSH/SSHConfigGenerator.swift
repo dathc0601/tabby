@@ -131,7 +131,7 @@ public struct SSHConfigGenerator {
         } else if let socks = o.socksProxyHost, let port = o.socksProxyPort {
             add("ProxyCommand", "/usr/bin/nc -X 5 -x \(socks):\(port) %h %p")
         } else if let http = o.httpProxyHost, let port = o.httpProxyPort {
-            add("ProxyCommand", "/usr/bin/nc -X connect -x \(http):\(port) %h %p")
+            add("ProxyCommand", "/usr/bin/nc -X connect -x \(http):\(port) %h %p") // l10n-ignore: a command line
         }
 
         if isTarget {
