@@ -73,7 +73,7 @@ enum SelectorList {
 /// 44 pt below the tab bar, grouped rows, keyboard hints in the footer.
 @MainActor
 final class SelectorPanel: NSPanel {
-    private static var current: SelectorPanel?
+    private(set) static var current: SelectorPanel?
     static let size = CGSize(width: 660, height: 440)
 
     /// "⌘E profiles · ⌘⇧P commands", the footer of the general selectors.
@@ -109,6 +109,10 @@ final class SelectorPanel: NSPanel {
             if let item { DispatchQueue.main.async { item.action() } }
         }
         let host = NSHostingView(rootView: view)
+        // The content fills the panel: no title-bar inset above it, and the panel keeps its
+        // size (it grew by the title bar's height, an empty band above the search field).
+        host.safeAreaRegions = []
+        host.sizingOptions = []
         host.wantsLayer = true
         host.layer?.cornerRadius = 12
         host.layer?.masksToBounds = true

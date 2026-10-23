@@ -29,6 +29,18 @@ final class SelectorListTests: XCTestCase {
         XCTAssertEqual(SelectorList.rows(items: items, query: "debug", dynamicItems: typed, dynamicFirst: false).map(\.id), ["y", "use"])
     }
 
+    /// Found in the M9b walk: the panel was 32 pt taller than its content (the title bar's
+    /// height), which left an empty band above the search field.
+    func testThePanelIsAsTallAsItsContent() throws {
+        TestApp.boot()
+        SelectorPanel.present(over: nil, SelectorConfig(placeholder: "p", items: [], trailingHint: nil))
+        let panel = try XCTUnwrap(SelectorPanel.current)
+        defer { panel.close() }
+        TestApp.pump(0.4)
+        XCTAssertEqual(panel.frame.size, SelectorPanel.size)
+        XCTAssertEqual(panel.contentView?.frame.size, SelectorPanel.size)
+    }
+
     func testTheDefaultFooterHintNamesTheProfileAndCommandSelectors() {
         TestApp.boot()
         XCTAssertEqual(SelectorConfig(placeholder: "p", items: []).trailingHint, SelectorPanel.profilesAndCommandsHint)
