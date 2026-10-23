@@ -18,6 +18,26 @@ final class PromptTests: XCTestCase {
                          context: nil, characters: characters, charactersIgnoringModifiers: characters, isARepeat: false, keyCode: code)!
     }
 
+    /// Found in the M6 walk: a background tab's password card covered the tab in front (and
+    /// took its keys), and the OpenSSH presenter used whichever window was key. A session's
+    /// question is asked in its own window, with its tab brought to the front.
+    func testASessionsQuestionShowsItsOwnTab() throws {
+        let first = WindowManager.shared.newWindow(openDefaultTab: false)
+        let second = WindowManager.shared.newWindow(openDefaultTab: false)
+        defer { TestApp.dispose(first); TestApp.dispose(second) }
+        let asking = try XCTUnwrap(first.model.openTab(profile: TestApp.profile("asking", "sleep 30")))
+        first.model.openTab(profile: TestApp.profile("in front", "sleep 30"))
+        second.model.openTab(profile: TestApp.profile("other window", "sleep 30"))
+        let pane = try XCTUnwrap(asking.focusedPane)
+        TestApp.pump(until: { pane.session != nil })
+        let session = try XCTUnwrap(pane.session)
+        XCTAssertFalse(first.model.activeTab === asking)
+
+        let window = PromptPlacement.window(showing: session)
+        XCTAssertTrue(window === first.window, "the session's window, not the key one")
+        XCTAssertTrue(first.model.activeTab === asking, "its tab comes to the front")
+    }
+
     /// The fingerprint sits in its own monospaced, selectable field that wraps at any character
     /// and never hyphenates, so it reads exactly as `ssh-keygen -l` prints it. In an alert's
     /// informative text AppKit hyphenated it ("…Jbq1w-" / "p3V…").

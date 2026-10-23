@@ -11,14 +11,10 @@ import TabbyTerminal
 final class LibSSHPromptPresenter: SSHSessionUI {
     static let shared = LibSSHPromptPresenter()
 
-    /// The window whose tab holds the pane running `session`.
+    /// The window whose tab holds the pane running `session`, with that tab brought to the
+    /// front (`PromptPlacement`): a card never covers another tab.
     func window(for session: LibSSHSession) -> NSWindow? {
-        for controller in WindowManager.shared.controllers {
-            for tab in controller.model.tabs where tab.panes.values.contains(where: { $0.session === session }) {
-                return controller.window
-            }
-        }
-        return NSApp.keyWindow ?? NSApp.mainWindow
+        PromptPlacement.window(showing: session)
     }
 
     func verifyHostKey(_ request: HostKeyRequest, for session: LibSSHSession) async -> HostKeyDecision {

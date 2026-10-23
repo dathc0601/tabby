@@ -59,6 +59,24 @@ enum Prompts {
     }
 }
 
+/// Where a session's question goes: Tabby asks inside the session's own tab, so the card is
+/// shown on that tab's window with the tab brought to the front. It never covers (or takes the
+/// keys of) another tab or window.
+@MainActor
+enum PromptPlacement {
+    static func window(showing session: AnyObject) -> NSWindow? {
+        for controller in WindowManager.shared.controllers {
+            for tab in controller.model.tabs {
+                if let pane = tab.panes.values.first(where: { $0.session === session }) {
+                    controller.model.focus(paneID: pane.id)
+                    return controller.window
+                }
+            }
+        }
+        return NSApp.keyWindow ?? NSApp.mainWindow
+    }
+}
+
 /// Shows SSH prompts (host key, passwords, keyboard-interactive) as sheets on the window
 /// that owns the session (Tabby's `HostKeyPromptModal` and keyboard-interactive panel).
 @MainActor
@@ -69,12 +87,12 @@ final class SSHPromptPresenter: SSHPromptHandler {
         let host = session.options.host
         let profileName = session.profile.name
         MainActor.assumeIsolated {
-            self.present(prompt, host: host, profileName: profileName, reply: reply)
+            self.present(prompt, host: host, profileName: profileName, window: PromptPlacement.window(showing: session), reply: reply)
         }
     }
 
-    private func present(_ prompt: AskpassPrompt, host: String, profileName: String, reply: @escaping (SSHPromptReply) -> Void) {
-        let window = NSApp.keyWindow ?? NSApp.mainWindow
+    private func present(_ prompt: AskpassPrompt, host: String, profileName: String, window: NSWindow?,
+                         reply: @escaping (SSHPromptReply) -> Void) {
         switch prompt {
         case let .hostKey(promptHost, keyType, fingerprint, _):
             ChromeSheet.present(in: window) { dismiss in
