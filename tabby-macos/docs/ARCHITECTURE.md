@@ -8,7 +8,7 @@ modules with plain protocols and registries instead.
 
 | Module | Platform | Role | Tabby counterpart |
 |---|---|---|---|
-| `TabbyCore` | macOS, Linux | Config store and migrations, profiles and groups, hotkeys and chord matching, split layout tree, recovery tokens, colour schemes and chrome palette, ssh_config import and generation, serial and telnet providers, stream processing, the telnet protocol | `tabby-core`, parts of `tabby-terminal`, `tabby-ssh`, `tabby-community-color-schemes` |
+| `TabbyCore` | macOS, Linux | Config store and migrations, profiles and groups, hotkeys and chord matching, split layout tree, recovery tokens, colour schemes and chrome palette, ssh_config import and generation, serial and telnet providers, stream processing, the telnet protocol, localization (`L()` over Tabby's `.po` catalogs) | `tabby-core`, parts of `tabby-terminal`, `tabby-ssh`, `tabby-community-color-schemes` |
 | `TabbyTerminal` | macOS, Linux (except `SwiftTermEngine`) | `PTYProcess`, `TerminalSession`, `LocalSession`, `ProcessedSession`, `TerminalPane` controller, output processing, `SwiftTermEngine` view | `tabby-terminal`, `tabby-local`, `app/lib/pty.ts` |
 | `TabbySSH` | macOS, Linux | `SSHSession` over system OpenSSH (the `openssh` backend), askpass server, password stores | `tabby-ssh` |
 | `TabbySSHLib` | macOS | The `library` backend over libssh (`CLibSSH`): `SSHConnection`, `LibSSHSession`, `SSHConnector` (sharing, jump hosts), port forwards, `SFTPClient` | `tabby-ssh` (russh) |
@@ -17,6 +17,8 @@ modules with plain protocols and registries instead.
 | `TabbyIPC` | macOS, Linux | Unix-socket messages between the app and `tabby-askpass` | none |
 | `TabbyApp` | macOS | Window, tab bar, split views, hotkeys, menus, selector, settings, prompts | `tabby-core` components, `tabby-settings`, `tabby-electron` |
 | `tabby-askpass` | macOS, Linux | `SSH_ASKPASS` helper | none |
+| `TabbyCLIKit` | macOS, Linux | Tabby's command line and `tabbymac://` / `ssh://` / `telnet://` links parsed into one `CLIRequest` | `app/lib/cli.ts`, `app/lib/urlHandler.ts` |
+| `tabby` | macOS (builds on Linux) | The command-line helper in `Contents/MacOS`; hands requests to the app as `tabbymac://` links | Tabby's own binary with arguments |
 | `TabbySyncProtocol` | macOS, Linux | Account and sync wire format: key derivation and vault encryption (`VaultCrypto`, swift-crypto), `SyncSnapshot`, `SyncMerger`, the HTTP API types | `tabby-settings` config sync, reworked |
 | `TabbyAccount` | macOS, Linux | Sign-in flows, `SyncClient`, `ChangeTracker`, `LocalSyncData`, `SyncEngine`, session storage; see [SYNC-PROTOCOL.md](SYNC-PROTOCOL.md) | none |
 | `../tabby-sync-server` | Linux (Docker), macOS | Hummingbird 2 + Fluent server for accounts, devices and the encrypted vault (its own package) | tabby-web's sync API, reworked |
@@ -111,6 +113,27 @@ live in `Views/Components`; prompts are SwiftUI cards shown as window sheets
 **Commands.** Hotkey ids, menu items, context menus and the command palette all dispatch
 through `MainWindowController.runCommand(_:)` using Tabby's hotkey ids.
 
+**Localization (phase 5).** Every user-visible string goes through `L("English", [args])`
+(TabbyCore, thread-safe). The catalogs are Tabby's own gettext files, copied from
+`../locale` by `scripts/sync-locale.sh`, plus TabbyMac's: `tabbymac/tabbymac.pot` (written
+by `scripts/l10n-extract.sh`) and `tabbymac/vi-VN.po`. The lookup also matches a msgid
+that differs only in case or a trailing "…"/":", so TabbyMac's title-case menus still
+find Tabby's translations. `language` in config.yaml (null: the system's languages)
+applies live. `CatalogTests` fails on a key missing from the catalogs, an out-of-date
+template, a Vietnamese gap, or a user-visible literal that skips `L()`.
+
+**Links and the command line (phase 5).** `TabbyCLIKit` parses `tabby open/run/profile/
+paste/recent/quickConnect/<path>` and `tabbymac://`, `ssh://` and `telnet://` links into a
+`CLIRequest`. The `tabby` helper resolves paths where it runs and opens the request as a
+`tabbymac://` link with its own app (NSWorkspace launches it or hands the link to the
+running one), so no socket or single-instance lock is needed. `CLIRouter` in the app does
+what Tabby's `CLIHandler`s do; requests that arrive before the first window wait.
+
+**Notifications (phase 5).** "Notify when done" polls the pane's foreground process once
+a second (Tabby's `CompletionObserver`); "Notify on activity" fires on the next output.
+`Notifier` posts banners carrying the pane id, so opening one focuses that pane; an
+in-app toast shows as well, because macOS refuses banners to ad-hoc signed builds.
+
 ## Reference map
 
 | Tabby source | TabbyMac |
@@ -132,6 +155,9 @@ through `MainWindowController.runCommand(_:)` using Tabby's hotkey ids.
 | `tabby-serial/src/*` | `TabbyCore/Serial`, `TabbySerial`, `SerialSelectors` |
 | `tabby-telnet/src/*` | `TabbyCore/Telnet`, `TabbyTelnet` |
 | `tabby-terminal/src/middleware/streamProcessing.ts`, `loginScriptProcessing.ts` | `StreamProcessor`, `ProcessedSession`, `LoginScriptRunner` |
+| `tabby-core/src/services/locale.service.ts`, `locale/*.po` | `TabbyCore/L10n`, `Resources/locale` |
+| `app/lib/cli.ts`, `app/lib/urlHandler.ts`, `*/src/cli.ts` (`CLIHandler`s) | `TabbyCLIKit`, `TabbyCLI` (`tabby`), `CLIRouter` |
+| `tabby-core/src/tabContextMenu.ts` (`TaskCompletionContextMenu`), `app.service.ts` (`CompletionObserver`) | `NotifyMenu`, `TerminalPane.setNotifyWhenDone`, `Notifier` |
 
 ## Roadmap
 
@@ -152,6 +178,8 @@ through `MainWindowController.runCommand(_:)` using Tabby's hotkey ids.
    sockets over Network.framework, Tabby's stream processing, login scripts for every type.
    The screens follow the owner's Claude Design canvas "Tabby Connections". On-screen
    checks in M9 and M9b.
-5. **More of Tabby.** `tabby://` URL and CLI handlers, localization from
-   `../locale/*.po`, process-completion notifications per tab, SwiftTerm 2.x once Xcode 26
-   is the baseline.
+5. **More of Tabby (phase 5).** Localization from Tabby's catalogs plus Vietnamese,
+   per-tab "Notify when done" and "Notify on activity", the bell's Dock flash, `ssh://` and
+   `telnet://` links, the `tabby` command line. On-screen checks in M10.
+6. **Next.** SwiftTerm 2.x once Xcode 26 is the baseline; translating TabbyMac's own
+   strings into Tabby's other languages; plugins.

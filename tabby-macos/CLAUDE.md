@@ -46,7 +46,16 @@ Read `README.md` and `docs/ARCHITECTURE.md` before larger changes.
 - SSH integration tests start their own unprivileged sshd (`TestSSHD`); wrap runs that might
   hang with a deadline (macOS has no `timeout`), and never call `Process.waitUntilExit()` from
   an async test (it needs a run loop).
-- Roadmap after phase 4: phase 5 URL/CLI, localization, per-tab "notify when done".
+- Phase 5 (started 2026-10-24, spec `docs/superpowers/specs/2026-10-24-phase-5-design.md`,
+  branch `claude/phase-5-more-of-tabby`): localization (`L()` over Tabby's catalogs in
+  `Sources/TabbyCore/Resources/locale`, plus `tabbymac/vi-VN.po`), per-tab notify items and
+  `Notifier`, the bell, `TabbyCLIKit` + the `tabby` helper + `CLIRouter` for links and the
+  command line. On-screen checks are M10.
+- Every user-visible string goes through `L("English", ["name": value])`; never a raw literal
+  (CatalogTests fails). New keys: run `scripts/l10n-extract.sh` and add Vietnamese to
+  `tabbymac/vi-VN.po`. Mark data that only looks like words with `// l10n-ignore: why`.
+- Roadmap after phase 5: SwiftTerm 2.x (needs Xcode 26), TabbyMac's strings in Tabby's other
+  languages, plugins.
 - Screens can be checked without a display:
   `TABBYMAC_SNAPSHOT_DIR=/tmp/shots swift test --filter DesignSnapshotTests`.
 - Linux: run `docker run --rm -v "$PWD/..":/src -w /src/tabby-macos swift:6.1-noble swift test

@@ -37,6 +37,23 @@ swift test                        # unit tests (also run on Linux)
 
 `swift run` works for everything except notifications, which need a bundle.
 
+### Command line
+
+`TabbyMac.app/Contents/MacOS/tabby` opens tabs from a shell, with Tabby's commands:
+
+```sh
+tabby open ~/src                       # a shell in that directory
+tabby run make test                    # asks, then runs it in a new tab
+tabby profile "Router console"         # a saved profile
+echo "git status" | tabby paste        # asks, then types it into the active tab
+tabby quickConnect telnet switch.lan   # quick connect: ssh, telnet or serial
+tabby ~/deploy.sh                      # runs a .sh or .command script
+```
+
+**Settings → Application → Command-line tool** copies a command that links it into
+`/usr/local/bin`. `ssh://` and `telnet://` links open in TabbyMac once you choose
+**Settings → Application → Links → Use TabbyMac**.
+
 The global show/hide hotkey defaults to Ctrl-Space, as in Tabby. macOS also uses Ctrl-Space
 to switch input sources, and while TabbyMac runs the key doesn't reach the terminal. Rebind
 "Show/hide window (global)" in **Settings → Hotkeys** if that gets in your way.
@@ -45,7 +62,7 @@ The first launch starts with defaults. To bring over your Electron Tabby setup, 
 **Settings → Application → Import Tabby's config.yaml**. Your Electron Tabby files are only
 read, never written.
 
-## What works (phases 1 to 4)
+## What works (phases 1 to 5)
 
 | Area | Status |
 |---|---|
@@ -63,9 +80,12 @@ read, never written.
 | Window | Integrated title bar, vibrancy, opacity, docked "Quake" mode with a global hotkey (Ctrl-Space) |
 | Persistence | `config.yaml` (diff-only, like Tabby), tab and split recovery with buffer snapshots |
 | Design | Phase 2 redesign: colour-scheme-derived tokens, tab bar with overflow menu and drag slot, Settings and a first-run Welcome page as tabs, card-style prompts, SSH status chip, toasts, split drop zones |
+| Languages | Tabby's 24 languages from its own translations, plus Vietnamese; Settings → Application → Language (live) |
+| Notifications | Per tab: Notify when done, Notify on activity; process-ended notices; the bell marks background tabs and can bounce the Dock icon |
+| Links & command line | `ssh://` and `telnet://` links, `tabbymac://` commands, the `tabby` helper (open, run, profile, paste, recent, quickConnect, a path) |
 | Account & sync | Personal account (email + password, recovery key) at `https://tabby-sync.dcstyle.info`; profiles, groups, settings, saved passwords and passphrases, approved private keys and known hosts sync end-to-end encrypted between Macs ([docs/SYNC-PROTOCOL.md](docs/SYNC-PROTOCOL.md)); Settings › Vault lists the saved passwords |
 
-Not yet: plugins, localization,
+Not yet: plugins, TabbyMac's own strings in languages other than English and Vietnamese,
 ligatures (SwiftTerm limitation). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#roadmap).
 
 ## Files
