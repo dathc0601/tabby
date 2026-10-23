@@ -118,12 +118,8 @@ private struct ChipContent: View {
                 }
                 if serial != nil {
                     Rectangle().fill(chrome.separator.color).frame(width: 1, height: 14)
-                    Button { SerialChip.askBaudRate(for: pane) } label: {
-                        Label("Baud rate", systemImage: "speedometer").font(ChromeFont.caption)
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle((state == .connected ? chrome.textMuted : chrome.textFaint).color)
-                    .disabled(state != .connected)
+                    BaudRateButton(enabled: state == .connected, makeModel: { SerialChip.popoverModel(for: pane) },
+                                   isOpen: $overlay.popoverOpen)
                 }
             }
             .padding(.horizontal, 10)

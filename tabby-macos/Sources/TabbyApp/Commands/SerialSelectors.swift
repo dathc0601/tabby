@@ -18,16 +18,22 @@ enum SerialChip {
         pane.updateOption("baudrate", .int(rate))
     }
 
-    static func askBaudRate(for pane: TerminalPane) {
-        let controller = WindowManager.shared.controllers.first { c in c.model.tabs.contains { $0.panes[pane.id] != nil } }
-        controller?.chooseBaudRate { [weak controller] rate in
-            do {
-                try changeBaudRate(of: pane, to: rate)
-            } catch {
-                controller?.toasts.show(ToastCenter.Toast(symbol: "exclamationmark.circle.fill", tint: .danger,
-                                                          title: "Could not change the baud rate",
-                                                          detail: (error as? LocalizedError)?.errorDescription ?? error.localizedDescription))
-            }
+    /// The chip's popover for the open port (design C2): its device and the rate in use.
+    static func popoverModel(for pane: TerminalPane) -> BaudRatePopoverModel? {
+        guard let session = serialSession(of: pane) else { return nil }
+        let device = SerialOptions(pane.profile.options).port.map { ($0 as NSString).lastPathComponent } ?? pane.profile.name
+        return BaudRatePopoverModel(device: device, current: session.baudRate) { rate in apply(rate, to: pane) }
+    }
+
+    /// Changes the rate, or says why not in a toast of the pane's window (design C2b).
+    static func apply(_ rate: Int, to pane: TerminalPane) {
+        do {
+            try changeBaudRate(of: pane, to: rate)
+        } catch {
+            let controller = WindowManager.shared.controllers.first { c in c.model.tabs.contains { $0.panes[pane.id] != nil } }
+            controller?.toasts.show(ToastCenter.Toast(symbol: "exclamationmark.circle.fill", tint: .danger,
+                                                      title: "Could not change the baud rate",
+                                                      detail: (error as? LocalizedError)?.errorDescription ?? error.localizedDescription))
         }
     }
 }
