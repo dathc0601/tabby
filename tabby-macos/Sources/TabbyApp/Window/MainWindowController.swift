@@ -225,6 +225,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
             window?.makeFirstResponder(view)
         } else if model.tabs.isEmpty {
             window?.makeFirstResponder(startPageHost)
+            startPageHost.rootView.focusRequest += 1
         }
     }
 

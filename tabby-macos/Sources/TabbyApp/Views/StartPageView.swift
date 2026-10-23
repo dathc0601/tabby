@@ -11,9 +11,13 @@ struct StartPageView: View {
     var showProfiles: () -> Void
     var showSettings: () -> Void
     var openProfile: (Profile) -> Void
+    /// Bumped each time the page is shown again: the page's view lives as long as its window,
+    /// so `onAppear` alone gives the list the keys only the first time.
+    var focusRequest = 0
 
     var body: some View {
-        StartPageContent(newTab: newTab, showProfiles: showProfiles, showSettings: showSettings, openProfile: openProfile)
+        StartPageContent(newTab: newTab, showProfiles: showProfiles, showSettings: showSettings, openProfile: openProfile,
+                         focusRequest: focusRequest)
             .chromeEnvironment()
     }
 
@@ -37,6 +41,7 @@ private struct StartPageContent: View {
     var showProfiles: () -> Void
     var showSettings: () -> Void
     var openProfile: (Profile) -> Void
+    var focusRequest: Int
     @Environment(\.chrome) private var chrome
     @State private var selection = 0
     @FocusState private var focused: Bool
@@ -116,6 +121,13 @@ private struct StartPageContent: View {
         .focusEffectDisabled()
         .focused($focused)
         .onAppear { focused = true }
+        .onChange(of: focusRequest) {
+            // Shown again: start at the top, and take the keys back (SwiftUI still believes the
+            // hidden list has focus, so drop it first).
+            selection = 0
+            focused = false
+            DispatchQueue.main.async { focused = true }
+        }
         .onKeyPress(.upArrow) { selection = max(0, selection - 1); return .handled }
         .onKeyPress(.downArrow) { selection = min(all.count - 1, selection + 1); return .handled }
         .onKeyPress(.return) {
