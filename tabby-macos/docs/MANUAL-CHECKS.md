@@ -491,6 +491,10 @@ apps stay as they are.
       `tabby recent x` exits with status 2. Settings › Application › Command-line tool
       copies the install command.
 
+M10 is not walked yet: the Mac stayed locked through the 2026-10-24 session. The unit and
+process tests cover the logic (catalogs, menus, notifications, router, helper); the walk
+covers what only shows on screen.
+
 ## Findings
 
 | Date | Milestone | Finding | Fix |
