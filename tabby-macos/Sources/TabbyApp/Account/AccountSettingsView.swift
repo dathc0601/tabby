@@ -60,7 +60,7 @@ struct AccountSettingsView: View {
                 statusIcon(account.status)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(statusTitle(account.status)).font(ChromeFont.bodyEmphasised)
-                    Text("\(accountStatusLine(account)) · \(account.counts.profiles) profiles, \(account.counts.passwords) passwords, \(account.counts.keys) keys")
+                    Text(verbatim: "\(accountStatusLine(account)) · " + [Plural.count(account.counts.profiles, "profile"), Plural.count(account.counts.passwords, "password"), Plural.count(account.counts.keys, "key")].joined(separator: ", "))
                         .font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color).lineLimit(2)
                 }
                 Spacer()

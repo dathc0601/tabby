@@ -302,8 +302,13 @@ final class PaneContainerView: NSView {
         }, apply: { [weak self] in
             guard let self else { return }
             let theme = AppServices.shared.theme
+            let scheme = theme.scheme(for: self.pane.profile)
             self.engine.transparentBackground = theme.vibrancy
-            self.pane.applyAppearance(settings: AppServices.shared.terminalSettings, scheme: theme.scheme(for: self.pane.profile))
+            self.pane.applyAppearance(settings: AppServices.shared.terminalSettings, scheme: scheme)
+            // The margin around the terminal shows its background (Tabby binds the tab's
+            // background colour to the scheme's); with vibrancy the window shows through.
+            self.layer?.backgroundColor = theme.vibrancy ? nil : scheme.backgroundRGB.nsColor.cgColor
+            self.needsLayout = true
             self.updateRing()
         })
     }
@@ -361,6 +366,15 @@ final class PaneContainerView: NSView {
         needsLayout = true
     }
 
+    /// The SSH status chip's frame: the design's top-right corner (8 pt from the top, 12 pt
+    /// from the right), under the search bar while that is open. The chip view pads itself by
+    /// 8 pt, so the frame sits 8 pt outside the visible capsule.
+    static func chipFrame(in bounds: CGRect, size: CGSize, search: CGRect?) -> CGRect {
+        let padding: CGFloat = 8
+        let top = search.map { $0.maxY + 6 } ?? 8
+        return CGRect(x: bounds.maxX - 12 - size.width + padding, y: top - padding, width: size.width, height: size.height)
+    }
+
     override func layout() {
         super.layout()
         if let sftpHost {
@@ -368,18 +382,22 @@ final class PaneContainerView: NSView {
             sftpHost.frame = CGRect(x: 0, y: bounds.height - height, width: bounds.width, height: height)
             sftpCatcher?.frame = CGRect(x: 0, y: 0, width: bounds.width, height: bounds.height - height)
         }
-        // The keyboard-interactive panel pushes the terminal down (the PTY is resized).
+        // The keyboard-interactive panel pushes the terminal down (the PTY is resized); below
+        // it the terminal keeps Tabby's margin.
         let authHeight = authHost.map { $0.fittingSize.height } ?? 0
         authHost?.frame = CGRect(x: 0, y: 0, width: bounds.width, height: authHeight)
+        let margin = CGFloat(AppServices.shared.theme.metrics.terminalMargin)
         engine.frame = CGRect(x: 0, y: authHeight, width: bounds.width, height: max(0, bounds.height - authHeight))
+            .insetBy(dx: margin, dy: margin)
         dimView.frame = bounds
-        if let chipHost {
-            let size = chipHost.fittingSize
-            chipHost.frame = CGRect(x: 4, y: 4, width: max(size.width, 1), height: max(size.height, 1))
-        }
         if let searchHost {
             let size = searchHost.fittingSize
             searchHost.frame = CGRect(x: bounds.width - size.width - 12, y: 8, width: size.width, height: size.height)
+        }
+        if let chipHost {
+            let size = chipHost.fittingSize
+            chipHost.frame = Self.chipFrame(in: bounds, size: CGSize(width: max(size.width, 1), height: max(size.height, 1)),
+                                            search: searchHost?.frame)
         }
         if !pane.hasStarted && bounds.width > 20 && bounds.height > 20 {
             // Let SwiftTerm compute the grid for this size first.
@@ -434,13 +452,28 @@ final class PaneContainerView: NSView {
             pane.isSearchVisible = true
             needsLayout = true
         }
-        // Focus the field.
+        focusSearchField()
+    }
+
+    /// Puts the keys in the bar's text field. Making the hosting view first responder is not
+    /// enough (the keys stop at the host), and the field may need a turn or two to exist.
+    private func focusSearchField(attempts: Int = 5) {
         DispatchQueue.main.async { [weak self] in
             MainActor.assumeIsolated {
-                guard let host = self?.searchHost else { return }
-                self?.window?.makeFirstResponder(host)
+                guard let self, let host = self.searchHost else { return }
+                if let field = Self.editableTextField(in: host) {
+                    self.window?.makeFirstResponder(field)
+                } else if attempts > 0 {
+                    self.focusSearchField(attempts: attempts - 1)
+                }
             }
         }
+    }
+
+    private static func editableTextField(in view: NSView) -> NSTextField? {
+        if let field = view as? NSTextField, field.isEditable { return field }
+        for sub in view.subviews { if let field = editableTextField(in: sub) { return field } }
+        return nil
     }
 
     func hideSearch() {
@@ -448,6 +481,7 @@ final class PaneContainerView: NSView {
         searchHost = nil
         pane.isSearchVisible = false
         engine.clearSearch()
+        needsLayout = true  // the chip moves back up
         window?.makeFirstResponder(engine)
     }
 

@@ -127,6 +127,18 @@ struct HorizontalTabBar: View {
                 guard let id, layout.overflows else { return }
                 withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo(id) }
             }
+            // The scroll offset outlives a change of the strip's size (a narrower window, a
+            // window laid out again at launch): keep the active tab whole then too. On the
+            // next turn, once the tabs have their new frames.
+            .onChange(of: layout) { _, _ in scrollToActiveTab(proxy) }
+            .onAppear { scrollToActiveTab(proxy) }
+        }
+    }
+
+    private func scrollToActiveTab(_ proxy: ScrollViewProxy) {
+        Task { @MainActor in
+            guard let id = model.activeTabID else { return }
+            proxy.scrollTo(id)
         }
     }
 

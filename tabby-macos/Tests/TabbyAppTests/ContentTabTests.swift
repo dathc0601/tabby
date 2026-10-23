@@ -108,6 +108,47 @@ final class ContentTabTests: XCTestCase {
         XCTAssertEqual(c.model.tabs.count, 1)
     }
 
+    /// Presses `key` in `window` as the keyboard would.
+    private func press(_ keyCode: UInt16, _ characters: String, in window: NSWindow) {
+        for type in [NSEvent.EventType.keyDown, .keyUp] {
+            let event = NSEvent.keyEvent(with: type, location: .zero, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                         windowNumber: window.windowNumber, context: nil, characters: characters,
+                                         charactersIgnoringModifiers: characters, isARepeat: false, keyCode: keyCode)!
+            window.sendEvent(event)
+            TestApp.pump(0.05)
+        }
+    }
+
+    /// The start page takes ↓ and ↩ and starts at the top each time it shows (Tabby builds a new
+    /// start page). Found in the M6 walk: after the last tab closed, ↓ did nothing.
+    func testTheStartPageTakesTheArrowKeysAfterTheLastTabCloses() throws {
+        let recents = AppServices.shared.profiles.recents
+        recents.clear()
+        defer { recents.clear() }
+        recents.push(TestApp.profile("recent-two", "sleep 30"))
+        recents.push(TestApp.profile("recent-one", "sleep 30"))
+        let c = WindowManager.shared.newWindow(openDefaultTab: false)
+        defer { TestApp.dispose(c) }
+        let window = try XCTUnwrap(c.window)
+        let down = (UInt16(125), String(UnicodeScalar(NSDownArrowFunctionKey)!))
+        let enter = (UInt16(36), "\r")
+
+        func openFirstRecentWithTheKeyboard() {
+            TestApp.pump(0.3)
+            press(down.0, down.1, in: window)
+            press(down.0, down.1, in: window)
+            press(enter.0, enter.1, in: window)
+            TestApp.pump(until: { !c.model.tabs.isEmpty }, timeout: 2)
+        }
+        openFirstRecentWithTheKeyboard()
+        XCTAssertEqual(c.model.activeTab?.focusedPane?.profile.name, "recent-one", "a fresh start page takes the keys")
+
+        for tab in c.model.tabs { tab.orderedPanes.forEach { $0.close() }; c.model.closeTab(tab.id) }
+        TestApp.pump(until: { c.model.tabs.isEmpty })
+        openFirstRecentWithTheKeyboard()
+        XCTAssertEqual(c.model.activeTab?.focusedPane?.profile.name, "recent-one", "and again after the last tab closed")
+    }
+
     /// The spec: on a launch that restores no tabs, until "Close and never show again". A
     /// restored session is not a first run and keeps its selected tab.
     func testWelcomeShowsOnAFreshLaunchUntilDismissed() {

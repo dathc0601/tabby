@@ -1,6 +1,7 @@
 #if canImport(AppKit)
 import SwiftUI
 import Observation
+import TabbyCore
 import TabbyTerminal
 
 /// State for the terminal search bar (Tabby's `SearchPanelComponent`).

@@ -119,7 +119,7 @@ struct AccountPopover: View {
                     if account.status == .syncing { ProgressView().controlSize(.small) }
                     Text(accountStatusLine(account)).font(ChromeFont.callout).lineLimit(2)
                 }
-                Text("\(account.counts.profiles) profiles · \(account.counts.passwords) passwords · \(account.counts.keys) keys")
+                Text(verbatim: [Plural.count(account.counts.profiles, "profile"), Plural.count(account.counts.passwords, "password"), Plural.count(account.counts.keys, "key")].joined(separator: " · "))
                     .font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
                 if !account.devices.isEmpty {
                     Label("\(account.devices.count) Macs", systemImage: "laptopcomputer").font(ChromeFont.caption)
@@ -441,7 +441,7 @@ struct AccountSheet: View {
             VStack(spacing: 0) {
                 step("slider.horizontal.3", "Settings, hotkeys & colour schemes", "Done")
                 step("rectangle.stack", "Profiles & connections", "\(c.profiles)")
-                step("key", "Passwords & private keys", "\(c.passwords) passwords · \(c.keys) keys")
+                step("key", "Passwords & private keys", Plural.count(c.passwords, "password") + " · " + Plural.count(c.keys, "key"))
                 step("checkmark.shield", "Known hosts", "Done")
             }
             .background(RoundedRectangle(cornerRadius: 10).fill(chrome.surface.color))
@@ -627,7 +627,7 @@ struct SignOutSheet: View {
             }
             choice(false, "Keep a local copy", "Profiles and keys stay usable here, unsynced")
             choice(true, "Remove synced data from this Mac",
-                   "Deletes the \(c.profiles) profiles, \(c.passwords) passwords and \(c.keys) keys that came from your account; what was made on this Mac stays")
+                   "Deletes the \(Plural.count(c.profiles, "profile")), \(Plural.count(c.passwords, "password")) and \(Plural.count(c.keys, "key")) that came from your account; what was made on this Mac stays")
             HStack {
                 Spacer()
                 if working { ProgressView().controlSize(.small) }

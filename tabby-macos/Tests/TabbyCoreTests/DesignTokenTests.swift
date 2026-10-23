@@ -98,6 +98,14 @@ final class DesignTokenTests: XCTestCase {
         XCTAssertEqual(large.space(8), 12)
     }
 
+    /// Tabby's `baseTerminalTab` `.content` margin: `max(0px, 30px * var(--spaciness) - 15px)`.
+    func testTerminalMarginFollowsTabby() {
+        XCTAssertEqual(ChromeMetrics(spaciness: 1).terminalMargin, 15)
+        XCTAssertEqual(ChromeMetrics(spaciness: 0.8).terminalMargin, 9, accuracy: 1e-9)
+        XCTAssertEqual(ChromeMetrics(spaciness: 1.5).terminalMargin, 30)
+        XCTAssertEqual(ChromeMetrics(spaciness: 0.4).terminalMargin, 0, "never negative")
+    }
+
     func testMetricsIgnoreNonsenseSpaciness() {
         XCTAssertEqual(ChromeMetrics(spaciness: 0).tabBar, 38, "0 or negative falls back to 1")
         XCTAssertEqual(ChromeMetrics(spaciness: .nan).tabBar, 38)

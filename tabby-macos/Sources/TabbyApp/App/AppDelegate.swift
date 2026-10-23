@@ -102,7 +102,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        RecoveryCoordinator.shared.saveNow()
+        RecoveryCoordinator.shared.saveForTermination()
         AppServices.shared.stop()
     }
 
@@ -214,11 +214,23 @@ final class RecoveryCoordinator {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
     }
 
+    /// Set by the final save on quit.
+    var isTerminating = false
+
+    /// The save on quit, which is final: AppKit then closes every window "for termination",
+    /// and each close would save what is left, so the window that closes last (an empty one)
+    /// would overwrite every other window's tabs.
+    func saveForTermination() {
+        saveNow()
+        isTerminating = true
+    }
+
     /// Buffer snapshots serialise whole scrollbacks, so the debounced saves after small
     /// changes skip them; the 30-second timer and quitting include them.
     func saveNow(includeBuffers: Bool = true) {
         pending?.cancel()
         pending = nil
+        guard !isTerminating else { return }
         let services = AppServices.shared
         guard services.config.value("recoverTabs")?.boolValue ?? true else {
             try? services.recovery.save([])

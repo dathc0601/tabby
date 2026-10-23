@@ -13,6 +13,9 @@ public struct ChromeMetrics: Hashable, Sendable {
     public var formRow: Double { 40 * spaciness }
     public var formRowTall: Double { 52 * spaciness }
     public var selectorRow: Double { 34 * spaciness }
+    /// Space around the terminal inside its pane: Tabby's `baseTerminalTab` `.content` margin,
+    /// `max(0px, 30px * var(--spaciness) - 15px)` (15 at the default spaciness).
+    public var terminalMargin: Double { max(0, 30 * spaciness - 15) }
     /// The `sp-N` spacing scale (2, 4, 6, 8, 12, 16, 20, 24) × spaciness.
     public func space(_ points: Double) -> Double { points * spaciness }
 }

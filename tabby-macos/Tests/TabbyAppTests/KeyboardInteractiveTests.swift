@@ -79,15 +79,17 @@ final class KeyboardInteractiveTests: XCTestCase {
         container.layoutSubtreeIfNeeded()
         XCTAssertEqual(panel.frame.minY, 0, accuracy: 0.5)
         XCTAssertGreaterThan(panel.frame.height, 40)
-        XCTAssertEqual(container.engine.frame.minY, panel.frame.maxY, accuracy: 0.5, "the terminal starts below the panel")
-        XCTAssertEqual(container.engine.frame.height, container.bounds.height - panel.frame.height, accuracy: 0.5)
+        // Below the panel the terminal keeps its margin (Tabby's `30 × spaciness − 15`).
+        let margin = CGFloat(AppServices.shared.theme.metrics.terminalMargin)
+        XCTAssertEqual(container.engine.frame.minY, panel.frame.maxY + margin, accuracy: 0.5, "the terminal starts below the panel")
+        XCTAssertEqual(container.engine.frame.height, container.bounds.height - panel.frame.height - 2 * margin, accuracy: 0.5)
 
         KeyboardInteractivePanels.shared.models[pane.id]?.cancel()
         TestApp.pump(until: { result != nil })
         XCTAssertEqual(result, .some(nil))
         TestApp.pump(until: { !container.subviews.contains { $0 is NSHostingView<KeyboardInteractivePanel> } })
         container.layoutSubtreeIfNeeded()
-        XCTAssertEqual(container.engine.frame, container.bounds)
+        XCTAssertEqual(container.engine.frame, container.bounds.insetBy(dx: margin, dy: margin))
     }
 
     /// Review C2: when the session ends (its tab closed), its question is cancelled.

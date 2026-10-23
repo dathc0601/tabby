@@ -256,14 +256,23 @@ final class AccountService {
         pollTimer = Timer.scheduledTimer(withTimeInterval: pollInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 guard let self, let engine = self.engine, self.status != .syncing else { return }
+                // Auto off: no automatic sync of any kind, only Sync now.
+                guard self.local.config.value("account.auto")?.boolValue ?? true else { return }
                 // Retry a failed sync and push changes that are still waiting; otherwise only
                 // sync when another Mac uploaded.
                 if case .failed = self.status {
                     await self.syncNow()
                 } else if self.hasLocalChanges {
                     await self.syncNow()
-                } else if (try? await engine.remoteHasChanged()) == true {
-                    await self.syncNow()
+                } else {
+                    do {
+                        if try await engine.remoteHasChanged() { await self.syncNow() }
+                    } catch let error as SyncClientError where error.code == ErrorDTO.Code.unauthorized {
+                        // Removed from another Mac (or the account is gone): the sync signs out.
+                        await self.syncNow()
+                    } catch {
+                        // Offline and the like: try again at the next poll.
+                    }
                 }
             }
         }
