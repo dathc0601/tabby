@@ -8,13 +8,24 @@ import TabbySSH
 enum Prompts {
     static func confirm(in window: NSWindow?, title: String, message: String, confirm: String, cancel: String = "Cancel",
                         destructive: Bool = false, completion: @escaping (Bool) -> Void) {
+        let alert = confirmAlert(title: title, message: message, confirm: confirm, cancel: cancel, destructive: destructive)
+        run(alert, in: window) { completion($0 == .alertFirstButtonReturn) }
+    }
+
+    /// A destructive confirm has no Return key (design C10): closing a live connection takes a
+    /// deliberate click; Cancel keeps Escape.
+    static func confirmAlert(title: String, message: String, confirm: String, cancel: String = "Cancel",
+                             destructive: Bool) -> NSAlert {
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = message
         let ok = alert.addButton(withTitle: confirm)
         alert.addButton(withTitle: cancel)
-        if destructive { ok.hasDestructiveAction = true }
-        run(alert, in: window) { completion($0 == .alertFirstButtonReturn) }
+        if destructive {
+            ok.hasDestructiveAction = true
+            ok.keyEquivalent = ""
+        }
+        return alert
     }
 
     /// Tabby's multi-line paste warning, as the design's card.
