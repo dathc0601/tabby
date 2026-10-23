@@ -46,7 +46,9 @@ struct ProfilesSettingsView: View {
                         Button {
                             editing = EditableProfile(ProfileTypes.newProfile(type), isNew: true)
                         } label: {
+                            // Menus drop a label's icon unless asked (design C7c shows them).
                             Label(ProfileTypes.title(type), systemImage: ProfileIcons.symbol(for: ProfileIcons.defaultIcon(forType: type)))
+                                .labelStyle(.titleAndIcon)
                         }
                     }
                 } label: {
