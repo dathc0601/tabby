@@ -36,6 +36,13 @@ final class CatalogTests: XCTestCase {
         }
     }
 
+    /// The owner's decision: Vietnamese covers every string the app uses, Tabby's and its own.
+    func testVietnameseCoversEveryKeyTheAppUses() throws {
+        let vi = L10n.Catalog(layers: [L10n.bundledEntries("vi-VN", source: .tabbymac)])
+        let missing = Set(try Self.usedKeys().map(\.text)).filter { vi.lookup($0) == nil }.sorted()
+        XCTAssertEqual(missing, [], "\(missing.count) keys without a Vietnamese translation")
+    }
+
     // MARK: Keys
 
     func testKeysAreStaticText() throws {
@@ -177,6 +184,10 @@ final class CatalogTests: XCTestCase {
             case "\"": out.append("\"")
             case "\\": out.append("\\")
             case "(": out.append("\\(")
+            case "u":
+                var hex = ""
+                if it.next() == "{" { while let h = it.next(), h != "}" { hex.append(h) } }
+                if let code = UInt32(hex, radix: 16), let scalar = Unicode.Scalar(code) { out.append(Character(scalar)) }
             case let other?: out.append("\\"); out.append(other)
             case nil: out.append("\\")
             }

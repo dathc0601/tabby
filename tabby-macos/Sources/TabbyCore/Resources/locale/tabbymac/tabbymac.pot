@@ -4,6 +4,9 @@ msgid ""
 msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 
+msgid "1 Mac"
+msgstr ""
+
 msgid "1 key"
 msgstr ""
 
@@ -1573,7 +1576,7 @@ msgstr ""
 msgid "Use TabbyMac on every Mac"
 msgstr ""
 
-msgid "Use custom rate \\u{201C}{rate}\\u{201D}"
+msgid "Use custom rate “{rate}”"
 msgstr ""
 
 msgid "Use for new tabs"
@@ -1831,9 +1834,6 @@ msgstr ""
 msgid "{approvedCount} approved, {declinedCount} kept on this Mac only"
 msgstr ""
 
-msgid "{devicesCount} Macs"
-msgstr ""
-
 msgid "{done} of {size}"
 msgstr ""
 
@@ -1859,6 +1859,9 @@ msgid "{name} is still running."
 msgstr ""
 
 msgid "{name} · press a key combination"
+msgstr ""
+
+msgid "{n} Macs"
 msgstr ""
 
 msgid "{n} key files are waiting for your answer"

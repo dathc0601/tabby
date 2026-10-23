@@ -122,7 +122,7 @@ struct AccountPopover: View {
                 Text(verbatim: [Plural.count(account.counts.profiles, one: "1 profile", other: "{n} profiles"), Plural.count(account.counts.passwords, one: "1 password", other: "{n} passwords"), Plural.count(account.counts.keys, one: "1 key", other: "{n} keys")].joined(separator: " · "))
                     .font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
                 if !account.devices.isEmpty {
-                    Label(L("{devicesCount} Macs", ["devicesCount": account.devices.count]), systemImage: "laptopcomputer").font(ChromeFont.caption)
+                    Label(Plural.count(account.devices.count, one: "1 Mac", other: "{n} Macs"), systemImage: "laptopcomputer").font(ChromeFont.caption)
                         .foregroundStyle(chrome.textMuted.color)
                 }
             }
