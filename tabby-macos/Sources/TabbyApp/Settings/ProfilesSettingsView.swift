@@ -42,8 +42,13 @@ struct ProfilesSettingsView: View {
                 .background(RoundedRectangle(cornerRadius: 6).fill(chrome.fill.color))
                 Toggle("Show hidden", isOn: $showHidden).toggleStyle(.checkbox)
                 Menu {
-                    Button("Local terminal") { editing = EditableProfile(Self.newLocal(), isNew: true) }
-                    Button("SSH connection") { editing = EditableProfile(Self.newSSH(), isNew: true) }
+                    ForEach(ProfileTypes.creatable, id: \.self) { type in
+                        Button {
+                            editing = EditableProfile(ProfileTypes.newProfile(type), isNew: true)
+                        } label: {
+                            Label(ProfileTypes.title(type), systemImage: ProfileIcons.symbol(for: ProfileIcons.defaultIcon(forType: type)))
+                        }
+                    }
                 } label: {
                     Label("New", systemImage: "plus")
                 }
@@ -79,7 +84,7 @@ struct ProfilesSettingsView: View {
                 .padding(6)
                 Rectangle().fill(chrome.separator.color).frame(height: 1)
                 HStack(spacing: 4) {
-                    IconButton(symbol: "plus", help: "New local profile", size: 24) { editing = EditableProfile(Self.newLocal(), isNew: true) }
+                    IconButton(symbol: "plus", help: "New local profile", size: 24) { editing = EditableProfile(ProfileTypes.newProfile("local"), isNew: true) }
                     IconButton(symbol: "minus", help: "Delete profile", size: 24) { if let selected { delete(selected, registry: registry) } }
                         .disabled(selected.map { $0.isBuiltin } ?? true)
                     Rectangle().fill(chrome.separator.color).frame(width: 1, height: 16).padding(.horizontal, 4)
@@ -166,14 +171,6 @@ struct ProfilesSettingsView: View {
         }
     }
 
-    static func newLocal() -> Profile {
-        Profile(type: "local", name: "New profile", options: LocalOptions(command: ShellDetector.loginShellName()).configValue)
-    }
-
-    static func newSSH() -> Profile {
-        Profile(type: "ssh", name: "", options: ["host": "", "port": 22, "user": .string(NSUserName())])
-    }
-
     struct ProfileSection: Identifiable {
         let title: String
         let color: String?
@@ -237,7 +234,7 @@ private struct ProfileListRow: View {
         let fg = isSelected ? chrome.onAccent : chrome.text
         let muted = isSelected ? chrome.onAccent.withAlpha(0.75) : chrome.textMuted
         HStack(spacing: 8) {
-            Image(systemName: ProfileIcons.symbol(for: profile.icon ?? (profile.type == "ssh" ? "server" : "terminal")))
+            Image(systemName: ProfileIcons.symbol(for: profile.icon ?? ProfileIcons.defaultIcon(forType: profile.type)))
                 .foregroundStyle((isSelected ? chrome.onAccent : (tint ?? chrome.textMuted)).color)
                 .frame(width: 18)
             Text(profile.name).foregroundStyle(fg.color).lineLimit(1)
@@ -250,7 +247,7 @@ private struct ProfileListRow: View {
                     .foregroundStyle((isSelected ? chrome.onAccent : chrome.accent).color)
                     .background(Capsule().fill((isSelected ? chrome.onAccent.withAlpha(0.2) : chrome.accentFill).color))
             }
-            Text(Self.typeLabel(profile.type)).font(.system(size: 10, weight: .semibold)).padding(.horizontal, 6).frame(height: 16)
+            Text(ProfileTypes.badge(profile.type)).font(.system(size: 10, weight: .semibold)).padding(.horizontal, 6).frame(height: 16)
                 .foregroundStyle(muted.color)
                 .background(RoundedRectangle(cornerRadius: 4).fill((isSelected ? chrome.onAccent.withAlpha(0.2) : chrome.fill).color))
         }
@@ -262,14 +259,6 @@ private struct ProfileListRow: View {
         .contentShape(Rectangle())
     }
 
-    static func typeLabel(_ type: String) -> String {
-        switch type {
-        case "ssh": return "SSH"
-        case "local": return "Local"
-        case "split-layout": return "Layout"
-        default: return type.capitalized
-        }
-    }
 }
 
 struct EditableProfile: Identifiable {
@@ -283,7 +272,7 @@ struct EditableProfile: Identifiable {
     }
 }
 
-/// Edits a local or SSH profile (the design's sheet: common fields over a segmented control).
+/// Edits a profile of any type (the design's sheet: common fields over a segmented control).
 /// Fields write straight into `profile.options`, so options this editor doesn't know about
 /// are preserved.
 struct ProfileEditorSheet: View {
@@ -311,8 +300,19 @@ struct ProfileEditorSheet: View {
 
     private var isSSH: Bool { profile.type == "ssh" }
 
-    private var pages: [Page] {
-        isSSH ? Page.allCases : [.general, .advanced, .colors, .scripts]
+    private var pages: [Page] { Self.pages(for: profile.type) }
+
+    static func pages(for type: String) -> [Page] {
+        type == "ssh" ? Page.allCases : [.general, .advanced, .colors, .scripts]
+    }
+
+    /// Whether the type connects somewhere (and so has service messages to clear).
+    private var isConnection: Bool { ["ssh", "serial", "telnet"].contains(profile.type) }
+
+    /// A stream-processing option (`inputMode`…): "" for Tabby's null.
+    private func modeOption(_ key: String) -> Binding<String> {
+        Binding(get: { profile.options[key]?.stringValue ?? "" },
+                set: { profile.options[key] = $0.isEmpty ? .null : .string($0) })
     }
 
     private func option(_ key: String) -> Binding<String> {
@@ -372,9 +372,9 @@ struct ProfileEditorSheet: View {
                     Picker("", selection: $page) { ForEach(pages) { Text($0.rawValue).tag($0) } }
                         .pickerStyle(.segmented).labelsHidden()
                     switch page {
-                    case .general: isSSH ? AnyView(sshGeneral) : AnyView(localGeneral)
+                    case .general: generalPage
                     case .ports: AnyView(SettingsGroup("Forwarded ports") { PortForwardsEditor(options: $profile.options) })
-                    case .advanced: isSSH ? AnyView(sshAdvanced) : AnyView(localAdvanced)
+                    case .advanced: advancedPage
                     case .ciphers: AnyView(sshCiphers)
                     case .colors: AnyView(colours)
                     case .scripts: AnyView(LoginScriptsEditor(options: $profile.options))
@@ -389,7 +389,7 @@ struct ProfileEditorSheet: View {
                 Button(item.isNew ? "Create" : "Save") { done(finalProfile()) }
                     .buttonStyle(ChromeButtonStyle(kind: .primary))
                     .keyboardShortcut("s", modifiers: .command)
-                    .disabled(isSSH && (profile.options["host"]?.stringValue ?? "").isEmpty)
+                    .disabled(["ssh", "telnet"].contains(profile.type) && (profile.options["host"]?.stringValue ?? "").isEmpty)
             }
             .padding(14)
         }
@@ -401,15 +401,15 @@ struct ProfileEditorSheet: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            Image(systemName: ProfileIcons.symbol(for: profile.icon ?? (isSSH ? "server" : "terminal")))
+            Image(systemName: ProfileIcons.symbol(for: profile.icon ?? ProfileIcons.defaultIcon(forType: profile.type)))
                 .font(.system(size: 18))
                 .foregroundStyle((profile.color.flatMap(RGBColor.init(hex:)) ?? chrome.accent).color)
                 .frame(width: 36, height: 36)
                 .background(RoundedRectangle(cornerRadius: 8).fill(chrome.fill.color))
             VStack(alignment: .leading, spacing: 2) {
-                TextField(isSSH ? "user@host:port" : "Name", text: $profile.name)
+                TextField(namePlaceholder, text: $profile.name)
                     .textFieldStyle(.plain).font(ChromeFont.headline)
-                Text(isSSH ? "SSH connection" : "Local terminal").font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
+                Text(ProfileTypes.title(profile.type)).font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
             }
         }
         .padding(16)
@@ -456,6 +456,167 @@ struct ProfileEditorSheet: View {
                     Text("Reconnect").tag(SessionEndBehavior.reconnect)
                     Text("Close").tag(SessionEndBehavior.close)
                 }
+            }
+            if isConnection {
+                SettingsRow("Clear terminal after connection", subtitle: "Hides the connection messages once connected",
+                            isOn: $profile.clearServiceMessagesOnConnect)
+            }
+        }
+    }
+
+    private var namePlaceholder: String {
+        switch profile.type {
+        case "ssh": return "user@host:port"
+        case "telnet": return "host:port"
+        case "serial": return "Device name"
+        default: return "Name"
+        }
+    }
+
+    private var generalPage: AnyView {
+        switch profile.type {
+        case "ssh": return AnyView(sshGeneral)
+        case "serial": return AnyView(serialGeneral)
+        case "telnet": return AnyView(telnetGeneral)
+        default: return AnyView(localGeneral)
+        }
+    }
+
+    private var advancedPage: AnyView {
+        switch profile.type {
+        case "ssh": return AnyView(sshAdvanced)
+        case "serial": return AnyView(serialAdvanced)
+        case "telnet": return AnyView(telnetAdvanced)
+        default: return AnyView(localAdvanced)
+        }
+    }
+
+    // MARK: Serial and telnet (Tabby's serialProfileSettings / telnetProfileSettings)
+
+    private var serialGeneral: some View {
+        let ports = AppServices.shared.serialPorts.ports
+        return VStack(alignment: .leading, spacing: 18) {
+            SettingsGroup(footer: "Without a device or a baud rate, they are asked for each time the profile opens.") {
+                SettingsRow("Device") {
+                    HStack(spacing: 6) {
+                        RowField(placeholder: "Ask every time", text: option("port"), width: 240)
+                        Menu {
+                            ForEach(ports, id: \.path) { port in
+                                Button(port.description.map { "\(port.deviceName) (\($0))" } ?? port.deviceName) {
+                                    profile.options["port"] = .string(port.path)
+                                }
+                            }
+                            if ports.isEmpty { Text("No serial ports found") }
+                        } label: { Image(systemName: "chevron.up.chevron.down") }
+                            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+                    }
+                }
+                SettingsRow("Baud rate") {
+                    HStack(spacing: 6) {
+                        RowField(placeholder: "Ask every time", text: optionalIntOption("baudrate"), width: 120)
+                        Menu {
+                            Button("Ask every time") { profile.options["baudrate"] = .null }
+                            ForEach(BaudRates.standard, id: \.self) { rate in
+                                Button(String(rate)) { profile.options["baudrate"] = .int(rate) }
+                            }
+                        } label: { Image(systemName: "chevron.up.chevron.down") }
+                            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+                    }
+                }
+            }
+            streamProcessing
+        }
+    }
+
+    private var serialAdvanced: some View {
+        SettingsGroup {
+            SettingsRow("Data bits") {
+                RowPicker(selection: intOption("databits", default: 8)) {
+                    ForEach([5, 6, 7, 8], id: \.self) { Text(String($0)).tag($0) }
+                }
+            }
+            SettingsRow("Stop bits") {
+                RowPicker(selection: Binding(get: { profile.options["stopbits"]?.doubleValue ?? 1 },
+                                             set: { profile.options["stopbits"] = $0 == 1.5 ? .double($0) : .int(Int($0)) })) {
+                    Text("1").tag(1.0)
+                    Text("1.5").tag(1.5)
+                    Text("2").tag(2.0)
+                }
+            }
+            SettingsRow("Parity") {
+                RowPicker(selection: Binding(get: { profile.options["parity"]?.stringValue ?? "none" },
+                                             set: { profile.options["parity"] = .string($0) })) {
+                    Text("None").tag("none")
+                    Text("Even").tag("even")
+                    Text("Odd").tag("odd")
+                }
+            }
+            SettingsRow("RTS / CTS", isOn: boolOption("rtscts"))
+            SettingsRow("XON", isOn: boolOption("xon"))
+            SettingsRow("XOFF", isOn: boolOption("xoff"))
+            SettingsRow("Xany", isOn: boolOption("xany"))
+            SettingsRow("Slow feed", subtitle: "Sends data one byte at a time", isOn: boolOption("slowSend"))
+            backspaceRow
+            SettingsRow("Ignore titles set by programs", isOn: $profile.disableDynamicTitle)
+        }
+    }
+
+    private var telnetGeneral: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            SettingsGroup {
+                SettingsRow("Host") {
+                    HStack(spacing: 8) {
+                        RowField(placeholder: "example.com", text: option("host"), width: 220)
+                        Text("Port").foregroundStyle(chrome.textMuted.color).fixedSize()
+                        TextField("23", value: intOption("port", default: 23), format: .number.grouping(.never))
+                            .textFieldStyle(.roundedBorder).font(.custom("Menlo", size: 12)).frame(width: 60)
+                    }
+                }
+            }
+            streamProcessing
+        }
+    }
+
+    private var telnetAdvanced: some View {
+        SettingsGroup {
+            backspaceRow
+            SettingsRow("Ignore titles set by programs", isOn: $profile.disableDynamicTitle)
+        }
+    }
+
+    /// Tabby's stream-processing settings, with its names and descriptions.
+    private var streamProcessing: some View {
+        SettingsGroup("Stream processing") {
+            SettingsRow("Input mode", subtitle: StreamModeNames.inputDescription(profile.options["inputMode"]?.stringValue)) {
+                RowPicker(selection: modeOption("inputMode")) {
+                    ForEach(StreamModeNames.inputModes, id: \.value) { Text($0.name).tag($0.value) }
+                }
+            }
+            SettingsRow("Output mode", subtitle: StreamModeNames.outputDescription(profile.options["outputMode"]?.stringValue)) {
+                RowPicker(selection: modeOption("outputMode")) {
+                    ForEach(StreamModeNames.outputModes, id: \.value) { Text($0.name).tag($0.value) }
+                }
+            }
+            SettingsRow("Input newlines") {
+                RowPicker(selection: modeOption("inputNewlines")) {
+                    ForEach(StreamModeNames.newlineModes, id: \.value) { Text($0.name).tag($0.value) }
+                }
+            }
+            SettingsRow("Output newlines") {
+                RowPicker(selection: modeOption("outputNewlines")) {
+                    ForEach(StreamModeNames.newlineModes, id: \.value) { Text($0.name).tag($0.value) }
+                }
+            }
+        }
+    }
+
+    private var backspaceRow: some View {
+        SettingsRow("Backspace sends") {
+            RowPicker(selection: backspaceOption) {
+                Text("Backspace (DEL)").tag("backspace")
+                Text("Ctrl-H").tag("ctrl-h")
+                Text("Ctrl-?").tag("ctrl-?")
+                Text("Delete (ESC [3~)").tag("delete")
             }
         }
     }
@@ -588,14 +749,7 @@ struct ProfileEditorSheet: View {
             SettingsRow("Ready timeout", subtitle: "Milliseconds to wait for the connection; empty waits as long as the system does") {
                 RowField(placeholder: "Default", text: optionalIntOption("readyTimeout"), width: 90)
             }
-            SettingsRow("Backspace sends") {
-                RowPicker(selection: backspaceOption) {
-                    Text("Backspace (DEL)").tag("backspace")
-                    Text("Ctrl-H").tag("ctrl-h")
-                    Text("Ctrl-?").tag("ctrl-?")
-                    Text("Delete (ESC [3~)").tag("delete")
-                }
-            }
+            backspaceRow
             SettingsRow("Terminal type") { RowField(placeholder: "xterm-256color", text: option("term")) }
             SettingsRow("Start in directory") { RowField(placeholder: "Home", text: option("cwd")) }
             SettingsRow("Reopen in the last directory", subtitle: "When the tab is restored; the remote shell must report it (OSC 7)",
@@ -658,11 +812,18 @@ struct ProfileEditorSheet: View {
         }
     }
 
-    private func finalProfile() -> Profile {
+    /// An empty name becomes what the type's provider suggests (`user@host`, `host:port`, the
+    /// device path), as Tabby's `getSuggestedName`.
+    static func named(_ profile: Profile) -> Profile {
         var p = profile
-        if p.type == "ssh" && p.name.isEmpty {
-            p.name = SSHOptions(p.options).suggestedName
+        if p.name.isEmpty, let suggested = AppServices.shared.profiles.provider(for: p.type)?.suggestedName(for: p) {
+            p.name = suggested
         }
+        return p
+    }
+
+    private func finalProfile() -> Profile {
+        var p = Self.named(profile)
         // Drop empty optional values so config.yaml stays tidy.
         if var o = p.options.objectValue {
             for (k, v) in o where v.isNull { o[k] = nil }

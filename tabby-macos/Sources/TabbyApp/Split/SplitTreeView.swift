@@ -244,7 +244,7 @@ final class PaneContainerView: NSView {
     let engine: SwiftTermEngine
     private weak var controller: MainWindowController?
     private var searchHost: NSHostingView<SearchBarView>?
-    private var chipHost: NSHostingView<SSHStatusChip>?
+    private var chipHost: NSHostingView<ConnectionChip>?
     private let hover = PaneHover()
     private var appearanceLoop: ObservationLoop?
     private var chipLoop: ObservationLoop?
@@ -269,7 +269,7 @@ final class PaneContainerView: NSView {
         layer?.borderWidth = 0
         addSubview(engine)
         if pane.profile.type != "local" {
-            let chip = NSHostingView(rootView: SSHStatusChip(pane: pane, hover: hover))
+            let chip = NSHostingView(rootView: ConnectionChip(pane: pane, hover: hover))
             chip.safeAreaRegions = []
             addSubview(chip)
             chipHost = chip

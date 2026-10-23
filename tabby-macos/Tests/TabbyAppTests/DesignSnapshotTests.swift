@@ -127,6 +127,28 @@ final class DesignSnapshotTests: XCTestCase {
         }
     }
 
+    /// Phase 4: the serial and telnet editor pages and selectors, to compare with the designs.
+    func testSerialAndTelnetScreens() throws {
+        let serial = Profile(type: "serial", name: "Router console",
+                             options: ["port": "/dev/cu.usbserial-1420", "baudrate": 115200, "inputMode": "readline",
+                                       "outputNewlines": "crlf"])
+        let telnet = Profile(type: "telnet", name: "Core switch", options: ["host": "switch.lan", "port": 23,
+                                                                             "inputMode": "local-echo", "outputNewlines": "crlf"])
+        for (profile, tag) in [(serial, "serial"), (telnet, "telnet")] {
+            for page in ProfileEditorSheet.pages(for: profile.type) where page == .general || page == .advanced {
+                try render(ProfileEditorSnapshot(profile: profile, page: page), NSSize(width: 640, height: 660),
+                           "editor-\(tag)-\(page.rawValue)")
+            }
+        }
+        let rates = BaudRates.standard.map { SelectorItem(id: "\($0)", title: "\($0)", icon: "speedometer") {} }
+        try render(SelectorView(placeholder: "Baud rate", items: rates, initialSelection: 10, dynamicItems: nil) { _ in },
+                   SelectorPanel.size, "selector-baud")
+        let ports = [SelectorItem(id: "a", title: "cu.usbserial-1420", group: "Ports", subtitle: "FTDI FT3K2PQ1", icon: "memorychip") {},
+                     SelectorItem(id: "b", title: "cu.usbmodem101", group: "Ports", subtitle: "/dev/cu.usbmodem101", icon: "memorychip") {},
+                     SelectorItem(id: "c", title: "cu.debug-console", group: "Built in", subtitle: "/dev/cu.debug-console", icon: "memorychip") {}]
+        try render(SelectorView(placeholder: "Serial port", items: ports, dynamicItems: nil) { _ in }, SelectorPanel.size, "selector-ports")
+    }
+
     private func render<V: View>(_ view: V, _ size: NSSize, _ name: String) throws {
         let host = NSHostingView(rootView: view.chromeEnvironment())
         host.frame = NSRect(origin: .zero, size: size)

@@ -164,7 +164,7 @@ extension MainWindowController {
             switch entry.kind {
             case .profile(let p):
                 items.append(SelectorItem(id: "p\(i)", title: entry.title, group: entry.group, subtitle: entry.description,
-                                          icon: ProfileIcons.symbol(for: p.icon ?? (p.type == "ssh" ? "network" : "terminal")),
+                                          icon: ProfileIcons.symbol(for: p.icon ?? ProfileIcons.defaultIcon(forType: p.type)),
                                           color: p.color) { [weak self] in
                     self?.open(p, switchActivePane: switchActivePane)
                 })

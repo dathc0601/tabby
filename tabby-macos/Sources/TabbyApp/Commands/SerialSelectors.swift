@@ -2,6 +2,35 @@
 import AppKit
 import TabbyCore
 import TabbySerial
+import TabbyTerminal
+
+/// The chip's "Baud rate" button: the rate of an open port changes at once, and the tab keeps
+/// it (Tabby's `SerialTabComponent.changeBaudRate`).
+@MainActor
+enum SerialChip {
+    static func serialSession(of pane: TerminalPane) -> SerialSession? {
+        ((pane.session as? ProcessedSession)?.inner ?? pane.session) as? SerialSession
+    }
+
+    static func changeBaudRate(of pane: TerminalPane, to rate: Int) throws {
+        guard let session = serialSession(of: pane) else { return }
+        try session.changeBaudRate(rate)
+        pane.updateOption("baudrate", .int(rate))
+    }
+
+    static func askBaudRate(for pane: TerminalPane) {
+        let controller = WindowManager.shared.controllers.first { c in c.model.tabs.contains { $0.panes[pane.id] != nil } }
+        controller?.chooseBaudRate { [weak controller] rate in
+            do {
+                try changeBaudRate(of: pane, to: rate)
+            } catch {
+                controller?.toasts.show(ToastCenter.Toast(symbol: "exclamationmark.circle.fill", tint: .danger,
+                                                          title: "Could not change the baud rate",
+                                                          detail: (error as? LocalizedError)?.errorDescription ?? error.localizedDescription))
+            }
+        }
+    }
+}
 
 /// The selectors of serial tabs: which port, which baud rate (Tabby asks the rate in
 /// `getNewTabParameters`), and "Show Serial connections" (the `serial` hotkey).

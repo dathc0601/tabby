@@ -413,6 +413,13 @@ public final class TerminalPane: TerminalEngineDelegate {
         engine?.apply(settings: settings, scheme: scheme, fontSize: fontSize)
     }
 
+    /// Changes one option of this pane's copy of the profile without restarting (the serial
+    /// rate changed while connected); the recovery token keeps it.
+    public func updateOption(_ key: String, _ value: ConfigValue) {
+        profile.options[key] = value
+        onRecoveryStateChanged?()
+    }
+
     /// Switches the pane to another profile (Tabby's "switch profile"), restarting it.
     public func switchProfile(_ newProfile: Profile) {
         profile = newProfile

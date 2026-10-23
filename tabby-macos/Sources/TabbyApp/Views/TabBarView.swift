@@ -476,8 +476,19 @@ enum ProfileIcons {
         return map[name] ?? "terminal"
     }
 
+    /// The icon of a profile that has none (Tabby's providers set these on their builtins).
+    static func defaultIcon(forType type: String) -> String {
+        switch type {
+        case "ssh": return "server"
+        case "serial": return "fas fa-microchip"
+        case "telnet": return "fas fa-network-wired"
+        default: return "terminal"
+        }
+    }
+
     /// Icons the profile editor offers (Tabby's Font Awesome names, shown as SF Symbols).
-    static let choices = ["terminal", "server", "desktop", "laptop", "globe", "cloud", "database", "bolt", "code", "docker", "apple", "linux", "network"]
+    static let choices = ["terminal", "server", "desktop", "laptop", "globe", "cloud", "database", "bolt", "code", "docker", "apple", "linux", "network",
+                          "microchip", "network-wired"]
 }
 
 /// Empty space in the tab bar that drags the window (and zooms on double click).

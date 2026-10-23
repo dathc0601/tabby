@@ -3,6 +3,7 @@ import SwiftUI
 import Observation
 import TabbyCore
 import TabbySSHLib
+import TabbySerial
 import TabbyTerminal
 
 /// Whether the pointer is over a pane (the chip shows on hover).
@@ -12,10 +13,10 @@ final class PaneHover {
     var isHovering = false
 }
 
-/// The SSH status chip from the design's component board: a state dot, `user@host:port`, the
-/// state and Reconnect. It shows while the pointer is over the pane, and whenever the
-/// connection is not up.
-struct SSHStatusChip: View {
+/// The connection status chip from the design's component board: a state dot, where the pane
+/// is connected (`user@host:port`, `host:port`, `device · baud`), the state and Reconnect.
+/// It shows while the pointer is over the pane, and whenever the connection is not up.
+struct ConnectionChip: View {
     let pane: TerminalPane
     let hover: PaneHover
 
@@ -23,10 +24,29 @@ struct SSHStatusChip: View {
         ChipContent(pane: pane, hover: hover).chromeEnvironment()
     }
 
-    /// `user@host:port`. Verbatim: an interpolated Int in a localized `Text` gets the locale's
-    /// digit grouping (`2.222` in Vietnamese, `2,222` in English).
-    static func address(_ options: SSHOptions) -> Text {
-        Text(verbatim: "\(options.user)@\(options.host):\(options.port)")
+    /// Where a profile connects. `baudRate` is the serial rate in use, when it differs.
+    static func address(for profile: Profile, baudRate: Int? = nil) -> String {
+        switch profile.type {
+        case "ssh":
+            let o = SSHOptions(profile.options)
+            return "\(o.user)@\(o.host):\(o.port)"
+        case "telnet":
+            let o = TelnetOptions(profile.options)
+            return "\(o.host.contains(":") ? "[\(o.host)]" : o.host):\(o.port)"
+        case "serial":
+            let o = SerialOptions(profile.options)
+            guard let port = o.port else { return profile.name }
+            let device = (port as NSString).lastPathComponent
+            return (baudRate ?? o.baudrate).map { "\(device) · \($0)" } ?? device
+        default:
+            return profile.name
+        }
+    }
+
+    /// Verbatim: an interpolated Int in a localized `Text` gets the locale's digit grouping
+    /// (`2.222` in Vietnamese, `2,222` in English).
+    static func addressText(for profile: Profile, baudRate: Int? = nil) -> Text {
+        Text(verbatim: address(for: profile, baudRate: baudRate))
     }
 }
 
@@ -39,13 +59,14 @@ private struct ChipContent: View {
     var body: some View {
         // Stays while its popover is open: the pointer leaves the pane to use it.
         if let state = pane.connectionState, hover.isHovering || state != .connected || showsPorts {
-            let options = SSHOptions(pane.profile.options)
+            let serial = SerialChip.serialSession(of: pane)
+            let address = ConnectionChip.address(for: pane.profile, baudRate: serial?.baudRate)
             HStack(spacing: 8) {
                 StatusDot(color: Self.color(state, chrome), size: 7)
-                SSHStatusChip.address(options).font(.custom("Menlo", size: 12)).lineLimit(1)
+                Text(verbatim: address).font(.custom("Menlo", size: 12)).lineLimit(1)
                 Text(Self.label(state)).font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
                 if state == .disconnected || state == .connected {
-                    Button { reconnect(state, options) } label: {
+                    Button { reconnect(state, address) } label: {
                         Label("Reconnect", systemImage: "arrow.clockwise").font(ChromeFont.caption)
                     }
                     .buttonStyle(.plain)
@@ -56,6 +77,15 @@ private struct ChipContent: View {
                     PortsButton(enabled: state == .connected, makeModel: { Self.portsModel(session) }, isOpen: $showsPorts)
                     Button { SFTPPanels.shared.toggle(for: pane) } label: {
                         Label("SFTP", systemImage: "folder").font(ChromeFont.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle((state == .connected ? chrome.textMuted : chrome.textFaint).color)
+                    .disabled(state != .connected)
+                }
+                if serial != nil {
+                    Rectangle().fill(chrome.separator.color).frame(width: 1, height: 14)
+                    Button { SerialChip.askBaudRate(for: pane) } label: {
+                        Label("Baud rate", systemImage: "speedometer").font(ChromeFont.caption)
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle((state == .connected ? chrome.textMuted : chrome.textFaint).color)
@@ -82,9 +112,9 @@ private struct ChipContent: View {
     }
 
     /// A live session is restarted only after asking: whatever runs in it ends.
-    private func reconnect(_ state: TerminalPane.ConnectionState, _ options: SSHOptions) {
+    private func reconnect(_ state: TerminalPane.ConnectionState, _ address: String) {
         guard state == .connected else { return pane.restart() }
-        Prompts.confirm(in: NSApp.keyWindow, title: "Reconnect to \(options.host)?",
+        Prompts.confirm(in: NSApp.keyWindow, title: "Reconnect to \(address)?",
                         message: "The session is restarted; anything running in it ends.", confirm: "Reconnect") { ok in
             if ok { pane.restart() }
         }

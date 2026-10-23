@@ -152,7 +152,7 @@ let package = Package(
         ),
         .testTarget(
             name: "TabbyAppTests",
-            dependencies: ["TabbyApp"]
+            dependencies: ["TabbyApp", "TabbyTestSupport"]
         ),
         .testTarget(
             name: "TabbySSHLibTests",
