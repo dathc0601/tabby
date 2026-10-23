@@ -194,11 +194,13 @@ private struct CustomSchemeEditor: View {
                     HStack(spacing: 8) { buttons(edited: edited) }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(14)
             ViewThatFits(in: .horizontal) {
                 palette(columns: 8)
                 palette(columns: 4)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(14)
         }
     }
