@@ -73,6 +73,18 @@ final class ConnectionTypesUITests: XCTestCase {
         XCTAssertEqual(ProfileEditorSheet.deviceMenu(ports: []), [])
     }
 
+    /// Design C8b: in ⌘E each quick-connect row names its type, with the type's icon, and shows
+    /// what was typed.
+    func testQuickConnectRowsNameTheirType() {
+        TestApp.boot()
+        let rows = ["ssh", "serial", "telnet"].map { ProfileSelectorRows.quickConnect(providerId: $0, query: "127.0.0.1:2323") {} }
+        XCTAssertEqual(rows.map(\.title), ["Quick connect · SSH connection", "Quick connect · Serial connection",
+                                           "Quick connect · Telnet connection"])
+        XCTAssertEqual(rows.map(\.subtitle), Array(repeating: "127.0.0.1:2323", count: 3))
+        XCTAssertEqual(rows.map(\.icon), ["server.rack", "cable.connector", "network"])
+        XCTAssertEqual(Set(rows.map(\.group)), ["Quick connect"])
+    }
+
     func testDefaultIconsPerType() {
         XCTAssertEqual(ProfileIcons.symbol(for: ProfileIcons.defaultIcon(forType: "serial")), "cable.connector")
         XCTAssertEqual(ProfileIcons.symbol(for: ProfileIcons.defaultIcon(forType: "telnet")), "network")

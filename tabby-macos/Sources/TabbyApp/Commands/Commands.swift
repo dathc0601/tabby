@@ -185,7 +185,7 @@ extension MainWindowController {
             registry.selectorEntries(query: query).compactMap { entry -> SelectorItem? in
                 guard case let .quickConnect(providerId, q) = entry.kind,
                       let profile = registry.quickConnect(q, providerId: providerId) else { return nil }
-                return SelectorItem(id: "qc-\(providerId)", title: q, group: "Quick connect", subtitle: entry.description, icon: "bolt") {
+                return ProfileSelectorRows.quickConnect(providerId: providerId, query: q) {
                     self?.open(profile, switchActivePane: switchActivePane)
                 }
             }
@@ -294,6 +294,15 @@ extension MainWindowController {
     @objc func contextCommand(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String else { return }
         runCommand(id)
+    }
+}
+/// Rows of the profile selector (⌘E).
+@MainActor
+enum ProfileSelectorRows {
+    /// Design C8b: "Quick connect · SSH connection" with the type's icon and the query.
+    static func quickConnect(providerId: String, query: String, action: @escaping () -> Void) -> SelectorItem {
+        SelectorItem(id: "qc-\(providerId)", title: "Quick connect · \(ProfileTypes.title(providerId))", group: "Quick connect",
+                     subtitle: query, icon: ProfileIcons.symbol(for: ProfileIcons.defaultIcon(forType: providerId)), action: action)
     }
 }
 #endif
