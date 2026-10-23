@@ -194,7 +194,7 @@ extension MainWindowController {
         }
     }
 
-    private func open(_ profile: Profile, switchActivePane: Bool) {
+    func open(_ profile: Profile, switchActivePane: Bool) {
         if switchActivePane {
             model.switchActivePane(to: profile)
         } else if profile.type == "split-layout", let token = profile.options["recoveryToken"].flatMap(RecoveryToken.init) {

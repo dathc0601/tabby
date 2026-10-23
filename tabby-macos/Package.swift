@@ -71,7 +71,7 @@ let package = Package(
         .target(
             name: "TabbyApp",
             dependencies: [
-                "TabbyCore", "TabbyTerminal", "TabbySSH",
+                "TabbyCore", "TabbyTerminal", "TabbySSH", "TabbyCLIKit",
                 .target(name: "TabbySSHLib", condition: .when(platforms: [.macOS])),
                 .target(name: "TabbySerial", condition: .when(platforms: [.macOS])),
                 .target(name: "TabbyTelnet", condition: .when(platforms: [.macOS])),

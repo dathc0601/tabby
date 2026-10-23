@@ -57,11 +57,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         Notifier.shared.start()
+        // `TabbyMacDev open ~/x`: queued until the window exists, like a link that arrives now.
+        CLIRouter.shared.launchArguments(Array(CommandLine.arguments.dropFirst()), cwd: FileManager.default.currentDirectoryPath)
 
         let controller = WindowManager.shared.newWindow(openDefaultTab: false)
         let restored = RecoveryCoordinator.shared.restore(into: controller)
         let autoOpen = services.config.value("terminal.autoOpen")?.boolValue ?? true
-        if !restored && autoOpen {
+        // Tabby's AutoOpenTabCLIHandler only opens the default tab when nothing else did.
+        if !restored && autoOpen && !CLIRouter.shared.hasPendingRequests {
             controller.model.openTab()
         }
         if WelcomePolicy.shouldShow(config: services.config, restoredTabs: restored) {
@@ -71,8 +74,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DockController.shared.apply(followMouse: true)
         NSApp.activate(ignoringOtherApps: true)
 
+        CLIRouter.shared.becomeReady()
+
         if let error = services.loadError {
             Prompts.message(in: controller.window, title: L("Couldn't read config.yaml"), message: L("{error}\n\nDefaults are in use; your file was not modified.", ["error": String(describing: error)]))
+        }
+    }
+
+    /// tabbymac:// (the `tabby` helper), ssh:// and telnet:// links (phase 5).
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls where !CLIRouter.shared.handle(url: url) {
+            NSLog("TabbyMac: cannot open \(url.absoluteString)")
         }
     }
 

@@ -323,6 +323,14 @@ struct RowPath: View {
 
 struct ApplicationSettingsView: View {
     @State private var importMessage: String?
+    /// Bumped after "Use TabbyMac" so the handler line is read again.
+    @State private var linkRevision = 0
+
+    private var linkSubtitle: String {
+        _ = linkRevision
+        if LinkHandlers.isDefault { return L("TabbyMac opens them") }
+        return LinkHandlers.handlerName(for: "ssh").map { L("Now opened by {app}", ["app": $0]) } ?? L("No app opens them yet")
+    }
 
     var body: some View {
         let services = AppServices.shared
@@ -335,6 +343,23 @@ struct ApplicationSettingsView: View {
                 SettingsRow(L("Config file")) { RowPath(url: services.paths.configFile) }
                 SettingsRow(L("Import from Tabby"), subtitle: L("Replaces these settings with {path}", ["path": (ConfigPaths.electronTabbyConfig.path as NSString).abbreviatingWithTildeInPath])) {
                     Button(L("Import…")) { importConfig() }.buttonStyle(ChromeButtonStyle())
+                }
+            }
+            if LinkHandlers.canChange {
+                SettingsGroup(L("Links")) {
+                    SettingsRow(L("Open ssh:// and telnet:// links"), subtitle: linkSubtitle) {
+                        Button(L("Use TabbyMac")) { LinkHandlers.makeDefault { linkRevision += 1 } }
+                            .buttonStyle(ChromeButtonStyle()).disabled(LinkHandlers.isDefault)
+                    }
+                }
+            }
+            SettingsGroup(L("Command-line tool"), footer: L("tabby open, run, profile, paste, recent and quickConnect, as in Tabby.")) {
+                SettingsRow("tabby", subtitle: LinkHandlers.cliPath) { // l10n-ignore: the command's name
+                    Button(L("Copy install command")) {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(LinkHandlers.installCommand, forType: .string)
+                    }
+                    .buttonStyle(ChromeButtonStyle())
                 }
             }
             SettingsGroup(L("Startup")) {

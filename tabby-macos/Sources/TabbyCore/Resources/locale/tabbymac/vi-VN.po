@@ -242,11 +242,17 @@ msgstr "Không thể tạo"
 msgid "Cannot delete"
 msgstr "Không thể xoá"
 
+msgid "Cannot handle scripts of this type"
+msgstr "Không thể xử lý loại kịch bản này"
+
 msgid "Cannot open"
 msgstr "Không thể mở"
 
 msgid "Cannot open {path}: {reason}"
 msgstr "Không thể mở {path}: {reason}"
+
+msgid "Cannot open “{query}” with {provider}"
+msgstr "Không thể mở “{query}” bằng {provider}"
 
 msgid "Cannot read"
 msgstr "Không thể đọc"
@@ -380,6 +386,9 @@ msgstr "Bảng lệnh…"
 msgid "Command not found: {executable}"
 msgstr "Không tìm thấy lệnh: {executable}"
 
+msgid "Command-line tool"
+msgstr "Công cụ dòng lệnh"
+
 msgid "Compression"
 msgstr "Nén"
 
@@ -445,6 +454,9 @@ msgstr "Sao chép đường dẫn hiện tại"
 
 msgid "Copy full path"
 msgstr "Sao chép đường dẫn đầy đủ"
+
+msgid "Copy install command"
+msgstr "Sao chép lệnh cài đặt"
 
 msgid "Copy on select"
 msgstr "Sao chép khi chọn"
@@ -1064,6 +1076,9 @@ msgstr "Từng dòng"
 msgid "Line editor, input is sent after you press Enter"
 msgstr "Trình soạn dòng, dữ liệu được gửi sau khi bạn nhấn Enter"
 
+msgid "Links"
+msgstr "Liên kết"
+
 msgid "Loading"
 msgstr "Đang tải"
 
@@ -1202,6 +1217,9 @@ msgstr "Không"
 msgid "No Tabby config found at {path}."
 msgstr "Không tìm thấy cấu hình Tabby tại {path}."
 
+msgid "No app opens them yet"
+msgstr "Chưa có ứng dụng nào mở chúng"
+
 msgid "No colour"
 msgstr "Không màu"
 
@@ -1229,11 +1247,17 @@ msgstr "Không có kết quả cho “{query}”"
 msgid "No ports found"
 msgstr "Không tìm thấy cổng nào"
 
+msgid "No profile named “{name}”"
+msgstr "Không có hồ sơ tên “{name}”"
+
 msgid "No profiles"
 msgstr "Không có hồ sơ"
 
 msgid "No profiles match “{filter}”"
 msgstr "Không có hồ sơ nào khớp “{filter}”"
+
+msgid "No recent profile {index}"
+msgstr "Không có hồ sơ gần đây số {index}"
 
 msgid "No results"
 msgstr "Không có kết quả"
@@ -1246,6 +1270,9 @@ msgstr "Chưa chọn cổng serial"
 
 msgid "No serial ports found"
 msgstr "Không tìm thấy cổng serial nào"
+
+msgid "No such directory {path}"
+msgstr "Không có thư mục {path}"
 
 msgid "No such file or directory"
 msgstr "Không có tệp hoặc thư mục này"
@@ -1289,6 +1316,9 @@ msgstr "Thông báo khi có hoạt động"
 msgid "Notify when done"
 msgstr "Thông báo khi xong"
 
+msgid "Now opened by {app}"
+msgstr "Hiện được mở bằng {app}"
+
 msgid "OK"
 msgstr "OK"
 
@@ -1324,6 +1354,9 @@ msgstr "Mở trong tab mới"
 
 msgid "Open profiles"
 msgstr "Mở hồ sơ"
+
+msgid "Open ssh:// and telnet:// links"
+msgstr "Mở liên kết ssh:// và telnet://"
 
 msgid "Option key acts as Meta"
 msgstr "Phím Option dùng làm Meta"
@@ -1381,6 +1414,9 @@ msgstr "Mật khẩu & khoá riêng"
 
 msgid "Paste"
 msgstr "Dán"
+
+msgid "Paste \"{text}\"?"
+msgstr "Dán \"{text}\"?"
 
 msgid "Paste from clipboard"
 msgstr "Dán từ bảng nhớ tạm"
@@ -1672,6 +1708,12 @@ msgstr "Phải"
 
 msgid "Right click"
 msgstr "Nhấp chuột phải"
+
+msgid "Run"
+msgstr "Chạy"
+
+msgid "Run \"{command}\"?"
+msgstr "Chạy \"{command}\"?"
 
 msgid "SFTP"
 msgstr "SFTP"
@@ -2039,6 +2081,9 @@ msgstr "TabbyMac"
 msgid "TabbyMac Recovery Key"
 msgstr "Khoá khôi phục TabbyMac"
 
+msgid "TabbyMac opens them"
+msgstr "TabbyMac đang mở chúng"
+
 msgid "TabbyMac recovery key"
 msgstr "Khoá khôi phục TabbyMac"
 
@@ -2266,6 +2311,9 @@ msgstr "Tải khoá riêng lên tài khoản của bạn?"
 
 msgid "Upload {selectedCount}"
 msgstr "Tải lên {selectedCount}"
+
+msgid "Use TabbyMac"
+msgstr "Dùng TabbyMac"
 
 msgid "Use TabbyMac on every Mac"
 msgstr "Dùng TabbyMac trên mọi máy Mac"
@@ -2554,6 +2602,9 @@ msgstr "chọn"
 
 msgid "ssh default identity"
 msgstr "danh tính mặc định của ssh"
+
+msgid "tabby open, run, profile, paste, recent and quickConnect, as in Tabby."
+msgstr "tabby open, run, profile, paste, recent và quickConnect, giống như Tabby."
 
 msgid "the HTTP proxy answered {answer}"
 msgstr "proxy HTTP trả lời {answer}"

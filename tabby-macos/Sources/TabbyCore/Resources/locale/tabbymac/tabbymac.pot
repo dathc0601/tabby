@@ -187,10 +187,16 @@ msgstr ""
 msgid "Cannot delete"
 msgstr ""
 
+msgid "Cannot handle scripts of this type"
+msgstr ""
+
 msgid "Cannot open"
 msgstr ""
 
 msgid "Cannot open {path}: {reason}"
+msgstr ""
+
+msgid "Cannot open “{query}” with {provider}"
 msgstr ""
 
 msgid "Cannot read"
@@ -280,6 +286,9 @@ msgstr ""
 msgid "Command not found: {executable}"
 msgstr ""
 
+msgid "Command-line tool"
+msgstr ""
+
 msgid "Compression"
 msgstr ""
 
@@ -323,6 +332,9 @@ msgid "Connects and logs in with these values; no shell is opened"
 msgstr ""
 
 msgid "Continue"
+msgstr ""
+
+msgid "Copy install command"
 msgstr ""
 
 msgid "Copy, or paste when nothing is selected"
@@ -736,6 +748,9 @@ msgstr ""
 msgid "Light appearance"
 msgstr ""
 
+msgid "Links"
+msgstr ""
+
 msgid "Loading devices…"
 msgstr ""
 
@@ -808,6 +823,9 @@ msgstr ""
 msgid "No Tabby config found at {path}."
 msgstr ""
 
+msgid "No app opens them yet"
+msgstr ""
+
 msgid "No colour"
 msgstr ""
 
@@ -835,10 +853,16 @@ msgstr ""
 msgid "No ports found"
 msgstr ""
 
+msgid "No profile named “{name}”"
+msgstr ""
+
 msgid "No profiles"
 msgstr ""
 
 msgid "No profiles match “{filter}”"
+msgstr ""
+
+msgid "No recent profile {index}"
 msgstr ""
 
 msgid "No results"
@@ -851,6 +875,9 @@ msgid "No serial port selected"
 msgstr ""
 
 msgid "No serial ports found"
+msgstr ""
+
+msgid "No such directory {path}"
 msgstr ""
 
 msgid "No such file or directory"
@@ -883,6 +910,9 @@ msgstr ""
 msgid "Nothing here yet"
 msgstr ""
 
+msgid "Now opened by {app}"
+msgstr ""
+
 msgid "OK"
 msgstr ""
 
@@ -902,6 +932,9 @@ msgid "Open in a new tab"
 msgstr ""
 
 msgid "Open profiles"
+msgstr ""
+
+msgid "Open ssh:// and telnet:// links"
 msgstr ""
 
 msgid "Option key acts as Meta"
@@ -929,6 +962,9 @@ msgid "Password for {user}@{host}"
 msgstr ""
 
 msgid "Passwords & private keys"
+msgstr ""
+
+msgid "Paste \"{text}\"?"
 msgstr ""
 
 msgid "Paste on middle click"
@@ -1124,6 +1160,12 @@ msgid "Revert"
 msgstr ""
 
 msgid "Review…"
+msgstr ""
+
+msgid "Run"
+msgstr ""
+
+msgid "Run \"{command}\"?"
 msgstr ""
 
 msgid "SFTP"
@@ -1381,6 +1423,9 @@ msgstr ""
 msgid "TabbyMac Recovery Key"
 msgstr ""
 
+msgid "TabbyMac opens them"
+msgstr ""
+
 msgid "TabbyMac recovery key"
 msgstr ""
 
@@ -1577,6 +1622,9 @@ msgid "Upload private keys to your account?"
 msgstr ""
 
 msgid "Upload {selectedCount}"
+msgstr ""
+
+msgid "Use TabbyMac"
 msgstr ""
 
 msgid "Use TabbyMac on every Mac"
@@ -1814,6 +1862,9 @@ msgid "pipe failed: {reason}"
 msgstr ""
 
 msgid "ssh default identity"
+msgstr ""
+
+msgid "tabby open, run, profile, paste, recent and quickConnect, as in Tabby."
 msgstr ""
 
 msgid "the HTTP proxy answered {answer}"
