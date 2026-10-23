@@ -9,9 +9,43 @@ public enum POCatalog {
         context.map { "\($0)\u{04}\(msgid)" } ?? msgid
     }
 
+    public struct Entry: Equatable, Sendable {
+        public var context: String?
+        public var id: String
+        public var translation: String
+        public var fuzzy: Bool
+    }
+
+    /// The usable translations: not empty, not fuzzy, and ★ not renaming a placeholder
+    /// (Tabby's Swedish catalog has `{nummer}` for `{number}`, which would print as is), so
+    /// such an entry falls back to English.
     public static func parse(_ text: String) -> [String: String] {
-        enum Field { case context, id, idPlural, str, otherStr }
         var result: [String: String] = [:]
+        for e in entries(text) where !e.id.isEmpty && !e.translation.isEmpty && !e.fuzzy
+            && placeholders(e.translation).isSubset(of: placeholders(e.id)) {
+            result[key(e.id, context: e.context)] = e.translation
+        }
+        return result
+    }
+
+    /// The `{name}` placeholders of a message.
+    public static func placeholders(_ text: String) -> Set<String> {
+        var names: Set<String> = []
+        var current: String?
+        for ch in text {
+            if ch == "{" { current = "" }
+            else if ch == "}" { if let c = current, !c.isEmpty { names.insert(c) }; current = nil }
+            else if current != nil {
+                if ch.isLetter || ch.isNumber || ch == "_" { current?.append(ch) } else { current = nil }
+            }
+        }
+        return names
+    }
+
+    /// Every entry of a catalog, untranslated ones included (the header has an empty id).
+    public static func entries(_ text: String) -> [Entry] {
+        enum Field { case context, id, idPlural, str, otherStr }
+        var result: [Entry] = []
         var context: String?
         var id: String?
         var str: String?
@@ -20,9 +54,7 @@ public enum POCatalog {
         var pendingFuzzy = false
 
         func flush() {
-            if let id, !id.isEmpty, let str, !str.isEmpty, !fuzzy {
-                result[key(id, context: context)] = str
-            }
+            if let id { result.append(Entry(context: context, id: id, translation: str ?? "", fuzzy: fuzzy)) }
             context = nil; id = nil; str = nil; field = nil; fuzzy = false
         }
         /// A `msgctxt` or `msgid` that starts a new entry.

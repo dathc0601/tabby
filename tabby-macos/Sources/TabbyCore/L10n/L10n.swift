@@ -63,11 +63,16 @@ public enum L10n {
 }
 
 /// The current language's text for `key` (the English text, Tabby's msgid), with `{name}`
-/// placeholders filled from `args`. Falls back to the English text.
-public func L(_ key: String, _ args: [String: CustomStringConvertible] = [:], context: String? = nil) -> String {
-    var text = L10n.translation(POCatalog.key(key, context: context)) ?? key
+/// placeholders filled from `args`. Falls back to the English text. Keys are static text so
+/// the catalog test can find them (`Tests/TabbyCoreTests/CatalogTests.swift`).
+public func L(_ key: String, _ args: [String: CustomStringConvertible] = [:]) -> String {
+    var text = L10n.translation(key) ?? key
     for (name, value) in args {
         text = text.replacingOccurrences(of: "{\(name)}", with: value.description)
     }
     return text
 }
+
+/// Marks a catalog key that is translated where it is shown (`L(name)`), like Tabby's `_()`
+/// marker: hotkey names, settings sections.
+public func Lkey(_ key: String) -> String { key }

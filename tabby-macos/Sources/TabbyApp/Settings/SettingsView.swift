@@ -20,7 +20,21 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     /// The sidebar and page title in the current language.
-    var title: String { L(rawValue) }
+    var title: String {
+        switch self {
+        case .application: return L("Application")
+        case .appearance: return L("Appearance")
+        case .colorScheme: return L("Color scheme")
+        case .terminal: return L("Terminal")
+        case .window: return L("Window")
+        case .profiles: return L("Profiles & connections")
+        case .ssh: return L("SSH")
+        case .hotkeys: return L("Hotkeys")
+        case .vault: return L("Vault")
+        case .account: return L("Account & sync")
+        case .configFile: return L("Config file")
+        }
+    }
 
     /// SF Symbols from the design's icon table.
     var icon: String {
