@@ -309,15 +309,15 @@ final class SFTPPanelController {
         }
     }
 
-    /// Editors save by replacing the file, so the folder is watched; changes settle for a
-    /// second before the upload. The watcher belongs to the session, not this panel (which
-    /// closes on any click in the terminal): it ends when the session does.
+    /// Saves are watched whether the editor replaces the file or writes into it; changes
+    /// settle for a second before the upload. The watcher belongs to the session, not this
+    /// panel (which closes on any click in the terminal): it ends when the session does.
     private func watch(folder: URL, file: URL, remote: String, mode: UInt32) {
         var lastModified = (try? FileManager.default.attributesOfItem(atPath: file.path)[.modificationDate]) as? Date
         let client = client
         let host = host
         let model = model
-        LocalEditWatchers.shared.watch(folder: folder, owner: owner) {
+        LocalEditWatchers.shared.watch(folder: folder, file: file, owner: owner) {
             let modified = (try? FileManager.default.attributesOfItem(atPath: file.path)[.modificationDate]) as? Date
             guard let modified, modified != lastModified else { return }
             lastModified = modified
@@ -331,36 +331,99 @@ final class SFTPPanelController {
         }
     }
 }
-/// "Edit locally" folders watched for saves, by the session they belong to.
+/// "Edit locally" files watched for saves, by the session they belong to.
 @MainActor
 final class LocalEditWatchers {
     static let shared = LocalEditWatchers()
-    private var sources: [ObjectIdentifier: [DispatchSourceFileSystemObject]] = [:]
+    private var watches: [ObjectIdentifier: [Watch]] = [:]
 
-    /// Calls `changed` (main queue) a second after the folder's contents settle.
-    @discardableResult
-    func watch(folder: URL, owner: ObjectIdentifier, changed: @escaping @MainActor () -> Void) -> Bool {
-        let fd = open(folder.path, O_EVTONLY)
-        guard fd >= 0 else { return false }
-        let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: [.write, .rename, .attrib], queue: .main)
+    /// One edited file. Its folder is watched for editors that save by replacing the file
+    /// (TextEdit), the file itself for writes in place (a shell `>>`, editors that overwrite;
+    /// found in the M8 walk), and the file again after each replace, since its watch followed
+    /// the old one.
+    @MainActor
+    private final class Watch {
+        let file: URL
+        let changed: @MainActor () -> Void
+        var folderSource: DispatchSourceFileSystemObject?
+        var fileSource: DispatchSourceFileSystemObject?
         var pending: DispatchWorkItem?
-        source.setEventHandler {
+        var isCancelled = false
+
+        init(file: URL, changed: @escaping @MainActor () -> Void) {
+            self.file = file
+            self.changed = changed
+        }
+
+        /// Calls `changed` a second after the changes settle.
+        func noticed() {
+            guard !isCancelled else { return }
             pending?.cancel()
+            let changed = changed
             let work = DispatchWorkItem { MainActor.assumeIsolated { changed() } }
             pending = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
         }
-        source.setCancelHandler { close(fd) }
-        source.resume()
-        sources[owner, default: []].append(source)
+
+        func watchFile() {
+            fileSource?.cancel()
+            fileSource = nil
+            guard !isCancelled,
+                  let source = LocalEditWatchers.source(file.path, events: [.write, .extend, .attrib, .rename, .delete]) else { return }
+            source.setEventHandler { [weak self] in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    if self.fileSource?.data.contains(.rename) == true || self.fileSource?.data.contains(.delete) == true {
+                        self.watchFile()
+                    }
+                    self.noticed()
+                }
+            }
+            source.resume()
+            fileSource = source
+        }
+
+        func cancel() {
+            isCancelled = true
+            pending?.cancel()
+            folderSource?.cancel()
+            fileSource?.cancel()
+        }
+    }
+
+    /// Calls `changed` (main queue) a second after `file`'s changes settle.
+    @discardableResult
+    func watch(folder: URL, file: URL, owner: ObjectIdentifier, changed: @escaping @MainActor () -> Void) -> Bool {
+        guard let folderSource = Self.source(folder.path, events: [.write, .rename, .attrib]) else { return false }
+        let watch = Watch(file: file, changed: changed)
+        folderSource.setEventHandler { [weak watch] in
+            MainActor.assumeIsolated {
+                guard let watch else { return }
+                // Something in the folder changed: perhaps a new file under the same name.
+                watch.watchFile()
+                watch.noticed()
+            }
+        }
+        folderSource.resume()
+        watch.folderSource = folderSource
+        watch.watchFile()
+        watches[owner, default: []].append(watch)
         return true
     }
 
-    func count(owner: ObjectIdentifier) -> Int { sources[owner]?.count ?? 0 }
+    nonisolated fileprivate static func source(_ path: String, events: DispatchSource.FileSystemEvent) -> DispatchSourceFileSystemObject? {
+        let fd = open(path, O_EVTONLY)
+        guard fd >= 0 else { return nil }
+        let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: events, queue: .main)
+        source.setCancelHandler { close(fd) }
+        return source
+    }
+
+    func count(owner: ObjectIdentifier) -> Int { watches[owner]?.count ?? 0 }
 
     /// Stops watching for a session that ended.
     func cancel(owner: ObjectIdentifier) {
-        for source in sources.removeValue(forKey: owner) ?? [] { source.cancel() }
+        for watch in watches.removeValue(forKey: owner) ?? [] { watch.cancel() }
     }
 }
 #endif

@@ -208,13 +208,47 @@ final class SFTPPanelTests: XCTestCase {
         let a = ObjectIdentifier(sessionA)
         let b = ObjectIdentifier(sessionB)
         defer { withExtendedLifetime((sessionA, sessionB)) {} }
-        XCTAssertTrue(watchers.watch(folder: folder, owner: a) {})
-        XCTAssertTrue(watchers.watch(folder: folder, owner: a) {})
-        XCTAssertTrue(watchers.watch(folder: folder, owner: b) {})
+        XCTAssertTrue(watchers.watch(folder: folder, file: folder.appendingPathComponent("notes.txt"), owner: a) {})
+        XCTAssertTrue(watchers.watch(folder: folder, file: folder.appendingPathComponent("notes.txt"), owner: a) {})
+        XCTAssertTrue(watchers.watch(folder: folder, file: folder.appendingPathComponent("notes.txt"), owner: b) {})
         XCTAssertEqual(watchers.count(owner: a), 2)
         watchers.cancel(owner: a)
         XCTAssertEqual(watchers.count(owner: a), 0)
         XCTAssertEqual(watchers.count(owner: b), 1)
+    }
+
+    /// Found in the M8 walk: an edit written into the file in place (a shell `>>`, editors that
+    /// do not save by replacing the file) was never uploaded; only the folder was watched.
+    func testInPlaceAndReplacingSavesAreBothNoticed() throws {
+        let watchers = LocalEditWatchers()
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("watch-\(UUID().uuidString.prefix(6))")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let file = folder.appendingPathComponent("notes.txt")
+        try "a\n".write(to: file, atomically: false, encoding: .utf8)
+        let session = NSObject()
+        let owner = ObjectIdentifier(session)
+        defer { watchers.cancel(owner: owner); withExtendedLifetime(session) {} }
+        var changes = 0
+        XCTAssertTrue(watchers.watch(folder: folder, file: file, owner: owner) { changes += 1 })
+
+        func appendInPlace(_ text: String) throws {
+            let handle = try FileHandle(forWritingTo: file)
+            handle.seekToEndOfFile()
+            handle.write(Data(text.utf8))
+            try handle.close()
+        }
+        try appendInPlace("b\n")
+        TestApp.pump(until: { changes >= 1 }, timeout: 4)
+        XCTAssertEqual(changes, 1, "written in place")
+
+        try "c\n".write(to: file, atomically: true, encoding: .utf8)
+        TestApp.pump(until: { changes >= 2 }, timeout: 4)
+        XCTAssertEqual(changes, 2, "replaced, as TextEdit saves")
+
+        try appendInPlace("d\n")
+        TestApp.pump(until: { changes >= 3 }, timeout: 4)
+        XCTAssertEqual(changes, 3, "in place again: the new file is watched")
     }
 
     func testTheHotkeyNeedsAConnectedLibrarySession() throws {
