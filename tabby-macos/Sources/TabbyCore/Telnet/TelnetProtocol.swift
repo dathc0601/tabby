@@ -111,12 +111,14 @@ public final class TelnetProtocol {
         return out
     }
 
-    /// Records the size and returns the NAWS update to send, once the peer accepted NAWS.
+    /// Records the size and returns the NAWS update to send, once the peer accepted NAWS and
+    /// only when the size changed (shells redraw their prompt on every update).
     @discardableResult
     public func resize(cols: Int, rows: Int) -> Data {
         guard cols > 0, rows > 0 else { return Data() }
+        let changed = size.map { $0.cols != cols || $0.rows != rows } ?? true
         size = (cols, rows)
-        guard isActive, local.contains(Option.windowSize) else { return Data() }
+        guard changed, isActive, local.contains(Option.windowSize) else { return Data() }
         return windowSize()
     }
 

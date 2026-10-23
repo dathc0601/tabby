@@ -62,6 +62,15 @@ final class TelnetProtocolTests: XCTestCase {
                        "0xFF inside the size is doubled")
     }
 
+    // Found in M9: busybox's shell redraws its prompt on every NAWS, so the pane's repeated
+    // resize to the same size printed extra prompts.
+    func testAnUnchangedSizeIsNotSentAgain() {
+        let p = started(cols: 80, rows: 24)
+        _ = p.receive(Data([IAC, DO, NAWS]))
+        XCTAssertTrue(p.resize(cols: 80, rows: 24).isEmpty)
+        XCTAssertEqual(p.resize(cols: 81, rows: 24), Data([IAC, SB, NAWS, 0, 81, 0, 24, IAC, SE]))
+    }
+
     func testResizeSendsNothingBeforeTheServerWantsTheSize() {
         let p = started()
         XCTAssertTrue(p.resize(cols: 100, rows: 30).isEmpty)
