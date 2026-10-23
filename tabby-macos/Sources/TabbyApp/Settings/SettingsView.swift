@@ -19,6 +19,9 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// The sidebar and page title in the current language.
+    var title: String { L(rawValue) }
+
     /// SF Symbols from the design's icon table.
     var icon: String {
         switch self {
@@ -63,7 +66,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     func matches(_ query: String) -> Bool {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         guard !q.isEmpty else { return true }
-        return rawValue.lowercased().contains(q) || keywords.contains { $0.contains(q) }
+        return title.lowercased().contains(q) || rawValue.lowercased().contains(q) || keywords.contains { $0.contains(q) }
     }
 }
 
@@ -155,7 +158,7 @@ struct SettingsSidebar: View {
                 Image(systemName: section.icon).font(.system(size: 13))
                     .foregroundStyle((selected ? chrome.onAccent : chrome.textMuted).color)
                     .frame(width: 18)
-                Text(section.rawValue).font(ChromeFont.body)
+                Text(section.title).font(ChromeFont.body)
                     .foregroundStyle((selected ? chrome.onAccent : chrome.text).color)
                 Spacer(minLength: 0)
             }
@@ -311,6 +314,9 @@ struct ApplicationSettingsView: View {
         let services = AppServices.shared
         let _ = services.configRevision
         SettingsPage("Application") {
+            SettingsGroup {
+                SettingsRow(L("Language"), subtitle: L("Automatic follows the system language")) { LanguagePicker() }
+            }
             SettingsGroup("Configuration", footer: importMessage) {
                 SettingsRow("Config file") { RowPath(url: services.paths.configFile) }
                 SettingsRow("Import from Tabby", subtitle: "Replaces these settings with \((ConfigPaths.electronTabbyConfig.path as NSString).abbreviatingWithTildeInPath)") {

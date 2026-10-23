@@ -31,11 +31,7 @@ struct WelcomeView: View {
                         .foregroundStyle(chrome.textMuted.color)
                 }
                 SettingsGroup {
-                    SettingsRow("Language") {
-                        // Localization arrives with phase 5; English is the only language today.
-                        Picker("", selection: .constant("en")) { Text("English").tag("en") }
-                            .labelsHidden().fixedSize()
-                    }
+                    SettingsRow(L("Language")) { LanguagePicker() }
                     SettingsRow("Appearance") {
                         Picker("", selection: ConfigBinding.string("appearance.colorSchemeMode")) {
                             Text("System").tag("auto")

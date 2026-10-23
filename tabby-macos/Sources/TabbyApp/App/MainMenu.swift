@@ -8,8 +8,15 @@ import TabbyCore
 @MainActor
 enum MainMenu {
     private static var commandItems: [(NSMenuItem, String)] = []
+    private static var languageObserver: NSObjectProtocol?
 
     static func install() {
+        if languageObserver == nil {
+            // Phase 5: the menu bar is rebuilt in the new language.
+            languageObserver = NotificationCenter.default.addObserver(forName: AppServices.languageDidChange, object: nil, queue: nil) { _ in
+                MainActor.assumeIsolated { install() }
+            }
+        }
         // TabbyMac has its own tabs: keep macOS from adding its window-tab items (Show Tab Bar,
         // Merge All Windows, …) to the View and Window menus.
         NSWindow.allowsAutomaticWindowTabbing = false

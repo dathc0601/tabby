@@ -40,6 +40,10 @@ public final class AppServices {
     public private(set) var configRevision = 0
     /// Set when config.yaml could not be parsed at launch.
     public private(set) var loadError: String?
+    /// The language the interface shows (`language`, or the system's when that is null);
+    /// `nil` is English. Changing it reloads the catalogs and posts `languageDidChange`.
+    public private(set) var language: String?
+    public static let languageDidChange = Notification.Name("TabbyMacLanguageDidChange")
 
     @ObservationIgnored private var saveWork: DispatchWorkItem?
 
@@ -123,6 +127,31 @@ public final class AppServices {
         let account = account
         notifyingPasswords.onChange = { MainActor.assumeIsolated { account.localDataChanged() } }
         theme.update(config: config)
+        language = Self.resolveLanguage(config)
+        L10n.load(language: language)
+    }
+
+    /// The system's preferred languages; `TABBYMAC_PREFERRED_LANGUAGES` (comma-separated)
+    /// replaces them so tests run in English on any Mac.
+    static func preferredLanguages() -> [String] {
+        if let pinned = ProcessInfo.processInfo.environment["TABBYMAC_PREFERRED_LANGUAGES"] {
+            return pinned.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        }
+        return Locale.preferredLanguages
+    }
+
+    static func resolveLanguage(_ config: ConfigStore) -> String? {
+        Languages.resolve(configured: config.string("language"), preferred: preferredLanguages())
+    }
+
+    /// ★ Applies live: SwiftUI views re-render through `configRevision` and the menu bar is
+    /// rebuilt; text already printed in terminals stays as it was.
+    private func languageMayHaveChanged() {
+        let resolved = Self.resolveLanguage(config)
+        guard resolved != language else { return }
+        language = resolved
+        L10n.load(language: resolved)
+        NotificationCenter.default.post(name: Self.languageDidChange, object: self)
     }
 
     /// Call once at launch, after `shared` exists.
@@ -152,6 +181,7 @@ public final class AppServices {
     // MARK: Config
 
     private func configChanged() {
+        languageMayHaveChanged()
         configRevision += 1
         theme.update(config: config)
         sshFactory.environment.verifyHostKeys = config.value("ssh.verifyHostKeys")?.boolValue ?? true
