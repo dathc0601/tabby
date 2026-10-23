@@ -19,7 +19,9 @@ Read `README.md` and `docs/ARCHITECTURE.md` before larger changes.
   (`TabbySyncProtocol`, `TabbyAccount`, `TabbyApp/Account`, `../tabby-sync-server`; see
   `docs/SYNC-PROTOCOL.md`); its on-screen checks are M7. The server runs at
   https://tabby-sync.dcstyle.info since 2026-10-22 (Docker + Postgres behind nginx and
-  Cloudflare; see `../tabby-sync-server/README.md`). M6 and M7 still need the on-screen walk.
+  Cloudflare; see `../tabby-sync-server/README.md`). M6 and M7 were walked on 2026-10-23
+  (fixes in the Findings table); open: three mouse drags in M6, M7's no-network case, and a
+  short run against the live server (M7 used a local one).
 - Tests never touch the real Keychain, server or `~/.ssh`: `TestApp.boot` sets
   `TABBYMAC_SYNC_URL=memory:`, `TABBYMAC_KEYCHAIN=memory`, `TABBYMAC_SYNC_HOME`. Keep it so;
   a sync reads every saved SSH password.
