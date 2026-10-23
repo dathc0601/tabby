@@ -91,8 +91,9 @@ struct NewlineTranslator {
     }
 }
 
-/// The hexdump shown in "Hexadecimal" output mode: a 4-digit offset, 16 one-byte cells, a dim
-/// `｜`, the printable characters, and dim `╳` for cells past the end. Lines are joined by CRLF.
+/// The hexdump shown in "Hexadecimal" output mode: a dim 4-digit offset, 16 one-byte cells, a
+/// dim `｜`, the printable characters, and dim `╳` for cells past the end (design C9). Lines
+/// are joined by CRLF.
 public enum Hexdump {
     static let dim = "\u{1b}[90m"
     static let undim = "\u{1b}[39m"
@@ -103,7 +104,7 @@ public enum Hexdump {
         var offset = 0
         while offset < bytes.count {
             let row = bytes[offset..<min(offset + 16, bytes.count)]
-            var line = hex(offset, width: 4) + ":"
+            var line = dim + hex(offset, width: 4) + ":" + undim
             for b in row { line += " " + hex(Int(b), width: 2) }
             let missing = 16 - row.count
             line += String(repeating: "   ", count: missing)

@@ -165,7 +165,7 @@ final class PaneTests: XCTestCase {
         pane.start()
         wait(for: [ended], timeout: 10)
         XCTAssertEqual(pane.state, .ended(code: 2, canRestart: true))
-        XCTAssertTrue(engine.text.contains("exited with code 2"))
+        XCTAssertTrue(engine.text.contains("exited with code 2. Press any key to restart."), "a shell restarts")
         pane.send(text: "x")
         XCTAssertEqual(pane.state, .running, "any key restarts")
         pane.close()

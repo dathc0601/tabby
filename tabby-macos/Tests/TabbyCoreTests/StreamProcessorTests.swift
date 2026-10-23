@@ -182,7 +182,8 @@ final class StreamProcessorTests: XCTestCase {
         let p = processor(output: "hex")
         let dim = "\u{1b}[90m", undim = "\u{1b}[39m"
         let empty = "   "
-        let line = "0000: 48 69 0a" + String(repeating: empty, count: 13) + dim + " ｜ " + undim
+        // Design C9: the offset, the gutter and the empty cells are bright black.
+        let line = dim + "0000:" + undim + " 48 69 0a" + String(repeating: empty, count: 13) + dim + " ｜ " + undim
             + "Hi." + dim + String(repeating: "╳", count: 13) + undim
         XCTAssertEqual(text(p.fromSession(data("Hi\n"))), "\r\n" + line + "\r\n\n")
     }
@@ -191,13 +192,13 @@ final class StreamProcessorTests: XCTestCase {
         let dump = Hexdump.format(Data(0..<17))
         let lines = dump.components(separatedBy: "\r\n")
         XCTAssertEqual(lines.count, 2)
-        XCTAssertTrue(lines[0].hasPrefix("0000: 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f"))
-        XCTAssertTrue(lines[1].hasPrefix("0010: 10   "))
+        XCTAssertTrue(lines[0].hasPrefix("\u{1b}[90m0000:\u{1b}[39m 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f"))
+        XCTAssertTrue(lines[1].hasPrefix("\u{1b}[90m0010:\u{1b}[39m 10   "))
     }
 
     func testHexOutputIsTranslatedFirst() {
         let p = processor(output: "hex", outputNewlines: "crlf")
-        XCTAssertTrue(text(p.fromSession(data("\n"))).hasPrefix("\r\n0000: 0d 0a "))
+        XCTAssertTrue(text(p.fromSession(data("\n"))).hasPrefix("\r\n\u{1b}[90m0000:\u{1b}[39m 0d 0a "))
     }
 
     // MARK: Interrupting the prompt
@@ -220,8 +221,10 @@ final class ServiceMessageTests: XCTestCase {
                        "\u{1b}[0;30;46m SSH \u{1b}[0m a\r\n      b\r\n", "continuation lines line up after the badge")
     }
 
+    /// Design C9 and Tabby's sessions (`colors.bgRed.black(' X ')`): a black X on red, then
+    /// the message in the terminal's own colour.
     func testErrorsGetTheRedX() {
         XCTAssertEqual(String(decoding: ServiceMessage.error("Port is busy"), as: UTF8.self),
-                       "\u{1b}[0;37;41m X \u{1b}[0m \u{1b}[31mPort is busy\u{1b}[0m\r\n")
+                       "\u{1b}[0;30;41m X \u{1b}[0m Port is busy\r\n")
     }
 }

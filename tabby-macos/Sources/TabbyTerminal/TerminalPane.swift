@@ -309,13 +309,14 @@ public final class TerminalPane: TerminalEngineDelegate {
             onRequestClose?(self)
             return
         }
+        // A shell restarts; a connection reconnects (design C9).
         let message: String
         if isLocal {
-            message = code.map { "Process exited with code \($0)" } ?? "Process terminated"
+            message = (code.map { "Process exited with code \($0)" } ?? "Process terminated") + ". Press any key to restart."
         } else {
-            message = "Session closed"
+            message = "Session closed. Press any key to reconnect."
         }
-        engine?.feed(Data("\r\n\u{1b}[2m\(message). Press any key to restart.\u{1b}[0m\r\n".utf8))
+        engine?.feed(Data("\r\n\u{1b}[2m\(message)\u{1b}[0m\r\n".utf8))
         state = .ended(code: code, canRestart: true)
         if autoReconnect {
             if reconnectAttempt >= Self.maxReconnectAttempts {

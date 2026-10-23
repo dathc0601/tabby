@@ -2,7 +2,7 @@ import Foundation
 
 /// The lines a connection writes into its own terminal: an inverse badge naming the
 /// connection type, then the text (Tabby's `emitServiceMessage` in each plugin's tab), and
-/// the red ` X ` error line.
+/// the error line: a black ` X ` on red, then the message (design C9).
 public enum ServiceMessage {
     public enum Badge: Sendable {
         case ssh, serial, telnet
@@ -27,6 +27,6 @@ public enum ServiceMessage {
     }
 
     public static func error(_ text: String) -> Data {
-        Data("\u{1b}[0;37;41m X \u{1b}[0m \u{1b}[31m\(text)\u{1b}[0m\r\n".utf8)
+        Data("\u{1b}[0;30;41m X \u{1b}[0m \(text)\r\n".utf8)
     }
 }
