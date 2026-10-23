@@ -153,6 +153,36 @@ final class SFTPPanelTests: XCTestCase {
         XCTAssertFalse(container.subviews.contains { $0 is SFTPDismissCatcher })
     }
 
+    /// Found in the M8 walk: double-clicking the breadcrumb showed the path field without the
+    /// keys; ⌘A then selected the terminal's text.
+    func testTypingAPathStartsInItsField() throws {
+        TestApp.boot()
+        let c = WindowManager.shared.newWindow(openDefaultTab: false)
+        defer { TestApp.dispose(c) }
+        c.model.openTab()
+        let window = try XCTUnwrap(c.window)
+        TestApp.pump(until: { self.views(window.contentView!).contains { $0 is PaneContainerView } })
+        let container = try XCTUnwrap(views(window.contentView!).compactMap { $0 as? PaneContainerView }.first)
+        let model = SFTPPanelModel(host: "prod", client: makeServer())
+        let controller = SFTPPanelController(model: model, client: makeServer(), paneID: container.pane.id, owner: ObjectIdentifier(self))
+        SFTPPanels.shared.present(controller)
+        defer { SFTPPanels.shared.close(container.pane.id) }
+        TestApp.pump(until: { container.subviews.contains { $0 is NSHostingView<SFTPPanelView> } })
+        let panel = try XCTUnwrap(container.subviews.first { $0 is NSHostingView<SFTPPanelView> })
+
+        model.editPath()
+        func pathField() -> NSTextField? {
+            guard let editor = window.firstResponder as? NSTextView, editor.isFieldEditor,
+                  let field = editor.delegate as? NSTextField, field.isDescendant(of: panel),
+                  field.placeholderString == "Path" else { return nil }
+            return field
+        }
+        TestApp.pump(until: { pathField() != nil }, timeout: 2)
+        TestApp.pump(0.2)
+        XCTAssertNotNil(pathField(), "keys go to \(String(describing: window.firstResponder))")
+        XCTAssertEqual(pathField()?.stringValue, model.path, "it starts with the current path")
+    }
+
     /// Review C2/C3: a session's panel closes when the session ends.
     func testASessionsPanelClosesWhenItEnds() {
         let owner = NSObject()

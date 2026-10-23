@@ -21,8 +21,6 @@ private struct SFTPPanelContent: View {
     let close: () -> Void
     @Environment(\.chrome) private var chrome
     @Environment(\.metrics) private var metrics
-    @State private var editingPath = false
-    @State private var pathDraft = ""
     @State private var dropTargeted = false
     @FocusState private var filterFocused: Bool
 
@@ -57,22 +55,19 @@ private struct SFTPPanelContent: View {
 
     private var header: some View {
         HStack(spacing: 4) {
-            if editingPath {
-                TextField("Path", text: $pathDraft)
+            if model.isEditingPath {
+                TextField("Path", text: Bindable(model).pathDraft)
                     .textFieldStyle(.roundedBorder)
                     .font(.custom("Menlo", size: 12))
                     .onSubmit {
-                        editingPath = false
-                        Task { await model.navigate(to: pathDraft) }
+                        model.endEditingPath()
+                        Task { await model.navigate(to: model.pathDraft) }
                     }
-                    .onExitCommand { editingPath = false }
+                    .onExitCommand { model.endEditingPath() }
             } else {
                 breadcrumb
                     .contentShape(Rectangle())
-                    .onTapGesture(count: 2) {
-                        pathDraft = model.path
-                        editingPath = true
-                    }
+                    .onTapGesture(count: 2) { model.editPath() }
             }
             Spacer(minLength: 8)
             IconButton(symbol: "arrow.clockwise", help: "Refresh", size: 26) { Task { await model.refresh() } }

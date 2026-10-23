@@ -293,7 +293,8 @@ final class PaneContainerView: NSView {
             _ = KeyboardInteractivePanels.shared.models[paneID]?.index
         }, apply: { [weak self] in self?.updateAuthPanel() })
         sftpLoop = ObservationLoop(track: {
-            _ = SFTPPanels.shared.controllers[paneID]
+            // Editing the path too: the field that replaces the breadcrumb needs the keys.
+            _ = SFTPPanels.shared.controllers[paneID]?.model.isEditingPath
         }, apply: { [weak self] in self?.updateSFTPPanel() })
         appearanceLoop = ObservationLoop(track: { [weak self] in
             guard let self else { return }
@@ -343,7 +344,10 @@ final class PaneContainerView: NSView {
     private func updateSFTPPanel() {
         let paneID = pane.id
         if let controller = SFTPPanels.shared.controllers[paneID] {
-            if let sftpHost, sftpHost.rootView.controller === controller { return }
+            if let sftpHost, sftpHost.rootView.controller === controller {
+                if controller.model.isEditingPath { focusField(in: sftpHost, placeholder: "Path") }
+                return
+            }
             sftpHost?.removeFromSuperview()
             let host = NSHostingView(rootView: SFTPPanelView(controller: controller, close: { SFTPPanels.shared.close(paneID) }))
             host.safeAreaRegions = []
@@ -464,25 +468,28 @@ final class PaneContainerView: NSView {
     /// responder is not enough (the keys stop at the host), and the field may need a turn or
     /// two to exist. `secure` waits for that kind of field (a panel swapping a hidden field
     /// for a plain one still shows the old one for a turn).
-    private func focusField(in host: NSView, secure: Bool? = nil, attempts: Int = 5) {
+    private func focusField(in host: NSView, secure: Bool? = nil, placeholder: String? = nil, attempts: Int = 5) {
         DispatchQueue.main.async { [weak self, weak host] in
             MainActor.assumeIsolated {
                 guard let self, let host, host.superview === self else { return }
-                if let field = Self.editableTextField(in: host, secure: secure) {
+                if let field = Self.editableTextField(in: host, secure: secure, placeholder: placeholder) {
                     self.window?.makeFirstResponder(field)
                 } else if attempts > 0 {
-                    self.focusField(in: host, secure: secure, attempts: attempts - 1)
+                    self.focusField(in: host, secure: secure, placeholder: placeholder, attempts: attempts - 1)
                 }
             }
         }
     }
 
-    private static func editableTextField(in view: NSView, secure: Bool? = nil) -> NSTextField? {
+    private static func editableTextField(in view: NSView, secure: Bool? = nil, placeholder: String? = nil) -> NSTextField? {
         if let field = view as? NSTextField, field.isEditable,
-           secure.map({ $0 == (field is NSSecureTextField) }) ?? true {
+           secure.map({ $0 == (field is NSSecureTextField) }) ?? true,
+           placeholder.map({ $0 == field.placeholderString }) ?? true {
             return field
         }
-        for sub in view.subviews { if let field = editableTextField(in: sub, secure: secure) { return field } }
+        for sub in view.subviews {
+            if let field = editableTextField(in: sub, secure: secure, placeholder: placeholder) { return field }
+        }
         return nil
     }
 

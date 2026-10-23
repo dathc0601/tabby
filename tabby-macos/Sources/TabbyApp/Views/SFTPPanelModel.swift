@@ -38,6 +38,9 @@ final class SFTPPanelModel {
     private var hasOpenedAFolder = false
     var filterText = ""
     var showsFilter = false
+    /// The breadcrumb is replaced by a field to type a path (double-click).
+    private(set) var isEditingPath = false
+    var pathDraft = ""
     private(set) var isLoading = false
     private(set) var error: String?
 
@@ -49,6 +52,15 @@ final class SFTPPanelModel {
     /// Where the panel opens: the shell's reported folder, else where it was last, else `/`.
     static func startPath(shellDirectory: String?, last: String?) -> String {
         shellDirectory.flatMap { $0.isEmpty ? nil : $0 } ?? last ?? "/"
+    }
+
+    func editPath() {
+        pathDraft = path
+        isEditingPath = true
+    }
+
+    func endEditingPath() {
+        isEditingPath = false
     }
 
     var entries: [SFTPEntry] { SFTPEntry.sorted(SFTPEntry.filtered(listing, by: filterText)) }
