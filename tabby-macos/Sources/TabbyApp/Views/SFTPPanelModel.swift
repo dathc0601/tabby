@@ -71,7 +71,7 @@ final class SFTPPanelModel {
     var emptyMessage: String? {
         let text = filterText.trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty, entries.isEmpty, !listing.isEmpty else { return nil }
-        return "No files match the filter “\(text)”"
+        return L("No files match the filter “{text}”", ["text": text])
     }
 
     func navigate(to newPath: String) async {
@@ -126,7 +126,7 @@ final class SFTPPanelModel {
     }
 
     struct InvalidName: LocalizedError {
-        var errorDescription: String? { "A folder name cannot be empty or contain “/”." }
+        var errorDescription: String? { L("A folder name cannot be empty or contain “/”.") }
     }
 
     /// Creates a folder here and opens it (Tabby).

@@ -26,21 +26,21 @@ struct WelcomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Welcome to TabbyMac").font(.system(size: 24, weight: .semibold))
-                    Text("A few choices before you start. All of them can be changed later in Settings.")
+                    Text(L("Welcome to TabbyMac")).font(.system(size: 24, weight: .semibold))
+                    Text(L("A few choices before you start. All of them can be changed later in Settings."))
                         .foregroundStyle(chrome.textMuted.color)
                 }
                 SettingsGroup {
                     SettingsRow(L("Language")) { LanguagePicker() }
-                    SettingsRow("Appearance") {
+                    SettingsRow(L("Appearance")) {
                         Picker("", selection: ConfigBinding.string("appearance.colorSchemeMode")) {
-                            Text("System").tag("auto")
-                            Text("Dark").tag("dark")
-                            Text("Light").tag("light")
+                            Text(L("System")).tag("auto")
+                            Text(L("Dark")).tag("dark")
+                            Text(L("Light")).tag("light")
                         }
                         .pickerStyle(.segmented).labelsHidden().fixedSize()
                     }
-                    SettingsRow("Global hotkey", subtitle: "Show and hide TabbyMac from any app with ⌃Space",
+                    SettingsRow(L("Global hotkey"), subtitle: L("Show and hide TabbyMac from any app with ⌃Space"),
                                 isOn: Self.globalHotkey)
                 }
                 HStack {
@@ -50,7 +50,7 @@ struct WelcomeView: View {
                         close()
                     }) {
                         HStack(spacing: 8) {
-                            Text("Close and never show again")
+                            Text(L("Close and never show again"))
                             Text("↩").font(.system(size: 11)).opacity(0.75)
                         }
                     }

@@ -129,9 +129,9 @@ enum SerialSelectors {
         return SelectorConfig(placeholder: L("Serial port or profile"), items: items, dynamicItems: { query in
             guard query.hasPrefix("/"), let profile = provider.quickConnect(query) else { return [] }
             let o = SerialOptions(profile.options)
-            let target = o.port.map { port in o.baudrate.map { "\(port) at \($0) baud" } ?? port } ?? query
+            let target = o.port.map { port in o.baudrate.map { L("{port} at {rate} baud", ["port": port, "rate": $0]) } ?? port } ?? query
             return [SelectorItem(id: "qc", title: L("Quick connect"), subtitle: target, icon: "bolt") { open(profile) }]
-        }, dynamicItemsFirst: true, trailingHint: StartPageView.shortcut("serial").map { "\($0) serial" })
+        }, dynamicItemsFirst: true, trailingHint: StartPageView.shortcut("serial").map { L("{shortcut} serial", ["shortcut": $0]) })
     }
 }
 #endif

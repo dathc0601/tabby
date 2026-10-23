@@ -79,7 +79,7 @@ final class SelectorPanel: NSPanel {
     /// "⌘E profiles · ⌘⇧P commands", the footer of the general selectors.
     static var profilesAndCommandsHint: String? {
         guard let profiles = StartPageView.shortcut("profile-selector"), let commands = StartPageView.shortcut("command-selector") else { return nil }
-        return "\(profiles) profiles · \(commands) commands"
+        return L("{profiles} profiles · {commands} commands", ["profiles": profiles, "commands": commands])
     }
 
     static func present(over window: NSWindow?, placeholder: String, items: [SelectorItem],
@@ -216,7 +216,7 @@ private struct SelectorContent: View {
                     .onKeyPress(.downArrow) { selection = min(selection + 1, max(list.count - 1, 0)); return .handled }
                     .onKeyPress(.upArrow) { selection = max(selection - 1, 0); return .handled }
                     .onExitCommand { finish(nil) }
-                Keycap("esc")
+                Keycap("esc") // l10n-ignore: the key's name
             }
             .padding(.horizontal, 16)
             .frame(height: 52)
@@ -225,7 +225,7 @@ private struct SelectorContent: View {
                 VStack(spacing: 6) {
                     let empty = query.isEmpty ? config.emptyState : nil
                     Image(systemName: empty?.icon ?? "magnifyingglass").font(.system(size: 28)).foregroundStyle(chrome.textFaint.color)
-                    Text(empty?.title ?? (query.isEmpty ? "Nothing here yet" : "No matches for “\(query)”"))
+                    Text(empty?.title ?? (query.isEmpty ? L("Nothing here yet") : L("No matches for “{query}”", ["query": query])))
                         .font(ChromeFont.bodyEmphasised).foregroundStyle(chrome.text.color)
                     if let subtitle = empty?.subtitle {
                         Text(subtitle).font(ChromeFont.caption)
@@ -266,9 +266,9 @@ private struct SelectorContent: View {
             }
             Rectangle().fill(chrome.separator.color).frame(height: 1)
             HStack(spacing: 14) {
-                hint("↑↓", "select")
-                hint("↩", "open")
-                hint("esc", "close")
+                hint("↑↓", L("select"))
+                hint("↩", L("open"))
+                hint("esc", L("close")) // l10n-ignore: the key's name
                 Spacer()
                 if let trailing = config.trailingHint {
                     Text(trailing).foregroundStyle(chrome.textFaint.color)
@@ -322,7 +322,7 @@ struct SelectorRow: View {
                 Text(shortcut).font(ChromeFont.caption).foregroundStyle(muted.color)
             }
             if isSelected {
-                Text("↩ open").font(.system(size: 11, weight: .medium)).padding(.horizontal, 6).frame(height: 18)
+                Text(L("↩ open")).font(.system(size: 11, weight: .medium)).padding(.horizontal, 6).frame(height: 18)
                     .foregroundStyle(chrome.onAccent.color)
                     .background(Capsule().fill(chrome.onAccent.withAlpha(0.18).color))
                     .fixedSize()

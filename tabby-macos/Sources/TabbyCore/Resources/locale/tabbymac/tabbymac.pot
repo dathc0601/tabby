@@ -16,6 +16,12 @@ msgstr ""
 msgid "1 profile"
 msgstr ""
 
+msgid "A few choices before you start. All of them can be changed later in Settings."
+msgstr ""
+
+msgid "A folder name cannot be empty or contain “/”."
+msgstr ""
+
 msgid "A socket path; empty uses the system agent (SSH_AUTH_SOCK)"
 msgstr ""
 
@@ -56,6 +62,9 @@ msgid "Add key…"
 msgstr ""
 
 msgid "Add script"
+msgstr ""
+
+msgid "Address"
 msgstr ""
 
 msgid "Agent and X11"
@@ -145,6 +154,9 @@ msgstr ""
 msgid "Built in"
 msgstr ""
 
+msgid "Cancelled"
+msgstr ""
+
 msgid "Change"
 msgstr ""
 
@@ -160,7 +172,13 @@ msgstr ""
 msgid "Clear Buffer"
 msgstr ""
 
+msgid "Clear finished"
+msgstr ""
+
 msgid "Close Pane"
+msgstr ""
+
+msgid "Close search (esc)"
 msgstr ""
 
 msgid "Close this pane?"
@@ -176,6 +194,9 @@ msgid "Close {busyCount} tabs?"
 msgstr ""
 
 msgid "Closing the last tab closes the window"
+msgstr ""
+
+msgid "Colour"
 msgstr ""
 
 msgid "Colour scheme"
@@ -211,6 +232,9 @@ msgstr ""
 msgid "Connect a device, or type its path"
 msgstr ""
 
+msgid "Connected"
+msgstr ""
+
 msgid "Connections"
 msgstr ""
 
@@ -224,6 +248,9 @@ msgid "Copy, or paste when nothing is selected"
 msgstr ""
 
 msgid "Could not change the baud rate"
+msgstr ""
+
+msgid "Could not delete"
 msgstr ""
 
 msgid "Couldn't read config.yaml"
@@ -247,7 +274,13 @@ msgstr ""
 msgid "Cursor"
 msgstr ""
 
+msgid "Custom baud rate"
+msgstr ""
+
 msgid "Custom scheme · “{name} (edited)”"
+msgstr ""
+
+msgid "Cyan"
 msgstr ""
 
 msgid "Cycle through tabs"
@@ -289,10 +322,16 @@ msgstr ""
 msgid "Delete your account?"
 msgstr ""
 
+msgid "Delete {path}?"
+msgstr ""
+
 msgid "Delete “{name}”?"
 msgstr ""
 
 msgid "Deletes the {profiles}, {passwords} and {keys} that came from your account; what was made on this Mac stays"
+msgstr ""
+
+msgid "Description"
 msgstr ""
 
 msgid "Detect progress in output"
@@ -305,6 +344,9 @@ msgid "Devices"
 msgstr ""
 
 msgid "Disconnect tab"
+msgstr ""
+
+msgid "Disconnected"
 msgstr ""
 
 msgid "Dismiss"
@@ -334,7 +376,16 @@ msgstr ""
 msgid "Done"
 msgstr ""
 
+msgid "Download directory"
+msgstr ""
+
+msgid "Download here"
+msgstr ""
+
 msgid "Draw bold text in bright colours"
+msgstr ""
+
+msgid "Drop to upload to {path}"
 msgstr ""
 
 msgid "Dynamic"
@@ -355,6 +406,9 @@ msgstr ""
 msgid "Enter Full Screen"
 msgstr ""
 
+msgid "Enter the address to forward to."
+msgstr ""
+
 msgid "Enter the recovery key you saved when you created the account, then choose a new password."
 msgstr ""
 
@@ -362,6 +416,9 @@ msgid "Even"
 msgstr ""
 
 msgid "Every Mac is signed out and the synced data is deleted from the server."
+msgstr ""
+
+msgid "Everything in it is deleted too."
 msgstr ""
 
 msgid "Expect"
@@ -407,6 +464,15 @@ msgid "Forwards start with the session"
 msgstr ""
 
 msgid "Frame"
+msgstr ""
+
+msgid "From {host}"
+msgstr ""
+
+msgid "GitHub"
+msgstr ""
+
+msgid "Global hotkey"
 msgstr ""
 
 msgid "Good"
@@ -458,6 +524,9 @@ msgid "Imported. Some changes apply to new tabs only."
 msgstr ""
 
 msgid "Import…"
+msgstr ""
+
+msgid "In use"
 msgstr ""
 
 msgid "Increase horizontal pane size"
@@ -535,7 +604,13 @@ msgstr ""
 msgid "Mac"
 msgstr ""
 
+msgid "Magenta"
+msgstr ""
+
 msgid "Make a new recovery key"
+msgstr ""
+
+msgid "Match case"
 msgstr ""
 
 msgid "Maximize Pane"
@@ -574,6 +649,9 @@ msgstr ""
 msgid "Next Pane"
 msgstr ""
 
+msgid "Next match (↩)"
+msgstr ""
+
 msgid "Next tab (MRU order)"
 msgstr ""
 
@@ -589,6 +667,9 @@ msgstr ""
 msgid "No colour"
 msgstr ""
 
+msgid "No files match the filter “{text}”"
+msgstr ""
+
 msgid "No forwarded ports"
 msgstr ""
 
@@ -601,6 +682,9 @@ msgstr ""
 msgid "No login scripts"
 msgstr ""
 
+msgid "No matches for “{query}”"
+msgstr ""
+
 msgid "No ports found"
 msgstr ""
 
@@ -608,6 +692,9 @@ msgid "No profiles"
 msgstr ""
 
 msgid "No profiles match “{filter}”"
+msgstr ""
+
+msgid "No results"
 msgstr ""
 
 msgid "No saved passwords"
@@ -635,6 +722,9 @@ msgid "Not valid YAML"
 msgstr ""
 
 msgid "Nothing"
+msgstr ""
+
+msgid "Nothing here yet"
 msgstr ""
 
 msgid "OK"
@@ -667,6 +757,9 @@ msgstr ""
 msgid "Overrides the colour scheme for this profile's tabs."
 msgstr ""
 
+msgid "Pane {index} of {total} maximised"
+msgstr ""
+
 msgid "Passphrase for key"
 msgstr ""
 
@@ -682,16 +775,28 @@ msgstr ""
 msgid "Paste on middle click"
 msgstr ""
 
+msgid "Path"
+msgstr ""
+
 msgid "Personal account"
 msgstr ""
 
+msgid "Pin Tab"
+msgstr ""
+
 msgid "Pin tab"
+msgstr ""
+
+msgid "Pinned"
 msgstr ""
 
 msgid "Press up to three keys in a row for a chord."
 msgstr ""
 
 msgid "Previous Pane"
+msgstr ""
+
+msgid "Previous match (⇧↩)"
 msgstr ""
 
 msgid "Previous tab (MRU order)"
@@ -742,10 +847,22 @@ msgstr ""
 msgid "Reconnect tab"
 msgstr ""
 
+msgid "Reconnect to {address}?"
+msgstr ""
+
+msgid "Reconnecting {attempt}/{total}"
+msgstr ""
+
 msgid "Recovery key"
 msgstr ""
 
+msgid "Refresh"
+msgstr ""
+
 msgid "Regenerate…"
+msgstr ""
+
+msgid "Regular expression"
 msgstr ""
 
 msgid "Reject"
@@ -761,6 +878,9 @@ msgid "Remember in known_hosts"
 msgstr ""
 
 msgid "Remove"
+msgstr ""
+
+msgid "Remove from the list"
 msgstr ""
 
 msgid "Remove synced data from this Mac"
@@ -808,6 +928,9 @@ msgstr ""
 msgid "Restart Session"
 msgstr ""
 
+msgid "Restore"
+msgstr ""
+
 msgid "Restore defaults"
 msgstr ""
 
@@ -821,6 +944,9 @@ msgid "Revert"
 msgstr ""
 
 msgid "Review…"
+msgstr ""
+
+msgid "SFTP"
 msgstr ""
 
 msgid "SSH"
@@ -892,6 +1018,9 @@ msgstr ""
 msgid "Security"
 msgstr ""
 
+msgid "Select destination folder for {name}"
+msgstr ""
+
 msgid "Selection"
 msgstr ""
 
@@ -910,6 +1039,9 @@ msgstr ""
 msgid "Settings, hotkeys & colour schemes"
 msgstr ""
 
+msgid "Set…"
+msgstr ""
+
 msgid "Shape"
 msgstr ""
 
@@ -917,6 +1049,9 @@ msgid "Show / hide (global)"
 msgstr ""
 
 msgid "Show All"
+msgstr ""
+
+msgid "Show and hide TabbyMac from any app with ⌃Space"
 msgstr ""
 
 msgid "Show close button"
@@ -1006,6 +1141,9 @@ msgstr ""
 msgid "Step 2 of 2"
 msgstr ""
 
+msgid "Stop forwarding (puts it back in the form)"
+msgstr ""
+
 msgid "Stream processing"
 msgstr ""
 
@@ -1033,6 +1171,9 @@ msgstr ""
 msgid "Syncing stops on this Mac. Your data stays in your account."
 msgstr ""
 
+msgid "Syncing…"
+msgstr ""
+
 msgid "System"
 msgstr ""
 
@@ -1040,6 +1181,9 @@ msgid "System (SSH_AUTH_SOCK)"
 msgstr ""
 
 msgid "Tab bar location"
+msgstr ""
+
+msgid "Tab options"
 msgstr ""
 
 msgid "TabbyMac"
@@ -1052,6 +1196,9 @@ msgid "TabbyMac recovery key"
 msgstr ""
 
 msgid "TabbyMac saves these when you tick “Remember” at a password or passphrase prompt. Showing one may ask for your Mac password."
+msgstr ""
+
+msgid "Tabs out of view"
 msgstr ""
 
 msgid "Tabs stretch to fill the tab bar instead of using a fixed width"
@@ -1081,6 +1228,9 @@ msgstr ""
 msgid "The current key stops working. Your TabbyMac account password:"
 msgstr ""
 
+msgid "The directory could not be created"
+msgstr ""
+
 msgid "The email or password is not right."
 msgstr ""
 
@@ -1099,6 +1249,9 @@ msgstr ""
 msgid "The passwords don't match; nothing was changed."
 msgstr ""
 
+msgid "The port must be a number from 1 to 65535."
+msgstr ""
+
 msgid "The profile is removed here and, when profiles sync, on your other Macs. A password saved for it stays in the Keychain (Settings › Vault)."
 msgstr ""
 
@@ -1111,10 +1264,16 @@ msgstr ""
 msgid "The server stores ciphertext only; your password never leaves this Mac."
 msgstr ""
 
+msgid "The session is restarted; anything running in it ends."
+msgstr ""
+
 msgid "The sync server answered {status}."
 msgstr ""
 
 msgid "The sync server sent something unexpected."
+msgstr ""
+
+msgid "The target port must be a number from 1 to 65535."
 msgstr ""
 
 msgid "The top level must be a mapping"
@@ -1135,6 +1294,9 @@ msgstr ""
 msgid "This is the first connection to {host}. Compare the fingerprint with the one your administrator gave you before accepting."
 msgstr ""
 
+msgid "To {host}"
+msgstr ""
+
 msgid "Toggle Option as Meta key"
 msgstr ""
 
@@ -1142,6 +1304,9 @@ msgid "Too many attempts. Wait a minute and try again."
 msgstr ""
 
 msgid "Too short"
+msgstr ""
+
+msgid "Transfers"
 msgstr ""
 
 msgid "Translucent, blurred window background"
@@ -1177,7 +1342,16 @@ msgstr ""
 msgid "Unlocks the account if you forget the password"
 msgstr ""
 
+msgid "Unpin Tab"
+msgstr ""
+
 msgid "Up to date"
+msgstr ""
+
+msgid "Upload files"
+msgstr ""
+
+msgid "Upload folder"
 msgstr ""
 
 msgid "Upload private keys to your account?"
@@ -1222,6 +1396,9 @@ msgstr ""
 msgid "Verify host keys"
 msgstr ""
 
+msgid "Version {version}"
+msgstr ""
+
 msgid "View"
 msgstr ""
 
@@ -1243,6 +1420,9 @@ msgstr ""
 msgid "Welcome back"
 msgstr ""
 
+msgid "Welcome to TabbyMac"
+msgstr ""
+
 msgid "What to sync"
 msgstr ""
 
@@ -1259,6 +1439,9 @@ msgid "Where forwarded X11 connections go; empty uses $DISPLAY"
 msgstr ""
 
 msgid "While connected, change them from Ports on the connection chip"
+msgstr ""
+
+msgid "Whole word"
 msgstr ""
 
 msgid "Window opacity"
@@ -1321,6 +1504,12 @@ msgstr ""
 msgid "default identity"
 msgstr ""
 
+msgid "development build"
+msgstr ""
+
+msgid "esc close"
+msgstr ""
+
 msgid "for the dark appearance"
 msgstr ""
 
@@ -1336,6 +1525,9 @@ msgstr ""
 msgid "keyboard-interactive · prompt {number} of {total}"
 msgstr ""
 
+msgid "open"
+msgstr ""
+
 msgid "ssh default identity"
 msgstr ""
 
@@ -1343,6 +1535,9 @@ msgid "{approvedCount} approved, {declinedCount} kept on this Mac only"
 msgstr ""
 
 msgid "{devicesCount} Macs"
+msgstr ""
+
+msgid "{done} of {size}"
 msgstr ""
 
 msgid "{error}\n\nDefaults are in use; your file was not modified."
@@ -1375,7 +1570,16 @@ msgstr ""
 msgid "{os} · last seen {time}"
 msgstr ""
 
+msgid "{port} at {rate} baud"
+msgstr ""
+
 msgid "{profiles} on this Mac will upload next"
+msgstr ""
+
+msgid "{profiles} profiles · {commands} commands"
+msgstr ""
+
+msgid "{shortcut} serial"
 msgstr ""
 
 msgid "{title} exited with code {code}"
@@ -1388,4 +1592,10 @@ msgid "{url} is not an HTTPS address."
 msgstr ""
 
 msgid "~/.ssh/known_hosts is read as well. Passwords you choose to remember are kept in the login keychain."
+msgstr ""
+
+msgid "↩ apply"
+msgstr ""
+
+msgid "↩ open"
 msgstr ""

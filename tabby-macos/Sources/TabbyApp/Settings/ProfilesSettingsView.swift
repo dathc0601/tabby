@@ -98,7 +98,7 @@ struct ProfilesSettingsView: View {
                     .disabled(selected.map { $0.isBuiltin } ?? true)
                     Button { newGroup(registry: registry) } label: { Label(L("New group"), systemImage: "folder.badge.plus") }
                     Spacer()
-                    Button(selected?.isBuiltin == true ? "Duplicate…" : "Edit…") { if let selected { edit(selected) } }
+                    Button(selected?.isBuiltin == true ? L("Duplicate…") : L("Edit…")) { if let selected { edit(selected) } }
                         .buttonStyle(ChromeButtonStyle(kind: .primary))
                         .keyboardShortcut(.defaultAction)
                         .disabled(selected == nil)
@@ -718,7 +718,7 @@ struct ProfileEditorSheet: View {
                 }
                 SettingsRow(L("Password"), subtitle: passwordSaved ? L("Saved in Keychain") : L("Asked for when connecting")) {
                     HStack(spacing: 6) {
-                        Button(passwordSaved ? "Change…" : "Set…") { setPassword() }.buttonStyle(ChromeButtonStyle())
+                        Button(passwordSaved ? L("Change…") : L("Set…")) { setPassword() }.buttonStyle(ChromeButtonStyle())
                             .disabled((profile.options["host"]?.stringValue ?? "").isEmpty)
                         if passwordSaved {
                             Button(L("Forget")) { forgetPassword() }.buttonStyle(ChromeButtonStyle(kind: .plain))

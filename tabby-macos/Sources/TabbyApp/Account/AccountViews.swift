@@ -55,7 +55,7 @@ struct AccountAvatar: View {
 func accountStatusLine(_ account: AccountService) -> String {
     switch account.status {
     case .signedOut: return L("Signed out")
-    case .syncing: return "Syncing…"
+    case .syncing: return L("Syncing…")
     case .failed(let message): return message
     case .upToDate:
         guard let date = account.lastSyncAt else { return L("Up to date") }

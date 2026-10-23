@@ -67,35 +67,22 @@ final class CatalogTests: XCTestCase {
     static let uiPrefixes = [
         #"\b(Text|Button|Label|Toggle|Picker|Menu|TextField|SecureField|GroupHeader|SettingsRow|SettingsGroup|SettingsPage)\(\s*$"#,
         #"\.help\(\s*$"#,
+        #"\bKeycap\(\s*$"#,
+        #"\bhint\([^,]*,\s*$"#,
         #"NSMenuItem\(title:\s*$"#,
-        #"\b(command|item)\(\s*$"#,
+        #"(?<![.\w])(command|item)\(\s*$"#,
         #"\.(messageText|informativeText)\s*=\s*$"#,
         #"addButton\(withTitle:\s*$"#,
         #"\b(title|subtitle|placeholder|message|detail|footer|confirm|cancel|help|label|text|prompt|group|actionTitle):\s*$"#,
         #"ServiceMessage\.\w+\(\s*$"#,
     ].map { try! NSRegularExpression(pattern: $0) }
-    static let prose = try! NSRegularExpression(pattern: #"^[A-Z][a-z’']+[.,:!?]?(?:[ \x{00A0}]\S+)*$"#)
+    static let prose = try! NSRegularExpression(pattern: #"^[A-Z][a-z’']*[.,:!?…]?(?:[ \x{00A0}]\S+)*$"#)
     static let wrapped = try! NSRegularExpression(pattern: #"\b(L|Lkey)\(\s*$"#)
     static let skippedLines = try! NSRegularExpression(pattern: #"NSLog\(|(?<![.\w])print\(|fatalError\(|assert|precondition\(|\.custom\(|NSFont\(name:|os_log|Logger\(|Notification\.Name\(|forResource:|setFrameAutosaveName|DispatchQueue\(label|identifier:"#)
 
     /// Files not swept yet. Each sweep task (5.4a–e) removes its files; at the end of phase 5
     /// the list is empty.
     static let notYetSwept: Set<String> = [
-        "Sources/TabbyApp/Split/SplitOverlays.swift",
-        "Sources/TabbyApp/Split/SplitTreeView.swift",
-        "Sources/TabbyApp/Views/BaudRatePopover.swift",
-        "Sources/TabbyApp/Views/Components/ChromeControls.swift",
-        "Sources/TabbyApp/Views/ConnectionChip.swift",
-        "Sources/TabbyApp/Views/PortsPopover.swift",
-        "Sources/TabbyApp/Views/SearchBarView.swift",
-        "Sources/TabbyApp/Views/SelectorPanel.swift",
-        "Sources/TabbyApp/Views/SFTPPanelController.swift",
-        "Sources/TabbyApp/Views/SFTPPanelModel.swift",
-        "Sources/TabbyApp/Views/SFTPPanelView.swift",
-        "Sources/TabbyApp/Views/StartPageView.swift",
-        "Sources/TabbyApp/Views/TabBarView.swift",
-        "Sources/TabbyApp/Views/Transfers.swift",
-        "Sources/TabbyApp/Views/WelcomeView.swift",
         "Sources/TabbyCore/ColorSchemes/ColorScheme.swift",
         "Sources/TabbyCore/Config/ConfigPaths.swift",
         "Sources/TabbyCore/Config/ConfigStore.swift",
@@ -152,6 +139,13 @@ final class CatalogTests: XCTestCase {
         XCTAssertEqual(hits(#"x = "Menlo" // l10n-ignore"#), [])
         XCTAssertEqual(hits(#"Text("\(count)")"#), [])
         XCTAssertEqual(hits(#"let id = "new-tab""#), [])
+        XCTAssertEqual(hits(#"case .connecting: return "Connecting…""#), ["Connecting…"])
+        XCTAssertEqual(hits(#"let s = "\(a) · \(b)""#), [], "no words outside the interpolations")
+        XCTAssertEqual(hits(#"Keycap("esc close")"#), ["esc close"])
+        XCTAssertEqual(hits(#"hint("↩", "open")"#), ["open"])
+        XCTAssertEqual(hits(#"return "A folder name cannot be empty""#), ["A folder name cannot be empty"])
+        XCTAssertEqual(hits(#"Button(L("Close")) { actions.command("close-other-tabs", tab) }"#), [], "a method's id argument")
+        XCTAssertEqual(hits(#"menu.addItem(command("New Tab", "new-tab"))"#), ["New Tab"])
         XCTAssertEqual(hits(#"message = "Imported. Some changes apply""#), ["Imported. Some changes apply"])
     }
 
@@ -269,7 +263,7 @@ final class CatalogTests: XCTestCase {
                 let range = NSRange(location: 0, length: (before as NSString).length)
                 if wrapped.firstMatch(in: before, range: range) != nil { continue }
                 let shown = uiPrefixes.contains { $0.firstMatch(in: before, range: range) != nil } && hasWords(literal)
-                let plain = literal.replacingOccurrences(of: #"\\\([^)]*\)"#, with: "X", options: .regularExpression)
+                let plain = literal.replacingOccurrences(of: #"\\\([^)]*\)"#, with: "0", options: .regularExpression)
                 let looksLikeProse = plain.count > 2 && prose.firstMatch(in: plain, range: NSRange(location: 0, length: (plain as NSString).length)) != nil
                 if shown || looksLikeProse { hits.append("\(n + 1): \(literal)") }
             }

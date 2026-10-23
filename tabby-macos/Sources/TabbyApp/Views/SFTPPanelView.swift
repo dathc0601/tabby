@@ -39,7 +39,7 @@ private struct SFTPPanelContent: View {
         .overlay {
             if dropTargeted {
                 RoundedRectangle(cornerRadius: 8).fill(chrome.accentFill.color)
-                    .overlay(Label("Drop to upload to \(model.path)", systemImage: "folder").font(ChromeFont.headline))
+                    .overlay(Label(L("Drop to upload to {path}", ["path": model.path]), systemImage: "folder").font(ChromeFont.headline))
                     .padding(8)
                     .allowsHitTesting(false)
             }
@@ -56,7 +56,7 @@ private struct SFTPPanelContent: View {
     private var header: some View {
         HStack(spacing: 4) {
             if model.isEditingPath {
-                TextField("Path", text: Bindable(model).pathDraft)
+                TextField(L("Path"), text: Bindable(model).pathDraft)
                     .textFieldStyle(.roundedBorder)
                     .font(.custom("Menlo", size: 12))
                     .onSubmit {
@@ -70,15 +70,15 @@ private struct SFTPPanelContent: View {
                     .onTapGesture(count: 2) { model.editPath() }
             }
             Spacer(minLength: 8)
-            IconButton(symbol: "arrow.clockwise", help: "Refresh", size: 26) { Task { await model.refresh() } }
-            IconButton(symbol: "line.3.horizontal.decrease", help: "Filter", isActive: model.showsFilter, size: 26) {
+            IconButton(symbol: "arrow.clockwise", help: L("Refresh"), size: 26) { Task { await model.refresh() } }
+            IconButton(symbol: "line.3.horizontal.decrease", help: L("Filter"), isActive: model.showsFilter, size: 26) {
                 model.showsFilter.toggle()
                 if !model.showsFilter { model.filterText = "" } else { filterFocused = true }
             }
-            IconButton(symbol: "folder.badge.plus", help: "Create directory", size: 26) { controller.createDirectory() }
-            IconButton(symbol: "arrow.up.doc", help: "Upload files", size: 26) { controller.chooseFilesToUpload() }
-            IconButton(symbol: "square.and.arrow.up.on.square", help: "Upload folder", size: 26) { controller.chooseFolderToUpload() }
-            IconButton(symbol: "xmark", help: "Close", size: 26, action: close)
+            IconButton(symbol: "folder.badge.plus", help: L("Create directory"), size: 26) { controller.createDirectory() }
+            IconButton(symbol: "arrow.up.doc", help: L("Upload files"), size: 26) { controller.chooseFilesToUpload() }
+            IconButton(symbol: "square.and.arrow.up.on.square", help: L("Upload folder"), size: 26) { controller.chooseFolderToUpload() }
+            IconButton(symbol: "xmark", help: L("Close"), size: 26, action: close)
         }
         .padding(.horizontal, 10)
         .frame(height: CGFloat(metrics.tabBar))
@@ -86,7 +86,7 @@ private struct SFTPPanelContent: View {
 
     private var breadcrumb: some View {
         HStack(spacing: 2) {
-            Button { Task { await model.navigate(to: "/") } } label: { Text("SFTP").font(ChromeFont.body.weight(.bold)) }
+            Button { Task { await model.navigate(to: "/") } } label: { Text(L("SFTP")).font(ChromeFont.body.weight(.bold)) }
                 .buttonStyle(.plain)
             ForEach(Array(model.breadcrumb.enumerated()), id: \.offset) { _, crumb in
                 Text("/").foregroundStyle(chrome.textFaint.color)
@@ -100,7 +100,7 @@ private struct SFTPPanelContent: View {
     private var filterBar: some View {
         HStack {
             Image(systemName: "magnifyingglass").foregroundStyle(chrome.textMuted.color)
-            TextField("Filter…", text: Bindable(model).filterText)
+            TextField(L("Filter…"), text: Bindable(model).filterText)
                 .textFieldStyle(.plain)
                 .focused($filterFocused)
                 .onExitCommand {
@@ -108,7 +108,7 @@ private struct SFTPPanelContent: View {
                     model.showsFilter = false
                 }
             if !model.filterText.isEmpty {
-                IconButton(symbol: "xmark.circle.fill", help: "Clear", size: 22) { model.filterText = "" }
+                IconButton(symbol: "xmark.circle.fill", help: L("Clear"), size: 22) { model.filterText = "" }
             }
         }
         .padding(.horizontal, 12)
@@ -126,10 +126,10 @@ private struct SFTPPanelContent: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 if model.isLoading && model.entries.isEmpty {
-                    status("Loading")
+                    status(L("Loading"))
                 }
                 if model.canGoUp {
-                    row(icon: "arrow.turn.left.up", name: "Go up", size: "", date: "", mode: "") { Task { await model.goUp() } }
+                    row(icon: "arrow.turn.left.up", name: L("Go up"), size: "", date: "", mode: "") { Task { await model.goUp() } }
                 }
                 if let empty = model.emptyMessage {
                     status(empty)
@@ -170,19 +170,19 @@ private struct SFTPPanelContent: View {
 
     @ViewBuilder
     private func menu(_ entry: SFTPEntry) -> some View {
-        Button("Copy full path") { controller.copyPath(entry) }
+        Button(L("Copy full path")) { controller.copyPath(entry) }
         if !entry.isDirectory {
-            Button("Edit locally") { controller.editLocally(entry) }
+            Button(L("Edit locally")) { controller.editLocally(entry) }
         }
-        Button("Create directory") { controller.createDirectory() }
+        Button(L("Create directory")) { controller.createDirectory() }
         Divider()
         if entry.isDirectory {
-            Button("Download directory") { controller.downloadDirectory(entry) }
+            Button(L("Download directory")) { controller.downloadDirectory(entry) }
         } else {
-            Button("Download") { controller.download(entry) }
+            Button(L("Download")) { controller.download(entry) }
         }
         Divider()
-        Button("Delete", role: .destructive) { controller.delete(entry) }
+        Button(L("Delete"), role: .destructive) { controller.delete(entry) }
     }
 
     static func icon(_ entry: SFTPEntry) -> String {

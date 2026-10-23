@@ -77,6 +77,21 @@ final class LanguageTests: XCTestCase {
         XCTAssertEqual(texts.confirm, "Bắt đầu đồng bộ")
     }
 
+    /// 5.4d: views (chip, selector footer) read the catalog.
+    func testViewTextsComeFromTheCatalog() {
+        defer { L10n.load(language: AppServices.shared.language) }
+        L10n.install(L10n.Catalog(layers: [[
+            "Connecting…": "Đang kết nối…",
+            "Reconnecting {attempt}/{total}": "Đang kết nối lại {attempt}/{total}",
+            "{profiles} profiles · {commands} commands": "{profiles} hồ sơ · {commands} lệnh",
+        ]]), language: "vi-VN")
+        XCTAssertEqual(ConnectionChip.label(.connecting), "Đang kết nối…")
+        XCTAssertEqual(ConnectionChip.label(.reconnecting(attempt: 2, of: 5)), "Đang kết nối lại 2/5")
+        if let hint = SelectorPanel.profilesAndCommandsHint {
+            XCTAssertTrue(hint.contains(" hồ sơ · "), hint)
+        }
+    }
+
     func testSettingsSectionsShowTranslatedTitlesAndStillMatchEnglish() {
         AppServices.shared.config.set("language", .string("de-DE"))
         XCTAssertEqual(SettingsSection.application.title, "Anwendung")
