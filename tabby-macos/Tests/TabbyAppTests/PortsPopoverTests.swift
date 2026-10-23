@@ -1,5 +1,7 @@
 #if canImport(AppKit)
 import XCTest
+import AppKit
+import SwiftUI
 import TabbyCore
 @testable import TabbySSHLib
 @testable import TabbyApp
@@ -91,6 +93,50 @@ final class PortsPopoverTests: XCTestCase {
         XCTAssertEqual(model.targetAddress, "localhost")
         XCTAssertEqual(model.targetPort, "3000")
         XCTAssertEqual(model.descriptionText, "dev")
+    }
+    private struct ButtonHost: View {
+        let make: () -> PortForwardsModel?
+        @State var isOpen = false
+        var body: some View {
+            PortsButton(enabled: true, makeModel: make, isOpen: $isOpen).padding(40).chromeEnvironment()
+        }
+    }
+
+    /// Found in the M8 walk: the first click on Ports opened an empty popover (a 26 pt bubble).
+    /// The model was set in the same action that opened it, and the popover's content was
+    /// built from the state before.
+    func testPortsOpensThePopoverWithTheForm() throws {
+        TestApp.boot()
+        let window = NSWindow(contentRect: NSRect(x: 200, y: 200, width: 240, height: 120),
+                              styleMask: [.titled], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        let host = NSHostingView(rootView: ButtonHost(make: { self.makeModel(FakeForwards()) }))
+        window.contentView = host
+        window.makeKeyAndOrderFront(nil)
+        let before = Set(NSApp.windows.map(ObjectIdentifier.init))
+        func popover() -> NSWindow? {
+            NSApp.windows.first { !before.contains(ObjectIdentifier($0)) && $0.isVisible && String(describing: type(of: $0)).contains("Popover") }
+        }
+        defer {
+            popover()?.orderOut(nil)
+            window.orderOut(nil)
+        }
+        TestApp.pump(0.2)
+
+        let center = NSPoint(x: host.bounds.midX, y: host.bounds.midY)
+        let point = host.convert(center, to: nil)
+        for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+            let event = try XCTUnwrap(NSEvent.mouseEvent(with: type, location: point, modifierFlags: [],
+                                                         timestamp: ProcessInfo.processInfo.systemUptime,
+                                                         windowNumber: window.windowNumber, context: nil,
+                                                         eventNumber: 0, clickCount: 1, pressure: 1))
+            window.sendEvent(event)
+            TestApp.pump(0.05)
+        }
+        TestApp.pump(until: { popover() != nil }, timeout: 3)
+        let shown = try XCTUnwrap(popover(), "a click on Ports opens a popover")
+        TestApp.pump(until: { shown.frame.width >= 400 }, timeout: 2)
+        XCTAssertGreaterThanOrEqual(shown.frame.width, 400, "the form is in it (420 pt), not an empty bubble")
     }
 }
 #endif
