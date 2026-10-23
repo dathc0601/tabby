@@ -130,7 +130,7 @@ public final class AppServices {
     }
 
     public func stop() {
-        flushSave()
+        flushPendingSave()
         askpass.stop()
     }
 
@@ -158,6 +158,13 @@ public final class AppServices {
         }
         saveWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
+    }
+
+    /// Quitting: writes only a change still waiting to be saved, so a hand edit of config.yaml
+    /// made while the app ran is not overwritten (found in the M8 walk).
+    public func flushPendingSave() {
+        guard saveWork != nil else { return }
+        flushSave()
     }
 
     public func flushSave() {
