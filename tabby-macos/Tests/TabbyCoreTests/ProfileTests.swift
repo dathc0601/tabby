@@ -87,6 +87,11 @@ final class ProfileTests: XCTestCase {
         XCTAssertEqual(SSHProfileProvider.quickConnectString(SSHOptions(["host": "h", "user": "u", "port": 2022])), "u@h:2022")
     }
 
+    /// Design C1: SSH is `server.rack` everywhere; the template said "network" (telnet's glyph).
+    func testTheSSHTemplateUsesTheServerIcon() {
+        XCTAssertEqual(SSHProfileProvider().builtinProfiles().first { $0.id == "ssh:template" }?.icon, "server")
+    }
+
     func testSelectorEntries() throws {
         let r = try makeRegistry(user: try fixture())
         r.recents.push(r.profile(withId: "local:custom:fish:abcd")!)

@@ -57,12 +57,25 @@ final class ConnectionTypesUITests: XCTestCase {
     }
 
     func testDefaultIconsPerType() {
-        XCTAssertEqual(ProfileIcons.symbol(for: ProfileIcons.defaultIcon(forType: "serial")), "memorychip")
+        XCTAssertEqual(ProfileIcons.symbol(for: ProfileIcons.defaultIcon(forType: "serial")), "cable.connector")
         XCTAssertEqual(ProfileIcons.symbol(for: ProfileIcons.defaultIcon(forType: "telnet")), "network")
         XCTAssertEqual(ProfileIcons.symbol(for: ProfileIcons.defaultIcon(forType: "ssh")), "server.rack")
         XCTAssertEqual(ProfileIcons.symbol(for: ProfileIcons.defaultIcon(forType: "local")), "terminal")
-        XCTAssertEqual(ProfileIcons.symbol(for: "fas fa-microchip"), "memorychip")
+        XCTAssertEqual(ProfileIcons.symbol(for: "fas fa-microchip"), "cable.connector")
         XCTAssertEqual(ProfileIcons.symbol(for: "fas fa-network-wired"), "network")
+        for type in ["local", "ssh", "serial", "telnet"] {
+            let symbol = ProfileIcons.symbol(for: ProfileIcons.defaultIcon(forType: type))
+            XCTAssertNotNil(NSImage(systemSymbolName: symbol, accessibilityDescription: nil), "\(symbol) exists on macOS 14")
+        }
+    }
+
+    /// Design C1b: a tab shows its type's icon when the profile names none.
+    func testATabShowsItsTypesIconWhenTheProfileHasNone() throws {
+        TestApp.boot()
+        let model = WindowModel()
+        let tab = try XCTUnwrap(model.openTab(profile: Profile(type: "telnet", name: "t", options: ["host": "127.0.0.1", "port": 1])))
+        defer { for pane in tab.orderedPanes { pane.close() } }
+        XCTAssertEqual(tab.icon, "fas fa-network-wired")
     }
 
     func testStartPageSubtitles() {

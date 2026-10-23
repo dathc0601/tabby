@@ -70,6 +70,7 @@ final class SplitTreeView: NSView {
                 let focused = tab.broadcastInput || tab.focusedPaneID == id
                 view.showsFocusRing = multiple && focused && tab.maximizedPaneID == nil
                 view.isDimmed = multiple && !focused && tab.maximizedPaneID == nil
+                view.labelIndex = multiple && tab.maximizedPaneID == nil ? tab.layout.panes.firstIndex(of: id).map { $0 + 1 } : nil
             } else {
                 view.isHidden = true
             }
@@ -237,6 +238,16 @@ final class PassThroughView: NSView {
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }
 
+/// Hosts a pane's corner. Clicks go through to the terminal unless the chip shows (a pane
+/// label is not a control).
+final class CornerHostingView: NSHostingView<ConnectionChip> {
+    var passesClicks: () -> Bool = { false }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        passesClicks() ? nil : super.hitTest(point)
+    }
+}
+
 /// A pane: the terminal view plus its overlays (focus ring, search bar).
 @MainActor
 final class PaneContainerView: NSView {
@@ -244,8 +255,8 @@ final class PaneContainerView: NSView {
     let engine: SwiftTermEngine
     private weak var controller: MainWindowController?
     private var searchHost: NSHostingView<SearchBarView>?
-    private var chipHost: NSHostingView<ConnectionChip>?
-    private let hover = PaneHover()
+    private var chipHost: CornerHostingView?
+    private let overlay = PaneOverlayState()
     private var appearanceLoop: ObservationLoop?
     private var chipLoop: ObservationLoop?
     /// The keyboard-interactive panel while a login asks something (design `sshAuth`).
@@ -258,6 +269,11 @@ final class PaneContainerView: NSView {
     var showsFocusRing = false { didSet { if oldValue != showsFocusRing { updateRing() } } }
     /// Unfocused panes of a split dim by 25% (the design).
     var isDimmed = false { didSet { if oldValue != isDimmed { updateRing() } } }
+    /// The pane's position in its split (its corner label), nil when alone.
+    var labelIndex: Int? {
+        get { overlay.labelIndex }
+        set { if overlay.labelIndex != newValue { overlay.labelIndex = newValue } }
+    }
     private let dimView = PassThroughView()
 
     init(pane: TerminalPane, controller: MainWindowController) {
@@ -268,25 +284,31 @@ final class PaneContainerView: NSView {
         wantsLayer = true
         layer?.borderWidth = 0
         addSubview(engine)
-        if pane.profile.type != "local" {
-            let chip = NSHostingView(rootView: ConnectionChip(pane: pane, hover: hover))
-            chip.safeAreaRegions = []
-            addSubview(chip)
-            chipHost = chip
+        let chip = CornerHostingView(rootView: ConnectionChip(pane: pane, overlay: overlay))
+        chip.safeAreaRegions = []
+        chip.passesClicks = { [weak self] in
+            guard let self else { return true }
+            return PaneCorner.content(state: self.pane.connectionState, hovering: self.overlay.isHovering,
+                                      popoverOpen: self.overlay.popoverOpen, labelIndex: self.overlay.labelIndex) != .chip
         }
+        addSubview(chip)
+        chipHost = chip
         engine.transparentBackground = AppServices.shared.theme.vibrancy
         pane.attach(engine: engine)
         engine.contextMenuProvider = { [weak self] _ in
             guard let self, let controller = self.controller else { return nil }
             return controller.terminalContextMenu(for: self.pane)
         }
-        if chipHost != nil {
-            // The chip changes size with the state and on hover; keep its frame fitted.
-            chipLoop = ObservationLoop(track: { [weak self] in
-                _ = self?.pane.connectionState
-                _ = self?.hover.isHovering
-            }, apply: { [weak self] in self?.needsLayout = true })
-        }
+        // The chip changes size with the state and on hover, the label with the title; keep
+        // the corner's frame fitted.
+        chipLoop = ObservationLoop(track: { [weak self] in
+            guard let self else { return }
+            _ = self.pane.connectionState
+            _ = self.overlay.isHovering
+            _ = self.overlay.popoverOpen
+            _ = self.overlay.labelIndex
+            _ = self.pane.title
+        }, apply: { [weak self] in self?.needsLayout = true })
         let paneID = pane.id
         authLoop = ObservationLoop(track: {
             // The prompt index too: Continue and Back put a new field in the panel.
@@ -425,12 +447,12 @@ final class PaneContainerView: NSView {
     }
 
     override func mouseEntered(with event: NSEvent) {
-        hover.isHovering = true
+        overlay.isHovering = true
         needsLayout = true
     }
 
     override func mouseExited(with event: NSEvent) {
-        hover.isHovering = false
+        overlay.isHovering = false
         needsLayout = true
     }
 

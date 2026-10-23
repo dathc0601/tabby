@@ -6,22 +6,47 @@ import TabbySSHLib
 import TabbySerial
 import TabbyTerminal
 
-/// Whether the pointer is over a pane (the chip shows on hover).
+/// What a pane's top-right corner shows, kept by the pane's container view.
 @MainActor
 @Observable
-final class PaneHover {
+final class PaneOverlayState {
+    /// The pointer is over the pane (the chip shows on hover).
     var isHovering = false
+    /// The pane's 1-based position in a split; nil when it is alone (no label).
+    var labelIndex: Int?
+    /// A chip popover (Ports, Baud rate) is open: the pointer leaves the pane to use it.
+    var popoverOpen = false
+
+}
+
+/// The pane's top-right corner (design C1b): the connection chip, or in a split the pane's
+/// label `n · title`, which the chip replaces while it shows.
+enum PaneCorner: Equatable {
+    case chip
+    case label(Int)
+    case none
+
+    /// The chip shows while the pointer is over the pane, while its popover is open, and
+    /// whenever the connection is not up; local panes have none.
+    static func content(state: TerminalPane.ConnectionState?, hovering: Bool, popoverOpen: Bool, labelIndex: Int?) -> PaneCorner {
+        if let state, hovering || popoverOpen || state != .connected { return .chip }
+        return labelIndex.map { .label($0) } ?? .none
+    }
+
+    static func labelText(index: Int, title: String) -> String {
+        "\(index) · \(title)"
+    }
 }
 
 /// The connection status chip from the design's component board: a state dot, where the pane
 /// is connected (`user@host:port`, `host:port`, `device · baud`), the state and Reconnect.
-/// It shows while the pointer is over the pane, and whenever the connection is not up.
+/// In a split, the pane's label sits in its place while the chip is hidden.
 struct ConnectionChip: View {
     let pane: TerminalPane
-    let hover: PaneHover
+    let overlay: PaneOverlayState
 
     var body: some View {
-        ChipContent(pane: pane, hover: hover).chromeEnvironment()
+        ChipContent(pane: pane, overlay: overlay).chromeEnvironment()
     }
 
     /// Where a profile connects. `baudRate` is the serial rate in use, when it differs.
@@ -52,13 +77,22 @@ struct ConnectionChip: View {
 
 private struct ChipContent: View {
     let pane: TerminalPane
-    let hover: PaneHover
+    @Bindable var overlay: PaneOverlayState
     @Environment(\.chrome) private var chrome
-    @State private var showsPorts = false
 
     var body: some View {
-        // Stays while its popover is open: the pointer leaves the pane to use it.
-        if let state = pane.connectionState, hover.isHovering || state != .connected || showsPorts {
+        switch PaneCorner.content(state: pane.connectionState, hovering: overlay.isHovering,
+                                  popoverOpen: overlay.popoverOpen, labelIndex: overlay.labelIndex) {
+        case .chip:
+            if let state = pane.connectionState { chip(state) }
+        case .label(let index):
+            PaneLabel(text: PaneCorner.labelText(index: index, title: pane.title))
+        case .none:
+            EmptyView()
+        }
+    }
+
+    @ViewBuilder private func chip(_ state: TerminalPane.ConnectionState) -> some View {
             let serial = SerialChip.serialSession(of: pane)
             let address = ConnectionChip.address(for: pane.profile, baudRate: serial?.baudRate)
             HStack(spacing: 8) {
@@ -74,7 +108,7 @@ private struct ChipContent: View {
                 }
                 if let session = pane.session as? LibSSHSession {
                     Rectangle().fill(chrome.separator.color).frame(width: 1, height: 14)
-                    PortsButton(enabled: state == .connected, makeModel: { Self.portsModel(session) }, isOpen: $showsPorts)
+                    PortsButton(enabled: state == .connected, makeModel: { Self.portsModel(session) }, isOpen: $overlay.popoverOpen)
                     Button { SFTPPanels.shared.toggle(for: pane) } label: {
                         Label("SFTP", systemImage: "folder").font(ChromeFont.caption)
                     }
@@ -100,7 +134,6 @@ private struct ChipContent: View {
             .shadow(color: .black.opacity(0.18), radius: 6, y: 2)
             .padding(8)
             .fixedSize()
-        }
     }
 
     /// The Ports popover's model for the session's live connection.
@@ -135,6 +168,27 @@ private struct ChipContent: View {
         case .disconnected: return "Disconnected"
         case let .reconnecting(attempt, total): return "Reconnecting \(attempt)/\(total)"
         }
+    }
+}
+
+/// A split pane's label in the corner (design C1b): `n · title` on `fill`, 11 pt muted.
+/// The padding places it 6 pt from the top and 8 pt from the right in the chip's frame.
+struct PaneLabel: View {
+    let text: String
+    @Environment(\.chrome) private var chrome
+
+    var body: some View {
+        Text(verbatim: text)
+            .font(.system(size: 11))
+            .foregroundStyle(chrome.textMuted.color)
+            .lineLimit(1)
+            .truncationMode(.middle)
+            .padding(.horizontal, 7)
+            .frame(maxWidth: 260)
+            .frame(height: 20)
+            .background(RoundedRectangle(cornerRadius: 5).fill(chrome.fill.color))
+            .padding(EdgeInsets(top: 6, leading: 4, bottom: 4, trailing: 4))
+            .fixedSize()
     }
 }
 

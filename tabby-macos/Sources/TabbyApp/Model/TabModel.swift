@@ -87,7 +87,10 @@ public final class TabModel: Identifiable {
         orderedPanes.contains { $0.hasActivity }
     }
 
-    public var icon: String? { focusedPane?.profile.icon }
+    /// The focused pane's profile icon, or its type's (design C1b).
+    public var icon: String? {
+        focusedPane.map { $0.profile.icon ?? ProfileIcons.defaultIcon(forType: $0.profile.type) }
+    }
 
     // MARK: Layout changes
 

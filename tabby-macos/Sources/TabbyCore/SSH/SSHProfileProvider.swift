@@ -30,7 +30,7 @@ public final class SSHProfileProvider: ProfileProvider {
     public func builtinProfiles() -> [Profile] {
         var list = [
             Profile(id: "ssh:template", type: "ssh", name: "SSH connection", options: ["host": "", "port": 22, "user": "root"],
-                    icon: "network", isBuiltin: true, isTemplate: true),
+                    icon: "server", isBuiltin: true, isTemplate: true),
         ]
         if let text = sshConfigLoader() {
             list += SSHConfigParser.profiles(from: SSHConfigParser.parse(text))
