@@ -303,18 +303,28 @@ final class PaneContainerView: NSView {
 
     override var isFlipped: Bool { true }
 
+    /// The SSH status chip's frame: the design's top-right corner (8 pt from the top, 12 pt
+    /// from the right), under the search bar while that is open. The chip view pads itself by
+    /// 8 pt, so the frame sits 8 pt outside the visible capsule.
+    static func chipFrame(in bounds: CGRect, size: CGSize, search: CGRect?) -> CGRect {
+        let padding: CGFloat = 8
+        let top = search.map { $0.maxY + 6 } ?? 8
+        return CGRect(x: bounds.maxX - 12 - size.width + padding, y: top - padding, width: size.width, height: size.height)
+    }
+
     override func layout() {
         super.layout()
         let margin = CGFloat(AppServices.shared.theme.metrics.terminalMargin)
         engine.frame = bounds.insetBy(dx: margin, dy: margin)
         dimView.frame = bounds
-        if let chipHost {
-            let size = chipHost.fittingSize
-            chipHost.frame = CGRect(x: 4, y: 4, width: max(size.width, 1), height: max(size.height, 1))
-        }
         if let searchHost {
             let size = searchHost.fittingSize
             searchHost.frame = CGRect(x: bounds.width - size.width - 12, y: 8, width: size.width, height: size.height)
+        }
+        if let chipHost {
+            let size = chipHost.fittingSize
+            chipHost.frame = Self.chipFrame(in: bounds, size: CGSize(width: max(size.width, 1), height: max(size.height, 1)),
+                                            search: searchHost?.frame)
         }
         if !pane.hasStarted && bounds.width > 20 && bounds.height > 20 {
             // Let SwiftTerm compute the grid for this size first.
@@ -383,6 +393,7 @@ final class PaneContainerView: NSView {
         searchHost = nil
         pane.isSearchVisible = false
         engine.clearSearch()
+        needsLayout = true  // the chip moves back up
         window?.makeFirstResponder(engine)
     }
 
