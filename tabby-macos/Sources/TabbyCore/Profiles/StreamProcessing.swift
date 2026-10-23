@@ -309,12 +309,16 @@ public final class StreamProcessor {
         for raw in text.split(whereSeparator: { $0.isWhitespace }) {
             var token = String(raw)
             if token.lowercased().hasPrefix("0x") { token.removeFirst(2) }
-            guard !token.isEmpty, token.allSatisfy({ $0.isHexDigit }) else { return .failure(BadHex(token: String(raw))) }
+            // ASCII only: full-width digits are hex digits to Character but not to UInt8(radix:).
+            guard !token.isEmpty, token.allSatisfy({ $0.isASCII && $0.isHexDigit }) else {
+                return .failure(BadHex(token: String(raw)))
+            }
             if token.count % 2 == 1 { token = "0" + token }
             var index = token.startIndex
             while index < token.endIndex {
                 let next = token.index(index, offsetBy: 2)
-                out.append(UInt8(token[index..<next], radix: 16)!)
+                guard let byte = UInt8(token[index..<next], radix: 16) else { return .failure(BadHex(token: String(raw))) }
+                out.append(byte)
                 index = next
             }
         }

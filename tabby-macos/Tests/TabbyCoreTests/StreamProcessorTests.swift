@@ -162,6 +162,15 @@ final class StreamProcessorTests: XCTestCase {
         XCTAssertTrue(text(out.toTerminal).contains("Invalid hex: zz"))
     }
 
+    // Review: Character.isHexDigit is true for full-width digits (an IME in full-width mode),
+    // which UInt8(_, radix: 16) can't parse: the app crashed.
+    func testFullWidthDigitsAreABadTokenNotACrash() {
+        let p = processor(input: "readline-hex")
+        let out = p.fromTerminal(data("１Ａ\r"))
+        XCTAssertTrue(out.toSession.isEmpty)
+        XCTAssertTrue(text(out.toTerminal).contains("Invalid hex: １Ａ"))
+    }
+
     func testHexInputAppliesInputNewlinesToTheBytes() {
         let p = processor(input: "readline-hex", inputNewlines: "crlf")
         XCTAssertEqual(p.fromTerminal(data("0d\r")).toSession, Data([0x0d, 0x0a]))
