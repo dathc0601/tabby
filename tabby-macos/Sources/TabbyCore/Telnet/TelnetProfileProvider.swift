@@ -21,7 +21,7 @@ public struct TelnetOptions: Hashable, Sendable {
 /// `tabby-telnet/src/profiles.ts`.
 public final class TelnetProfileProvider: ProfileProvider {
     public let id = "telnet"
-    public let name = "Telnet"
+    public var name: String { L("Telnet") }
     public let supportsQuickConnect = true
 
     public let configDefaults: ConfigValue = [
@@ -36,13 +36,13 @@ public final class TelnetProfileProvider: ProfileProvider {
 
     public func builtinProfiles() -> [Profile] {
         [
-            Profile(id: "telnet:template", type: "telnet", name: "Telnet session",
+            Profile(id: "telnet:template", type: "telnet", name: L("Telnet session"),
                     options: ["host": "", "port": 23, "inputMode": "readline", "outputMode": nil,
                               "inputNewlines": nil, "outputNewlines": "crlf"],
-                    icon: "fas fa-network-wired", isBuiltin: true, isTemplate: true),
-            Profile(id: "socket:template", type: "telnet", name: "Raw socket connection",
+                    icon: "fas fa-network-wired", isBuiltin: true, isTemplate: true), // l10n-ignore: an icon name
+            Profile(id: "socket:template", type: "telnet", name: L("Raw socket connection"),
                     options: ["host": "", "port": 1234],
-                    icon: "fas fa-network-wired", isBuiltin: true, isTemplate: true),
+                    icon: "fas fa-network-wired", isBuiltin: true, isTemplate: true), // l10n-ignore: an icon name
         ]
     }
 

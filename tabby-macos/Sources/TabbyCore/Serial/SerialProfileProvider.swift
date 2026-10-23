@@ -73,7 +73,7 @@ public final class SerialProfileProvider: ProfileProvider {
     }
 
     public let id = "serial"
-    public let name = "Serial"
+    public var name: String { L("Serial") }
     public let supportsQuickConnect = true
 
     public let configDefaults: ConfigValue = [
@@ -94,16 +94,16 @@ public final class SerialProfileProvider: ProfileProvider {
     }
 
     public func builtinProfiles() -> [Profile] {
-        var list = [Profile(id: "serial:template", type: "serial", name: "Serial connection",
-                            icon: "fas fa-microchip", isBuiltin: true, isTemplate: true)]
+        var list = [Profile(id: "serial:template", type: "serial", name: L("Serial connection"),
+                            icon: "fas fa-microchip", isBuiltin: true, isTemplate: true)] // l10n-ignore: an icon name
         for port in ports() where !port.isInternal {
             // Tabby: `serial:port-${slugify(name).replace('.', '-')}` (the first dot only).
             var slug = Slug.make(port.path)
             if let dot = slug.firstIndex(of: ".") { slug.replaceSubrange(dot...dot, with: "-") }
             list.append(Profile(id: "serial:port-\(slug)", type: "serial",
-                                name: "Serial: \(port.description ?? port.deviceName)",
+                                name: L("Serial: {description}", ["description": port.description ?? port.deviceName]),
                                 options: ["port": .string(port.path)],
-                                icon: "fas fa-microchip", isBuiltin: true))
+                                icon: "fas fa-microchip", isBuiltin: true)) // l10n-ignore: an icon name
         }
         return list
     }
@@ -126,7 +126,7 @@ public final class SerialProfileProvider: ProfileProvider {
     /// `port · baud`, the port alone, or that the profile asks for both (design C7).
     public func description(for profile: Profile) -> String {
         let o = SerialOptions(profile.options)
-        guard let port = o.port else { return "Ask every time" }
+        guard let port = o.port else { return L("Ask every time") }
         return o.baudrate.map { "\(port) · \($0)" } ?? port
     }
 

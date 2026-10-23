@@ -63,17 +63,17 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     /// Row labels on the page, so "Search settings" finds a page by what is on it.
     var keywords: [String] {
         switch self {
-        case .application: return ["config file", "import", "startup", "restore tabs", "contrast", "accessibility"]
-        case .appearance: return ["theme", "dark", "light", "system", "font", "size", "weight", "cursor", "blink", "bold", "tabs", "flex", "index", "icon", "close button"]
-        case .colorScheme: return ["scheme", "colors", "colours", "palette", "dark", "light"]
-        case .terminal: return ["scrollback", "bell", "meta", "option", "right click", "copy on select", "paste", "bracketed", "progress", "default profile"]
-        case .window: return ["frame", "title bar", "tab bar", "location", "spaciness", "vibrancy", "opacity", "dock", "quake", "always on top", "global hotkey", "full screen", "cycle", "pane"]
-        case .profiles: return ["profile", "connection", "group", "ssh", "local", "default", "hidden"]
-        case .ssh: return ["host key", "known hosts", "warn", "quick connect", "keychain"]
-        case .hotkeys: return ["shortcut", "keyboard", "chord", "binding"]
-        case .vault: return ["password", "passphrase", "keychain", "secret", "key"]
-        case .account: return ["sync", "sign in", "sign out", "devices", "recovery key", "cloud", "email"]
-        case .configFile: return ["yaml", "config.yaml", "raw"]
+        case .application: return ["config file", "import", "startup", "restore tabs", "contrast", "accessibility"] // l10n-ignore: English search keywords (titles are matched translated)
+        case .appearance: return ["theme", "dark", "light", "system", "font", "size", "weight", "cursor", "blink", "bold", "tabs", "flex", "index", "icon", "close button"] // l10n-ignore: English search keywords (titles are matched translated)
+        case .colorScheme: return ["scheme", "colors", "colours", "palette", "dark", "light"] // l10n-ignore: English search keywords (titles are matched translated)
+        case .terminal: return ["scrollback", "bell", "meta", "option", "right click", "copy on select", "paste", "bracketed", "progress", "default profile"] // l10n-ignore: English search keywords (titles are matched translated)
+        case .window: return ["frame", "title bar", "tab bar", "location", "spaciness", "vibrancy", "opacity", "dock", "quake", "always on top", "global hotkey", "full screen", "cycle", "pane"] // l10n-ignore: English search keywords (titles are matched translated)
+        case .profiles: return ["profile", "connection", "group", "ssh", "local", "default", "hidden"] // l10n-ignore: English search keywords (titles are matched translated)
+        case .ssh: return ["host key", "known hosts", "warn", "quick connect", "keychain"] // l10n-ignore: English search keywords (titles are matched translated)
+        case .hotkeys: return ["shortcut", "keyboard", "chord", "binding"] // l10n-ignore: English search keywords (titles are matched translated)
+        case .vault: return ["password", "passphrase", "keychain", "secret", "key"] // l10n-ignore: English search keywords (titles are matched translated)
+        case .account: return ["sync", "sign in", "sign out", "devices", "recovery key", "cloud", "email"] // l10n-ignore: English search keywords (titles are matched translated)
+        case .configFile: return ["yaml", "config.yaml", "raw"] // l10n-ignore: English search keywords (titles are matched translated)
         }
     }
 

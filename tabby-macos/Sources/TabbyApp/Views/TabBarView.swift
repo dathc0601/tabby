@@ -468,7 +468,7 @@ struct TabColors: Identifiable {
 /// Maps Tabby's Font Awesome icon names to SF Symbols, falling back to a terminal glyph.
 enum ProfileIcons {
     static func symbol(for icon: String) -> String {
-        let name = icon.replacingOccurrences(of: "fas fa-", with: "").replacingOccurrences(of: "fab fa-", with: "")
+        let name = icon.replacingOccurrences(of: "fas fa-", with: "").replacingOccurrences(of: "fab fa-", with: "") // l10n-ignore: Font Awesome icon names
         let map = ["terminal": "terminal", "network": "network", "server": "server.rack", "desktop": "desktopcomputer",
                    "laptop": "laptopcomputer", "globe": "globe", "bolt": "bolt", "cloud": "cloud", "database": "cylinder",
                    "linux": "terminal", "apple": "apple.logo", "docker": "shippingbox", "code": "chevron.left.forwardslash.chevron.right",
@@ -480,8 +480,8 @@ enum ProfileIcons {
     static func defaultIcon(forType type: String) -> String {
         switch type {
         case "ssh": return "server"
-        case "serial": return "fas fa-microchip"
-        case "telnet": return "fas fa-network-wired"
+        case "serial": return "fas fa-microchip" // l10n-ignore: Font Awesome icon names
+        case "telnet": return "fas fa-network-wired" // l10n-ignore: Font Awesome icon names
         default: return "terminal"
         }
     }

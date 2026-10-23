@@ -125,7 +125,7 @@ public enum SSHConfigParser {
                 id: "ssh:ssh-config:\(Slug.make(e.alias))",
                 type: "ssh",
                 name: e.alias,
-                group: "Imported from .ssh/config",
+                group: L("Imported from .ssh/config"),
                 options: .object(options),
                 isBuiltin: true,
                 extra: ["sshConfigAlias": .string(e.alias)]

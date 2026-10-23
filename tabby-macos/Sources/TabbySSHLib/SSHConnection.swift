@@ -139,17 +139,20 @@ public enum SSHConnectionError: Error, Equatable, LocalizedError {
     case cancelled
     case noUsername
     case channelFailed(String)
+    /// A port forward that could not start: the forward's summary and the reason.
+    case forwardFailed(summary: String, reason: String)
     case disconnected
 
     public var errorDescription: String? {
         switch self {
         case .connectFailed(let message): return message
-        case .hostKeyRejected: return "Host key verification failed"
-        case .authenticationRejected: return "Authentication rejected"
-        case .cancelled: return "Cancelled"
-        case .noUsername: return "No username"
+        case .hostKeyRejected: return L("Host key verification failed")
+        case .authenticationRejected: return L("Authentication rejected")
+        case .cancelled: return L("Cancelled")
+        case .noUsername: return L("No username")
         case .channelFailed(let message): return message
-        case .disconnected: return "Disconnected"
+        case let .forwardFailed(summary, reason): return L("Failed to forward port {summary}: {reason}", ["summary": summary, "reason": reason])
+        case .disconnected: return L("Disconnected")
         }
     }
 }
@@ -293,7 +296,7 @@ public final class SSHConnection: @unchecked Sendable {
     }
 
     func lastError() -> String {
-        guard let session else { return "unknown error" }
+        guard let session else { return L("unknown error") }
         return String(cString: ssh_get_error(UnsafeMutableRawPointer(session)))
     }
 
@@ -301,7 +304,7 @@ public final class SSHConnection: @unchecked Sendable {
 
     private func establish() throws {
         _ = LibSSH.initialised
-        guard let s = ssh_new() else { throw SSHConnectionError.connectFailed("libssh could not start a session") }
+        guard let s = ssh_new() else { throw SSHConnectionError.connectFailed(L("libssh could not start a session")) }
         session = s
 
         var user = options.user
@@ -382,11 +385,11 @@ public final class SSHConnection: @unchecked Sendable {
         sessionCallbacks.pointee.channel_open_request_forwarded_tcpip_function = forwardedChannelRequested
         ssh_set_callbacks(s, sessionCallbacks)
 
-        guard let e = ssh_event_new() else { throw SSHConnectionError.connectFailed("libssh could not poll") }
+        guard let e = ssh_event_new() else { throw SSHConnectionError.connectFailed(L("libssh could not poll")) }
         event = e
         ssh_event_add_session(e, s)
         var fds: [Int32] = [-1, -1]
-        guard pipe(&fds) == 0 else { throw SSHConnectionError.connectFailed("no pipe") }
+        guard pipe(&fds) == 0 else { throw SSHConnectionError.connectFailed(L("no pipe")) }
         wakeRead = fds[0]
         wakeWrite = fds[1]
         _ = fcntl(wakeRead, F_SETFL, O_NONBLOCK)
@@ -439,7 +442,7 @@ public final class SSHConnection: @unchecked Sendable {
         let type = String(cString: ssh_key_type_to_char(ssh_key_type(key)))
         hostKeyType = type
         hostKeyFingerprint = fingerprint
-        say("Host key fingerprint: \(type) \(fingerprint)")
+        say(L("Host key fingerprint: {type} {fingerprint}", ["type": type, "fingerprint": fingerprint]))
 
         let state = ssh_session_is_known_server(s)
         var previous: String?
@@ -470,7 +473,7 @@ public final class SSHConnection: @unchecked Sendable {
             if previous != nil {
                 KnownHostsLookup.removeEntries(host: options.host, port: options.port, type: type, file: options.knownHostsFile)
             }
-            if ssh_session_update_known_hosts(s) != SSH_OK { say("Could not save the host key: \(lastError())") }
+            if ssh_session_update_known_hosts(s) != SSH_OK { say(L("Could not save the host key: {reason}", ["reason": lastError()])) }
         }
     }
 
@@ -527,12 +530,12 @@ public final class SSHConnection: @unchecked Sendable {
                 if triedAgent { continue }
                 triedAgent = true
                 result = ssh_userauth_agent(s, nil)
-                if result != SSH_AUTH_SUCCESS.rawValue { say("Failed to authenticate using agent") }
+                if result != SSH_AUTH_SUCCESS.rawValue { say(L("Failed to authenticate using agent")) }
             case .publicKey(let file):
                 guard let r = try tryKey(s, path: file) else { continue }
                 result = r
             case .savedPassword(let password):
-                say("Using saved password")
+                say(L("Using saved password"))
                 result = ssh_userauth_password(s, nil, password)
                 if result == SSH_AUTH_DENIED.rawValue, password == stored {
                     onMain { passwords.deletePassword(host: host, port: port, user: user) }
@@ -573,7 +576,7 @@ public final class SSHConnection: @unchecked Sendable {
     private func tryKey(_ s: ssh_session, path: String) throws -> Int32? {
         let name = (path as NSString).lastPathComponent
         guard FileManager.default.fileExists(atPath: path) else {
-            say("Could not load private key \(path): no such file")
+            say(L("Could not load private key {path}: no such file", ["path": path]))
             return nil
         }
         // libssh's public-key import also reads a private key's public half, so look at the
@@ -584,10 +587,10 @@ public final class SSHConnection: @unchecked Sendable {
         var publicKey: ssh_key?
         if !isPrivate, ssh_pki_import_pubkey_file(path, &publicKey) == SSH_OK {
             ssh_key_free(publicKey)
-            say("Expected a private key, but \(path) appears to be a public key. Skipping it for private key authentication.")
+            say(L("Expected a private key, but {path} appears to be a public key. Skipping it for private key authentication.", ["path": path]))
             return nil
         }
-        say("Trying private key: \(name)")
+        say(L("Trying private key: {name}", ["name": name]))
         var key: ssh_key?
         if ssh_pki_import_privkey_file(path, nil, nil, nil, &key) != SSH_OK {
             key = nil
@@ -606,7 +609,7 @@ public final class SSHConnection: @unchecked Sendable {
                 if ssh_pki_import_privkey_file(path, answer.value, nil, nil, &key) == SSH_OK, answer.remember, let id {
                     afterLogin.append { [passwords] in passwords.savePassphrase(answer.value, keyID: id) }
                 } else if key == nil {
-                    say("Failed to load private key \(name): wrong passphrase")
+                    say(L("Failed to load private key {name}: wrong passphrase", ["name": name]))
                 }
             }
             guard key != nil else { return nil }
@@ -629,7 +632,7 @@ public final class SSHConnection: @unchecked Sendable {
                 prompts.append(.init(text: text, echo: echo != 0))
             }
             if !prompts.isEmpty {
-                say("Keyboard-interactive auth requested: \(name)")
+                say(L("Keyboard-interactive auth requested: {name}", ["name": name]))
                 let round = KeyboardInteractiveRound(host: options.host, name: name, instruction: instruction, prompts: prompts,
                                                      prefilled: prompts.map { $0.isPasswordLike ? savedPassword : nil })
                 let prompter = prompter
@@ -799,7 +802,7 @@ public final class SSHConnection: @unchecked Sendable {
             let accepted = enqueue { [self] in
                 var fds: [Int32] = [-1, -1]
                 guard socketpair(AF_UNIX, SOCK_STREAM, 0, &fds) == 0 else {
-                    return continuation.resume(throwing: SSHConnectionError.channelFailed("no socket pair"))
+                    return continuation.resume(throwing: SSHConnectionError.channelFailed(L("no socket pair")))
                 }
                 let (mine, theirs) = (fds[0], fds[1])
                 startDirectTCPIP(host: host, port: port) { [self] result in
@@ -868,9 +871,9 @@ public final class SSHConnection: @unchecked Sendable {
             return true
         }
         if rc == SSH_AGAIN, Date() < open.deadline { return false }
-        let message = rc == SSH_AGAIN ? "no answer from the server" : lastError()
+        let message = rc == SSH_AGAIN ? L("no answer from the server") : lastError()
         open.box.free()
-        open.done(.failure(.channelFailed("Could not open a channel to \(open.host):\(open.port): \(message)")))
+        open.done(.failure(.channelFailed(L("Could not open a channel to {host}:{port}: {message}", ["host": open.host, "port": open.port, "message": message]))))
         return true
     }
 
@@ -933,7 +936,7 @@ public final class SSHConnection: @unchecked Sendable {
     /// too: a server that opens one unasked would get the user's agent.
     func acceptAgentChannel() -> ssh_channel? {
         guard agentForwardingRequested else {
-            say("The server tried to use your SSH agent without agent forwarding; refused")
+            say(L("The server tried to use your SSH agent without agent forwarding; refused"))
             return nil
         }
         guard let session, let path = options.agentSocket, let fd = LocalSocket.unix(path) else { return nil }
@@ -943,7 +946,7 @@ public final class SSHConnection: @unchecked Sendable {
     /// An `x11` channel: joined to the local X server — only after an X11 forwarding request.
     func acceptX11Channel() -> ssh_channel? {
         guard x11Requested else {
-            say("The server tried to open an X11 connection without X11 forwarding; refused")
+            say(L("The server tried to open an X11 connection without X11 forwarding; refused"))
             return nil
         }
         guard let session else { return nil }
@@ -951,14 +954,14 @@ public final class SSHConnection: @unchecked Sendable {
         switch display {
         case let .socket(path):
             guard let fd = LocalSocket.unix(path) else {
-                say("Could not connect to the X server: \(display)")
+                say(L("Could not connect to the X server: {display}", ["display": "\(display)"]))
                 return nil
             }
             return acceptBridged(session, fd: fd)
         case let .tcp(host, port):
             // Not waited for here (inside a libssh callback): the bridge waits for it.
             guard let fd = LocalSocket.startTCP(host: host, port: port) else {
-                say("Could not connect to the X server: \(display)")
+                say(L("Could not connect to the X server: {display}", ["display": "\(display)"]))
                 return nil
             }
             return acceptBridged(session, fd: fd, connecting: true)
@@ -983,17 +986,17 @@ public final class SSHConnection: @unchecked Sendable {
             let box = ChannelBox(channel: channel, handlers: handlers)
             guard ssh_channel_open_session(channel) == SSH_OK else {
                 box.free()
-                throw SSHConnectionError.channelFailed("Remote rejected opening a shell channel: \(lastError())")
+                throw SSHConnectionError.channelFailed(L("Remote rejected opening a shell channel: {reason}", ["reason": lastError()]))
             }
             if ssh_channel_request_pty_size(channel, term.isEmpty ? "xterm-256color" : term, Int32(columns), Int32(rows)) != SSH_OK {
                 box.free()
-                throw SSHConnectionError.channelFailed("Remote rejected the terminal: \(lastError())")
+                throw SSHConnectionError.channelFailed(L("Remote rejected the terminal: {reason}", ["reason": lastError()]))
             }
             if forwardAgent {
                 if ssh_channel_request_auth_agent(channel) == SSH_OK {
                     agentForwardingRequested = true
                 } else {
-                    say("Agent forwarding was refused")
+                    say(L("Agent forwarding was refused"))
                 }
             }
             if forwardX11 {
@@ -1002,12 +1005,12 @@ public final class SSHConnection: @unchecked Sendable {
                 if ssh_channel_request_x11(channel, 0, "MIT-MAGIC-COOKIE-1", cookie, 0) == SSH_OK {
                     x11Requested = true
                 } else {
-                    say("X11 forwarding was refused. Make sure `xauth` is installed on the remote side")
+                    say(L("X11 forwarding was refused. Make sure `xauth` is installed on the remote side"))
                 }
             }
             guard ssh_channel_request_shell(channel) == SSH_OK else {
                 box.free()
-                throw SSHConnectionError.channelFailed("Remote rejected opening a shell channel: \(lastError())")
+                throw SSHConnectionError.channelFailed(L("Remote rejected opening a shell channel: {reason}", ["reason": lastError()]))
             }
             register(box)
             return SSHShellChannel(connection: self, box: box)

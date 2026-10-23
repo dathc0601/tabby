@@ -55,7 +55,7 @@ public struct Shell: Hashable, Sendable {
 /// `local` profiles: the OS default login shell plus one per detected shell.
 public final class LocalProfileProvider: ProfileProvider {
     public let id = "local"
-    public let name = "Local terminal"
+    public var name: String { L("Local terminal") }
     public let configDefaults: ConfigValue = [
         "options": [
             "command": "",

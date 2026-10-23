@@ -27,14 +27,14 @@ public final class SerialSession: TerminalSession, ServiceOutputSource {
     public func start(cols: Int, rows: Int) throws {
         isRunning = true
         guard let path = options.port else {
-            failLater("No serial port selected")
+            failLater(L("No serial port selected"))
             return
         }
         let port = SerialPort(path: path)
         port.onData = { [weak self] data in self?.onOutput?(data) }
         port.onHangup = { [weak self] in
             guard let self, !self.ended else { return }
-            self.service(ServiceMessage.line("Port closed", badge: .serial))
+            self.service(ServiceMessage.line(L("Port closed"), badge: .serial))
             self.end()
         }
         do {
@@ -44,7 +44,7 @@ public final class SerialSession: TerminalSession, ServiceOutputSource {
             return
         }
         self.port = port
-        service(ServiceMessage.line("Port opened", badge: .serial))
+        service(ServiceMessage.line(L("Port opened"), badge: .serial))
         onStatus?(.connected)
     }
 
@@ -86,7 +86,7 @@ public final class SerialSession: TerminalSession, ServiceOutputSource {
     }
 
     private func end() {
-        service(ServiceMessage.line("\(options.port ?? "Serial"): session closed", badge: .serial))
+        service(ServiceMessage.line(L("{port}: session closed", ["port": options.port ?? L("Serial")]), badge: .serial))
         finish()
     }
 

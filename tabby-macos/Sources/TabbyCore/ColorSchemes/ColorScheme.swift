@@ -31,7 +31,7 @@ public struct ColorScheme: Hashable, Sendable, Identifiable {
         let colors = v["colors"]?.stringArrayValue ?? []
         guard colors.count >= 16 else { return nil }
         self.init(
-            name: v["name"]?.stringValue ?? "Custom",
+            name: v["name"]?.stringValue ?? "Custom", // l10n-ignore: scheme names are config values
             foreground: fg,
             background: bg,
             cursor: v["cursor"]?.stringValue ?? fg,
@@ -67,13 +67,13 @@ public struct ColorScheme: Hashable, Sendable, Identifiable {
     // MARK: Built-ins (tabby-terminal/src/colorSchemes.ts)
 
     public static let tabbyDefault = ColorScheme(
-        name: "Tabby Default", foreground: "#cacaca", background: "#171717", cursor: "#bbbbbb",
+        name: "Tabby Default", foreground: "#cacaca", background: "#171717", cursor: "#bbbbbb", // l10n-ignore: scheme names are config values
         colors: ["#000000", "#ff615a", "#b1e969", "#ebd99c", "#5da9f6", "#e86aff", "#82fff7", "#dedacf",
                  "#313131", "#f58c80", "#ddf88f", "#eee5b2", "#a5c7ff", "#ddaaff", "#b7fff9", "#ffffff"]
     )
 
     public static let tabbyDefaultLight = ColorScheme(
-        name: "Tabby Default Light", foreground: "#4d4d4c", background: "#ffffff", cursor: "#4d4d4c",
+        name: "Tabby Default Light", foreground: "#4d4d4c", background: "#ffffff", cursor: "#4d4d4c", // l10n-ignore: scheme names are config values
         colors: ["#000000", "#c82829", "#718c00", "#eab700", "#4271ae", "#8959a8", "#3e999f", "#ffffff",
                  "#000000", "#c82829", "#718c00", "#eab700", "#4271ae", "#8959a8", "#3e999f", "#ffffff"]
     )

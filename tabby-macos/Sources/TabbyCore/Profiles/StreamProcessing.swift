@@ -275,7 +275,7 @@ public final class StreamProcessor {
                     case .success(let bytes):
                         result.toSession.append(input.translate(bytes))
                     case .failure(let bad):
-                        result.toTerminal.append(ServiceMessage.error("Invalid hex: \(bad.token)"))
+                        result.toTerminal.append(ServiceMessage.error(L("Invalid hex: {token}", ["token": bad.token])))
                     }
                 } else {
                     result.toSession.append(input.translate(Data((text + "\n").utf8)))

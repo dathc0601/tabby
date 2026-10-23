@@ -70,7 +70,13 @@ msgstr ""
 msgid "Agent and X11"
 msgstr ""
 
+msgid "Agent forwarding was refused"
+msgstr ""
+
 msgid "All"
+msgstr ""
+
+msgid "Already exists"
 msgstr ""
 
 msgid "Also used by “{name}”"
@@ -110,6 +116,12 @@ msgid "At least 8 characters; a password manager suggestion is fine."
 msgstr ""
 
 msgid "Authentication"
+msgstr ""
+
+msgid "Authentication cancelled"
+msgstr ""
+
+msgid "Authentication rejected"
 msgstr ""
 
 msgid "Automatic follows the system language"
@@ -155,6 +167,48 @@ msgid "Built in"
 msgstr ""
 
 msgid "Cancelled"
+msgstr ""
+
+msgid "Cannot change"
+msgstr ""
+
+msgid "Cannot configure the port: {reason}"
+msgstr ""
+
+msgid "Cannot create"
+msgstr ""
+
+msgid "Cannot delete"
+msgstr ""
+
+msgid "Cannot open"
+msgstr ""
+
+msgid "Cannot open {path}: {reason}"
+msgstr ""
+
+msgid "Cannot read"
+msgstr ""
+
+msgid "Cannot read the link"
+msgstr ""
+
+msgid "Cannot read {path}"
+msgstr ""
+
+msgid "Cannot rename"
+msgstr ""
+
+msgid "Cannot replace"
+msgstr ""
+
+msgid "Cannot resolve"
+msgstr ""
+
+msgid "Cannot write"
+msgstr ""
+
+msgid "Cannot write {path}"
 msgstr ""
 
 msgid "Change"
@@ -217,6 +271,9 @@ msgstr ""
 msgid "Command Palette…"
 msgstr ""
 
+msgid "Command not found: {executable}"
+msgstr ""
+
 msgid "Compression"
 msgstr ""
 
@@ -235,6 +292,24 @@ msgstr ""
 msgid "Connected"
 msgstr ""
 
+msgid "Connected as {resolvedUser} · {hostKeyType} {hostKeyFingerprint}"
+msgstr ""
+
+msgid "Connecting to {host}"
+msgstr ""
+
+msgid "Connecting to {name}"
+msgstr ""
+
+msgid "Connection closed"
+msgstr ""
+
+msgid "Connection failed"
+msgstr ""
+
+msgid "Connection timed out"
+msgstr ""
+
 msgid "Connections"
 msgstr ""
 
@@ -250,7 +325,25 @@ msgstr ""
 msgid "Could not change the baud rate"
 msgstr ""
 
+msgid "Could not connect to the X server: {display}"
+msgstr ""
+
+msgid "Could not connect to {targetAddress}:{targetPort} for {summary}"
+msgstr ""
+
 msgid "Could not delete"
+msgstr ""
+
+msgid "Could not load private key {path}: no such file"
+msgstr ""
+
+msgid "Could not open a channel to {host}:{port}: {message}"
+msgstr ""
+
+msgid "Could not save the host key: {reason}"
+msgstr ""
+
+msgid "Could not start SFTP: {message}"
 msgstr ""
 
 msgid "Couldn't read config.yaml"
@@ -424,6 +517,21 @@ msgstr ""
 msgid "Expect"
 msgstr ""
 
+msgid "Expected a private key, but {path} appears to be a public key. Skipping it for private key authentication."
+msgstr ""
+
+msgid "Failed to authenticate using agent"
+msgstr ""
+
+msgid "Failed to forward port"
+msgstr ""
+
+msgid "Failed to forward port {summary}: {reason}"
+msgstr ""
+
+msgid "Failed to load private key {name}: wrong passphrase"
+msgstr ""
+
 msgid "Failed: {text}"
 msgstr ""
 
@@ -493,6 +601,15 @@ msgstr ""
 msgid "Home"
 msgstr ""
 
+msgid "Host key fingerprint: {type} {fingerprint}"
+msgstr ""
+
+msgid "Host key verification failed"
+msgstr ""
+
+msgid "Host not found"
+msgstr ""
+
 msgid "I've stored the recovery key somewhere safe"
 msgstr ""
 
@@ -520,6 +637,9 @@ msgstr ""
 msgid "Import from Tabby"
 msgstr ""
 
+msgid "Imported from .ssh/config"
+msgstr ""
+
 msgid "Imported. Some changes apply to new tabs only."
 msgstr ""
 
@@ -541,10 +661,22 @@ msgstr ""
 msgid "Insert new line"
 msgstr ""
 
+msgid "Invalid hex: {token}"
+msgstr ""
+
+msgid "Invalid port {port}"
+msgstr ""
+
 msgid "It is deleted from the Keychain, and from your other Macs at the next sync."
 msgstr ""
 
 msgid "It is removed from the Keychain here and, when passwords sync, on your other Macs."
+msgstr ""
+
+msgid "Jump host chain loops back to {id}."
+msgstr ""
+
+msgid "Jump host loop: {chain}"
 msgstr ""
 
 msgid "Keep a local copy"
@@ -572,6 +704,9 @@ msgid "Key type"
 msgstr ""
 
 msgid "Keyboard-interactive"
+msgstr ""
+
+msgid "Keyboard-interactive auth requested: {name}"
 msgstr ""
 
 msgid "Known hosts"
@@ -673,6 +808,9 @@ msgstr ""
 msgid "No forwarded ports"
 msgstr ""
 
+msgid "No host to connect to"
+msgstr ""
+
 msgid "No hotkeys match “{filter}”"
 msgstr ""
 
@@ -700,7 +838,16 @@ msgstr ""
 msgid "No saved passwords"
 msgstr ""
 
+msgid "No serial port selected"
+msgstr ""
+
 msgid "No serial ports found"
+msgstr ""
+
+msgid "No such file or directory"
+msgstr ""
+
+msgid "No username"
 msgstr ""
 
 msgid "Not now"
@@ -751,6 +898,9 @@ msgstr ""
 msgid "Option key acts as Meta"
 msgstr ""
 
+msgid "Out of memory"
+msgstr ""
+
 msgid "Output"
 msgstr ""
 
@@ -778,6 +928,9 @@ msgstr ""
 msgid "Path"
 msgstr ""
 
+msgid "Permission denied"
+msgstr ""
+
 msgid "Personal account"
 msgstr ""
 
@@ -788,6 +941,9 @@ msgid "Pin tab"
 msgstr ""
 
 msgid "Pinned"
+msgstr ""
+
+msgid "Port closed"
 msgstr ""
 
 msgid "Press up to three keys in a row for a chord."
@@ -815,6 +971,12 @@ msgid "Private keys from your account"
 msgstr ""
 
 msgid "Process exited with code {code}"
+msgstr ""
+
+msgid "Process exited with code {code}. Press any key to restart."
+msgstr ""
+
+msgid "Process terminated. Press any key to restart."
 msgstr ""
 
 msgid "Profiles and keys stay usable here, unsynced"
@@ -868,6 +1030,9 @@ msgstr ""
 msgid "Reject"
 msgstr ""
 
+msgid "Rejected incoming forwarded connection for unrecognized port {destinationAddress}:{destinationPort}"
+msgstr ""
+
 msgid "Remember"
 msgstr ""
 
@@ -875,6 +1040,12 @@ msgid "Remember in Keychain"
 msgstr ""
 
 msgid "Remember in known_hosts"
+msgstr ""
+
+msgid "Remote rejected opening a shell channel: {reason}"
+msgstr ""
+
+msgid "Remote rejected the terminal: {reason}"
 msgstr ""
 
 msgid "Remove"
@@ -1033,6 +1204,9 @@ msgstr ""
 msgid "Serial port or profile"
 msgstr ""
 
+msgid "Session closed. Press any key to reconnect."
+msgstr ""
+
 msgid "Session ended"
 msgstr ""
 
@@ -1117,6 +1291,9 @@ msgstr ""
 msgid "Skip the login banner"
 msgstr ""
 
+msgid "Socket error: {reason}"
+msgstr ""
+
 msgid "Split Down"
 msgstr ""
 
@@ -1186,6 +1363,9 @@ msgstr ""
 msgid "Tab options"
 msgstr ""
 
+msgid "Tabby's config is encrypted with a vault passphrase. Disable \"Encrypt config\" in Tabby first."
+msgstr ""
+
 msgid "TabbyMac"
 msgstr ""
 
@@ -1222,7 +1402,19 @@ msgstr ""
 msgid "Text that is harder to read than this is brightened or darkened"
 msgstr ""
 
+msgid "The SSH profile has no host."
+msgstr ""
+
+msgid "The bundled defaults.yaml is missing."
+msgstr ""
+
 msgid "The clipboard holds {count} lines. Each line runs as soon as it reaches the shell."
+msgstr ""
+
+msgid "The configuration is not valid YAML: {msg}"
+msgstr ""
+
+msgid "The configuration must be a map of settings (key: value)."
 msgstr ""
 
 msgid "The current key stops working. Your TabbyMac account password:"
@@ -1235,6 +1427,9 @@ msgid "The email or password is not right."
 msgstr ""
 
 msgid "The email or recovery key is not right."
+msgstr ""
+
+msgid "The host key changed. If this is expected, remove the old key with:"
 msgstr ""
 
 msgid "The new password is too short."
@@ -1261,7 +1456,16 @@ msgstr ""
 msgid "The scheme grid and editor change this appearance"
 msgstr ""
 
+msgid "The server refused"
+msgstr ""
+
 msgid "The server stores ciphertext only; your password never leaves this Mac."
+msgstr ""
+
+msgid "The server tried to open an X11 connection without X11 forwarding; refused"
+msgstr ""
+
+msgid "The server tried to use your SSH agent without agent forwarding; refused"
 msgstr ""
 
 msgid "The session is restarted; anything running in it ends."
@@ -1318,6 +1522,9 @@ msgstr ""
 msgid "Trim whitespace when pasting"
 msgstr ""
 
+msgid "Trying private key: {name}"
+msgstr ""
+
 msgid "Turn panes into tabs"
 msgstr ""
 
@@ -1343,6 +1550,9 @@ msgid "Unlocks the account if you forget the password"
 msgstr ""
 
 msgid "Unpin Tab"
+msgstr ""
+
+msgid "Unsupported baud rate {rate}"
 msgstr ""
 
 msgid "Up to date"
@@ -1385,6 +1595,9 @@ msgid "Used when the original key file is not on this Mac."
 msgstr ""
 
 msgid "Username for {host}"
+msgstr ""
+
+msgid "Using saved password"
 msgstr ""
 
 msgid "Valid YAML"
@@ -1456,6 +1669,9 @@ msgstr ""
 msgid "X11 display"
 msgstr ""
 
+msgid "X11 forwarding was refused. Make sure `xauth` is installed on the remote side"
+msgstr ""
+
 msgid "XOFF"
 msgstr ""
 
@@ -1501,6 +1717,21 @@ msgstr ""
 msgid "Zoom"
 msgstr ""
 
+msgid "address type not supported"
+msgstr ""
+
+msgid "cannot resolve {host}"
+msgstr ""
+
+msgid "command not supported"
+msgstr ""
+
+msgid "connection refused"
+msgstr ""
+
+msgid "could not connect to {host}:{port} ({lastError})"
+msgstr ""
+
 msgid "default identity"
 msgstr ""
 
@@ -1516,7 +1747,16 @@ msgstr ""
 msgid "for the light appearance"
 msgstr ""
 
+msgid "forkpty failed: {reason}"
+msgstr ""
+
+msgid "general failure"
+msgstr ""
+
 msgid "global"
+msgstr ""
+
+msgid "host unreachable"
 msgstr ""
 
 msgid "in tab {number}"
@@ -1525,10 +1765,67 @@ msgstr ""
 msgid "keyboard-interactive · prompt {number} of {total}"
 msgstr ""
 
+msgid "libssh could not poll"
+msgstr ""
+
+msgid "libssh could not start a session"
+msgstr ""
+
+msgid "network unreachable"
+msgstr ""
+
+msgid "no answer from the proxy"
+msgstr ""
+
+msgid "no answer from the server"
+msgstr ""
+
+msgid "no pipe"
+msgstr ""
+
+msgid "no socket pair"
+msgstr ""
+
+msgid "not allowed by the proxy"
+msgstr ""
+
+msgid "only CONNECT is supported"
+msgstr ""
+
 msgid "open"
 msgstr ""
 
+msgid "pipe failed: {reason}"
+msgstr ""
+
 msgid "ssh default identity"
+msgstr ""
+
+msgid "the HTTP proxy answered {answer}"
+msgstr ""
+
+msgid "the HTTP proxy sent something unexpected"
+msgstr ""
+
+msgid "the SOCKS proxy could not connect ({reason})"
+msgstr ""
+
+msgid "the SOCKS proxy does not speak SOCKS5"
+msgstr ""
+
+msgid "the SOCKS proxy sent an unknown address type"
+msgstr ""
+
+msgid "the SOCKS proxy wants authentication"
+msgstr ""
+
+msgid "the proxy closed the connection"
+msgstr ""
+
+msgid "unknown address type"
+msgstr ""
+
+msgid "unknown error"
 msgstr ""
 
 msgid "{approvedCount} approved, {declinedCount} kept on this Mac only"
@@ -1543,6 +1840,12 @@ msgstr ""
 msgid "{error}\n\nDefaults are in use; your file was not modified."
 msgstr ""
 
+msgid "{host}: jump host \"{jumpID}\" not found in your config"
+msgstr ""
+
+msgid "{host}: session closed"
+msgstr ""
+
 msgid "{hours}h {minutes}m"
 msgstr ""
 
@@ -1550,6 +1853,9 @@ msgid "{minutes}m {seconds}s"
 msgstr ""
 
 msgid "{name} (custom)"
+msgstr ""
+
+msgid "{name} is still running."
 msgstr ""
 
 msgid "{name} · press a key combination"
@@ -1570,7 +1876,13 @@ msgstr ""
 msgid "{os} · last seen {time}"
 msgstr ""
 
+msgid "{path} is busy: another program has it open"
+msgstr ""
+
 msgid "{port} at {rate} baud"
+msgstr ""
+
+msgid "{port}: session closed"
 msgstr ""
 
 msgid "{profiles} on this Mac will upload next"

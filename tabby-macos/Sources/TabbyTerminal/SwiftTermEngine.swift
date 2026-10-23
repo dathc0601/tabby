@@ -139,14 +139,14 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
 
     public func clearBuffer() {
         clearScrollback()
-        feed(text: "\u{1b}[H\u{1b}[2J")
+        feed(text: "\u{1b}[H\u{1b}[2J") // l10n-ignore: an escape sequence
         // Ask the program to repaint (the shell redraws its prompt).
         engineDelegate?.engine(self, send: Data([0x0c]))
     }
 
     public func clearScreen() {
         clearScrollback()
-        feed(text: "\u{1b}[H\u{1b}[2J")
+        feed(text: "\u{1b}[H\u{1b}[2J") // l10n-ignore: an escape sequence
     }
 
     public func snapshotText(maxLines: Int) -> String {

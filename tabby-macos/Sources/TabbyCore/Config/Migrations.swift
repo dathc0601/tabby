@@ -31,7 +31,7 @@ public enum Migrations {
             for p in config.value(at: "terminal.profiles")?.arrayValue ?? [] {
                 var profile: ConfigValue = .object([:])
                 profile["type"] = "local"
-                profile["name"] = p["name"] ?? "Shell"
+                profile["name"] = p["name"] ?? "Shell" // l10n-ignore: written into config.yaml, as Tabby does
                 if let icon = p["icon"] { profile["icon"] = icon }
                 if let color = p["color"] { profile["color"] = color }
                 profile["options"] = p["sessionOptions"] ?? .emptyObject
@@ -49,7 +49,7 @@ public enum Migrations {
             var nameToId: [String: String] = [:]
             for (type, path) in [("ssh", "ssh.connections"), ("serial", "serial.connections")] {
                 for c in config.value(at: path)?.arrayValue ?? [] {
-                    let name = c["name"]?.stringValue ?? "Connection"
+                    let name = c["name"]?.stringValue ?? "Connection" // l10n-ignore: written into config.yaml, as Tabby does
                     let id = "\(type):\(Slug.make(name)):\(UUID().uuidString.lowercased())"
                     nameToId[name] = id
                     var options = c

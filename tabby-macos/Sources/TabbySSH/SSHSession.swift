@@ -135,7 +135,7 @@ public final class SSHSession: TerminalSession {
         if overrides["DISPLAY"] == nil { overrides["DISPLAY"] = ProcessInfo.processInfo.environment["DISPLAY"] ?? ":0" }
         let environment = SessionEnvironment.make(overrides: overrides, termName: options.term)
 
-        serviceMessage("Connecting to \(options.host)")
+        serviceMessage(L("Connecting to {host}", ["host": options.host]))
         onStatus?(.connecting(options.host))
         // A session that joins a running ControlMaster connection never runs `LocalCommand`,
         // so it would never hear that it is connected.
@@ -197,12 +197,12 @@ public final class SSHSession: TerminalSession {
     private func handleExit(_ code: Int32?) {
         cleanup()
         if sawHostKeyChange {
-            serviceMessage("The host key changed. If this is expected, remove the old key with:\r\n    ssh-keygen -R \(options.host) -f \(env.knownHostsFile)")
+            serviceMessage(L("The host key changed. If this is expected, remove the old key with:") + "\r\n    ssh-keygen -R \(options.host) -f \(env.knownHostsFile)")
         }
         if authenticationCancelled {
-            serviceMessage("Authentication cancelled")
+            serviceMessage(L("Authentication cancelled"))
         } else if code == 255 && !isConnected {
-            serviceMessage("Connection failed")
+            serviceMessage(L("Connection failed"))
         }
         isConnected = false
         onStatus?(.disconnected)
@@ -251,7 +251,7 @@ public final class SSHSession: TerminalSession {
                     return reply(AskpassResponse(ok: true, answer: p))
                 }
                 if let saved = env.passwords.password(host: host, port: port, user: user) {
-                    serviceMessage("Using saved password")
+                    serviceMessage(L("Using saved password"))
                     return reply(AskpassResponse(ok: true, answer: saved))
                 }
             } else if attempt == max(matches.count, 1) {

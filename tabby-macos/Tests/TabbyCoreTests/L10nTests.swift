@@ -146,6 +146,17 @@ final class L10nTests: XCTestCase {
         XCTAssertEqual(L("Abort all"), "Abort all")
     }
 
+    /// 5.4e: built-in profile names and provider names are read when shown, not when the
+    /// provider is made, so a language change reaches them.
+    func testBuiltInProfileAndProviderNamesFollowTheLanguage() {
+        let telnet = TelnetProfileProvider()
+        let local = LocalProfileProvider(shells: { [] })
+        XCTAssertTrue(telnet.builtinProfiles().map(\.name).contains("Telnet session"))
+        L10n.load(language: "de-DE")
+        XCTAssertTrue(telnet.builtinProfiles().map(\.name).contains("Telnet-Sitzung"), "\(telnet.builtinProfiles().map(\.name))")
+        XCTAssertEqual(local.name, "Lokales Terminal")
+    }
+
     func testEveryTabbyCatalogIsBundledAndParses() {
         for language in Languages.all where language.code != "vi-VN" {
             let entries = L10n.bundledEntries(language.code, source: .tabby)

@@ -21,7 +21,7 @@ public enum SSHConnectionTest {
         own.options = options
         do {
             let connection = try await connector.acquire(profile: own, prompter: prompter)
-            let outcome = Outcome.success("Connected as \(connection.resolvedUser) · \(connection.hostKeyType) \(connection.hostKeyFingerprint)")
+            let outcome = Outcome.success(L("Connected as {resolvedUser} · {hostKeyType} {hostKeyFingerprint}", ["resolvedUser": connection.resolvedUser, "hostKeyType": connection.hostKeyType, "hostKeyFingerprint": connection.hostKeyFingerprint]))
             connector.release(connection)
             return outcome
         } catch {
@@ -34,7 +34,7 @@ public enum SSHConnectionTest {
         do {
             try await connection.connect()
             connection.disconnect()
-            return .success("Connected as \(connection.resolvedUser) · \(connection.hostKeyType) \(connection.hostKeyFingerprint)")
+            return .success(L("Connected as {resolvedUser} · {hostKeyType} {hostKeyFingerprint}", ["resolvedUser": connection.resolvedUser, "hostKeyType": connection.hostKeyType, "hostKeyFingerprint": connection.hostKeyFingerprint]))
         } catch {
             return .failure((error as? LocalizedError)?.errorDescription ?? error.localizedDescription)
         }

@@ -37,14 +37,14 @@ public enum SOCKS5 {
         var reason: String {
             switch self {
             case .succeeded: return "succeeded"
-            case .generalFailure: return "general failure"
-            case .notAllowed: return "not allowed by the proxy"
-            case .networkUnreachable: return "network unreachable"
-            case .hostUnreachable: return "host unreachable"
-            case .connectionRefused: return "connection refused"
+            case .generalFailure: return L("general failure")
+            case .notAllowed: return L("not allowed by the proxy")
+            case .networkUnreachable: return L("network unreachable")
+            case .hostUnreachable: return L("host unreachable")
+            case .connectionRefused: return L("connection refused")
             case .ttlExpired: return "TTL expired"
-            case .commandNotSupported: return "command not supported"
-            case .addressTypeNotSupported: return "address type not supported"
+            case .commandNotSupported: return L("command not supported")
+            case .addressTypeNotSupported: return L("address type not supported")
             }
         }
     }
@@ -69,9 +69,9 @@ public enum SOCKS5 {
     public static func parseConnect(_ data: [UInt8]) -> HandshakeStep<Target> {
         guard data.count >= 4 else { return .needMore }
         guard data[0] == 5 else { return .failure("not SOCKS5") }
-        guard data[1] == 1 else { return .failure("only CONNECT is supported") }
+        guard data[1] == 1 else { return .failure(L("only CONNECT is supported")) }
         guard let (host, length) = address(data, at: 3) else {
-            return data[3] == 1 || data[3] == 3 || data[3] == 4 ? .needMore : .failure("unknown address type")
+            return data[3] == 1 || data[3] == 3 || data[3] == 4 ? .needMore : .failure(L("unknown address type"))
         }
         let end = 3 + length
         guard data.count >= end + 2 else { return .needMore }
@@ -93,20 +93,20 @@ public enum SOCKS5 {
 
     public static func parseServerChoice(_ data: [UInt8]) -> HandshakeStep<UInt8> {
         guard data.count >= 2 else { return .needMore }
-        guard data[0] == 5 else { return .failure("the SOCKS proxy does not speak SOCKS5") }
-        guard data[1] == 0 else { return .failure("the SOCKS proxy wants authentication") }
+        guard data[0] == 5 else { return .failure(L("the SOCKS proxy does not speak SOCKS5")) }
+        guard data[1] == 0 else { return .failure(L("the SOCKS proxy wants authentication")) }
         return .done(0, consumed: 2)
     }
 
     public static func parseConnectReply(_ data: [UInt8]) -> HandshakeStep<UInt8> {
         guard data.count >= 4 else { return .needMore }
-        guard data[0] == 5 else { return .failure("the SOCKS proxy does not speak SOCKS5") }
+        guard data[0] == 5 else { return .failure(L("the SOCKS proxy does not speak SOCKS5")) }
         guard data[1] == 0 else {
             let reason = ReplyCode(rawValue: data[1])?.reason ?? "error \(data[1])"
-            return .failure("the SOCKS proxy could not connect (\(reason))")
+            return .failure(L("the SOCKS proxy could not connect ({reason})", ["reason": reason]))
         }
         guard let (_, length) = address(data, at: 3) else {
-            return data[3] == 1 || data[3] == 3 || data[3] == 4 ? .needMore : .failure("the SOCKS proxy sent an unknown address type")
+            return data[3] == 1 || data[3] == 3 || data[3] == 4 ? .needMore : .failure(L("the SOCKS proxy sent an unknown address type"))
         }
         let end = 3 + length + 2
         guard data.count >= end else { return .needMore }
@@ -170,10 +170,10 @@ public enum HTTPConnect {
         let statusLine = header.split(separator: "\r\n", maxSplits: 1).first.map(String.init) ?? ""
         let parts = statusLine.split(separator: " ", maxSplits: 2)
         guard parts.count >= 2, parts[0].hasPrefix("HTTP/"), let status = Int(parts[1]) else {
-            return .failure("the HTTP proxy sent something unexpected")
+            return .failure(L("the HTTP proxy sent something unexpected"))
         }
         guard (200..<300).contains(status) else {
-            return .failure("the HTTP proxy answered \(parts.dropFirst().joined(separator: " "))")
+            return .failure(L("the HTTP proxy answered {answer}", ["answer": parts.dropFirst().joined(separator: " ")]))
         }
         return .done(status, consumed: end + 4)
     }

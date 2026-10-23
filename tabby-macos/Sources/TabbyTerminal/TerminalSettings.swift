@@ -31,7 +31,7 @@ public struct TerminalSettings: Equatable {
     public var environment: [String: String]
 
     public init(config c: ConfigStore) {
-        fontName = c.string("terminal.font") ?? "Menlo"
+        fontName = c.string("terminal.font") ?? "Menlo" // l10n-ignore: a font name
         fontSize = c.double("terminal.fontSize") ?? 14
         fontWeight = c.int("terminal.fontWeight") ?? 400
         fallbackFont = c.string("terminal.fallbackFont")

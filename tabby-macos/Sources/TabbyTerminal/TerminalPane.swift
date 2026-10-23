@@ -239,15 +239,15 @@ public final class TerminalPane: TerminalEngineDelegate {
     /// `ssh.warnOnClose`) is on, as in Tabby's `SSHTabComponent.canClose`; an open telnet
     /// connection always asks (`TelnetTabComponent.canClose`).
     public func closeWarning(sshWarnOnClose: Bool) -> String? {
-        if let name = activeProcessName { return "\(name) is still running." }
+        if let name = activeProcessName { return L("{name} is still running.", ["name": name]) }
         guard isRunning, session != nil else { return nil }
         switch profile.type {
         case "ssh":
             let options = SSHOptions(profile.options)
             guard options.warnOnClose ?? sshWarnOnClose else { return nil }
-            return "Disconnect from \(options.host)?"
+            return L("Disconnect from {host}?", ["host": options.host])
         case "telnet":
-            return "Disconnect from \(TelnetOptions(profile.options).host)?"
+            return L("Disconnect from {host}?", ["host": TelnetOptions(profile.options).host])
         default:
             return nil
         }
@@ -312,9 +312,10 @@ public final class TerminalPane: TerminalEngineDelegate {
         // A shell restarts; a connection reconnects (design C9).
         let message: String
         if isLocal {
-            message = (code.map { "Process exited with code \($0)" } ?? "Process terminated") + ". Press any key to restart."
+            message = code.map { L("Process exited with code {code}. Press any key to restart.", ["code": $0]) }
+                    ?? L("Process terminated. Press any key to restart.")
         } else {
-            message = "Session closed. Press any key to reconnect."
+            message = L("Session closed. Press any key to reconnect.")
         }
         engine?.feed(Data("\r\n\u{1b}[2m\(message)\u{1b}[0m\r\n".utf8))
         state = .ended(code: code, canRestart: true)

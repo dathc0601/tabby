@@ -38,11 +38,11 @@ enum ProxyTunnel {
                              ai_addrlen: 0, ai_canonname: nil, ai_addr: nil, ai_next: nil)
         var list: UnsafeMutablePointer<addrinfo>?
         guard getaddrinfo(host, String(port), &hints, &list) == 0, let first = list else {
-            throw fail("cannot resolve \(host)")
+            throw fail(L("cannot resolve {host}", ["host": host]))
         }
         defer { freeaddrinfo(list) }
         let deadline = Date().addingTimeInterval(timeout)
-        var lastError = "connection refused"
+        var lastError = L("connection refused")
         var current: UnsafeMutablePointer<addrinfo>? = first
         while let info = current {
             current = info.pointee.ai_next
@@ -73,14 +73,14 @@ enum ProxyTunnel {
             lastError = String(cString: strerror(errno))
             close(fd)
         }
-        throw fail("could not connect to \(host):\(port) (\(lastError))")
+        throw fail(L("could not connect to {host}:{port} ({lastError})", ["host": host, "port": port, "lastError": lastError]))
     }
 
     private static func send(_ fd: Int32, _ bytes: [UInt8]) throws {
         var offset = 0
         while offset < bytes.count {
             let n = bytes.withUnsafeBufferPointer { write(fd, $0.baseAddress! + offset, $0.count - offset) }
-            guard n > 0 else { throw fail("the proxy closed the connection") }
+            guard n > 0 else { throw fail(L("the proxy closed the connection")) }
             offset += n
         }
     }
@@ -94,13 +94,13 @@ enum ProxyTunnel {
             case let .failure(text): throw fail(text)
             case .needMore: break
             }
-            guard data.count < 16_384 else { throw fail("no answer from the proxy") }
+            guard data.count < 16_384 else { throw fail(L("no answer from the proxy")) }
             // Wait no longer than the deadline for each byte.
             var pfd = pollfd(fd: fd, events: Int16(POLLIN), revents: 0)
             let wait = Int32(max(0, deadline.timeIntervalSinceNow) * 1000)
-            guard wait > 0, poll(&pfd, 1, wait) > 0 else { throw fail("no answer from the proxy") }
+            guard wait > 0, poll(&pfd, 1, wait) > 0 else { throw fail(L("no answer from the proxy")) }
             var byte: UInt8 = 0
-            guard read(fd, &byte, 1) == 1 else { throw fail("the proxy closed the connection") }
+            guard read(fd, &byte, 1) == 1 else { throw fail(L("the proxy closed the connection")) }
             data.append(byte)
         }
     }

@@ -77,40 +77,14 @@ final class CatalogTests: XCTestCase {
         #"ServiceMessage\.\w+\(\s*$"#,
     ].map { try! NSRegularExpression(pattern: $0) }
     static let prose = try! NSRegularExpression(pattern: #"^[A-Z][a-z’']*[.,:!?…]?(?:[ \x{00A0}]\S+)*$"#)
-    static let wrapped = try! NSRegularExpression(pattern: #"\b(L|Lkey)\(\s*$"#)
+    /// Two lower-case words in a row: "cannot resolve \(host)", "\(name) is still running".
+    static let fragment = try! NSRegularExpression(pattern: #"\b[a-z]{2,} [a-z]{2,}\b"#)
+    static let wrapped = try! NSRegularExpression(pattern: #"\b(L|Lkey)\(\s*$|\b(one|other):\s*$"#)
     static let skippedLines = try! NSRegularExpression(pattern: #"NSLog\(|(?<![.\w])print\(|fatalError\(|assert|precondition\(|\.custom\(|NSFont\(name:|os_log|Logger\(|Notification\.Name\(|forResource:|setFrameAutosaveName|DispatchQueue\(label|identifier:"#)
 
     /// Files not swept yet. Each sweep task (5.4a–e) removes its files; at the end of phase 5
     /// the list is empty.
-    static let notYetSwept: Set<String> = [
-        "Sources/TabbyCore/ColorSchemes/ColorScheme.swift",
-        "Sources/TabbyCore/Config/ConfigPaths.swift",
-        "Sources/TabbyCore/Config/ConfigStore.swift",
-        "Sources/TabbyCore/Config/ConfigValue.swift",
-        "Sources/TabbyCore/Config/Migrations.swift",
-        "Sources/TabbyCore/Hotkeys/Keystroke.swift",
-        "Sources/TabbyCore/Profiles/ProfileProvider.swift",
-        "Sources/TabbyCore/Profiles/ProfileRegistry.swift",
-        "Sources/TabbyCore/Profiles/StreamProcessing.swift",
-        "Sources/TabbyCore/Serial/SerialProfileProvider.swift",
-        "Sources/TabbyCore/SSH/SSHConfigGenerator.swift",
-        "Sources/TabbyCore/SSH/SSHConfigParser.swift",
-        "Sources/TabbyCore/Telnet/TelnetProfileProvider.swift",
-        "Sources/TabbySerial/SerialPort.swift",
-        "Sources/TabbySerial/SerialSession.swift",
-        "Sources/TabbySSH/SSHSession.swift",
-        "Sources/TabbySSHLib/LibSSHSession.swift",
-        "Sources/TabbySSHLib/PortForwards.swift",
-        "Sources/TabbySSHLib/SFTPClient.swift",
-        "Sources/TabbySSHLib/SSHConnection.swift",
-        "Sources/TabbySSHLib/SSHConnectionTest.swift",
-        "Sources/TabbySSHLib/SSHConnector.swift",
-        "Sources/TabbyTelnet/TelnetSession.swift",
-        "Sources/TabbyTerminal/PTYProcess.swift",
-        "Sources/TabbyTerminal/SwiftTermEngine.swift",
-        "Sources/TabbyTerminal/TerminalPane.swift",
-        "Sources/TabbyTerminal/TerminalSettings.swift",
-    ]
+    static let notYetSwept: Set<String> = []
 
     func testUserVisibleTextGoesThroughL() throws {
         var offenders: [String: [String]] = [:]
@@ -139,6 +113,8 @@ final class CatalogTests: XCTestCase {
         XCTAssertEqual(hits(#"x = "Menlo" // l10n-ignore"#), [])
         XCTAssertEqual(hits(#"Text("\(count)")"#), [])
         XCTAssertEqual(hits(#"let id = "new-tab""#), [])
+        XCTAssertEqual(hits(#"throw fail("cannot resolve \(host)")"#), [#"cannot resolve \(host)"#])
+        XCTAssertEqual(hits(#"let key = "terminal.font""#), [])
         XCTAssertEqual(hits(#"case .connecting: return "Connecting…""#), ["Connecting…"])
         XCTAssertEqual(hits(#"let s = "\(a) · \(b)""#), [], "no words outside the interpolations")
         XCTAssertEqual(hits(#"Keycap("esc close")"#), ["esc close"])
@@ -265,7 +241,9 @@ final class CatalogTests: XCTestCase {
                 let shown = uiPrefixes.contains { $0.firstMatch(in: before, range: range) != nil } && hasWords(literal)
                 let plain = literal.replacingOccurrences(of: #"\\\([^)]*\)"#, with: "0", options: .regularExpression)
                 let looksLikeProse = plain.count > 2 && prose.firstMatch(in: plain, range: NSRange(location: 0, length: (plain as NSString).length)) != nil
-                if shown || looksLikeProse { hits.append("\(n + 1): \(literal)") }
+                let words = literal.replacingOccurrences(of: #"\\\([^)]*\)"#, with: " ", options: .regularExpression)
+                let isFragment = fragment.firstMatch(in: words, range: NSRange(location: 0, length: (words as NSString).length)) != nil
+                if shown || looksLikeProse || isFragment { hits.append("\(n + 1): \(literal)") }
             }
         }
         return hits

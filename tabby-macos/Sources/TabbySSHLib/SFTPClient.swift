@@ -12,7 +12,7 @@ extension SSHConnection {
             guard sftp_init(handle) == SSH_OK else {
                 let message = lastError()
                 sftp_free(handle)
-                throw SSHConnectionError.channelFailed("Could not start SFTP: \(message)")
+                throw SSHConnectionError.channelFailed(L("Could not start SFTP: {message}", ["message": message]))
             }
             let client = SFTPClient(connection: self, handle: handle)
             sftpClient = client
@@ -47,10 +47,10 @@ public final class SFTPClient: @unchecked Sendable {
         guard let handle else { return .disconnected }
         let reason: String
         switch Int32(sftp_get_error(handle)) {
-        case SSH_FX_NO_SUCH_FILE, SSH_FX_NO_SUCH_PATH: reason = "No such file or directory"
-        case SSH_FX_PERMISSION_DENIED: reason = "Permission denied"
-        case SSH_FX_FILE_ALREADY_EXISTS: reason = "Already exists"
-        case SSH_FX_FAILURE: reason = "The server refused"
+        case SSH_FX_NO_SUCH_FILE, SSH_FX_NO_SUCH_PATH: reason = L("No such file or directory")
+        case SSH_FX_PERMISSION_DENIED: reason = L("Permission denied")
+        case SSH_FX_FILE_ALREADY_EXISTS: reason = L("Already exists")
+        case SSH_FX_FAILURE: reason = L("The server refused")
         default: reason = connection.lastError()
         }
         return .channelFailed("\(action) \(path): \(reason)")
@@ -79,7 +79,7 @@ public final class SFTPClient: @unchecked Sendable {
     /// A directory's entries (without `.` and `..`), unsorted.
     public func list(_ path: String) async throws -> [SFTPEntry] {
         try await run { [self] handle in
-            guard let dir = sftp_opendir(handle, path) else { throw failure("Cannot open", path) }
+            guard let dir = sftp_opendir(handle, path) else { throw failure(L("Cannot open"), path) }
             defer { sftp_closedir(dir) }
             var entries: [SFTPEntry] = []
             while let attributes = sftp_readdir(handle, dir) {
@@ -88,7 +88,7 @@ public final class SFTPClient: @unchecked Sendable {
                 guard name != ".", name != "..", !name.isEmpty else { continue }
                 entries.append(Self.entry(attributes, path: SFTPPath.join(path, name)))
             }
-            guard sftp_dir_eof(dir) != 0 else { throw failure("Cannot read", path) }
+            guard sftp_dir_eof(dir) != 0 else { throw failure(L("Cannot read"), path) }
             return entries
         }
     }
@@ -96,7 +96,7 @@ public final class SFTPClient: @unchecked Sendable {
     /// Follows symlinks.
     public func stat(_ path: String) async throws -> SFTPEntry {
         try await run { [self] handle in
-            guard let attributes = sftp_stat(handle, path) else { throw failure("Cannot read", path) }
+            guard let attributes = sftp_stat(handle, path) else { throw failure(L("Cannot read"), path) }
             defer { sftp_attributes_free(attributes) }
             var entry = Self.entry(attributes, path: path)
             entry.name = (path as NSString).lastPathComponent
@@ -106,7 +106,7 @@ public final class SFTPClient: @unchecked Sendable {
 
     public func readLink(_ path: String) async throws -> String {
         try await run { [self] handle in
-            guard let target = sftp_readlink(handle, path) else { throw failure("Cannot read the link", path) }
+            guard let target = sftp_readlink(handle, path) else { throw failure(L("Cannot read the link"), path) }
             defer { ssh_string_free_char(target) }
             return String(cString: target)
         }
@@ -115,7 +115,7 @@ public final class SFTPClient: @unchecked Sendable {
     /// The server's absolute form of `path` (`.` is the home folder).
     public func canonicalPath(_ path: String) async throws -> String {
         try await run { [self] handle in
-            guard let resolved = sftp_canonicalize_path(handle, path) else { throw failure("Cannot resolve", path) }
+            guard let resolved = sftp_canonicalize_path(handle, path) else { throw failure(L("Cannot resolve"), path) }
             defer { ssh_string_free_char(resolved) }
             return String(cString: resolved)
         }
@@ -125,31 +125,31 @@ public final class SFTPClient: @unchecked Sendable {
 
     public func makeDirectory(_ path: String, mode: UInt32 = 0o755) async throws {
         try await run { [self] handle in
-            guard sftp_mkdir(handle, path, mode_t(mode)) == 0 else { throw failure("Cannot create", path) }
+            guard sftp_mkdir(handle, path, mode_t(mode)) == 0 else { throw failure(L("Cannot create"), path) }
         }
     }
 
     public func removeDirectory(_ path: String) async throws {
         try await run { [self] handle in
-            guard sftp_rmdir(handle, path) == 0 else { throw failure("Cannot delete", path) }
+            guard sftp_rmdir(handle, path) == 0 else { throw failure(L("Cannot delete"), path) }
         }
     }
 
     public func removeFile(_ path: String) async throws {
         try await run { [self] handle in
-            guard sftp_unlink(handle, path) == 0 else { throw failure("Cannot delete", path) }
+            guard sftp_unlink(handle, path) == 0 else { throw failure(L("Cannot delete"), path) }
         }
     }
 
     public func rename(_ path: String, to newPath: String) async throws {
         try await run { [self] handle in
-            guard sftp_rename(handle, path, newPath) == 0 else { throw failure("Cannot rename", path) }
+            guard sftp_rename(handle, path, newPath) == 0 else { throw failure(L("Cannot rename"), path) }
         }
     }
 
     public func setMode(_ path: String, _ mode: UInt32) async throws {
         try await run { [self] handle in
-            guard sftp_chmod(handle, path, mode_t(mode)) == 0 else { throw failure("Cannot change", path) }
+            guard sftp_chmod(handle, path, mode_t(mode)) == 0 else { throw failure(L("Cannot change"), path) }
         }
     }
 
@@ -191,13 +191,13 @@ public final class SFTPClient: @unchecked Sendable {
     /// Downloads to `local` (replaced); a cancelled or failed download removes the partial file.
     public func download(_ path: String, to local: URL, progress: (UInt64) -> Void, isCancelled: () -> Bool) async throws {
         let remote = try await run { [self] handle -> RemoteFile in
-            guard let file = sftp_open(handle, path, O_RDONLY, 0) else { throw failure("Cannot open", path) }
+            guard let file = sftp_open(handle, path, O_RDONLY, 0) else { throw failure(L("Cannot open"), path) }
             return RemoteFile(file)
         }
         FileManager.default.createFile(atPath: local.path, contents: nil)
         guard let output = try? FileHandle(forWritingTo: local) else {
             _ = try? await run { _ in remote.close() }
-            throw SSHConnectionError.channelFailed("Cannot write \(local.path)")
+            throw SSHConnectionError.channelFailed(L("Cannot write {path}", ["path": local.path]))
         }
         do {
             while true {
@@ -207,7 +207,7 @@ public final class SFTPClient: @unchecked Sendable {
                     var buffer = [UInt8](repeating: 0, count: 65_536)
                     while data.count < Self.chunkSize {
                         let n = sftp_read(remote.file, &buffer, buffer.count)
-                        if n < 0 { throw failure("Cannot read", path) }
+                        if n < 0 { throw failure(L("Cannot read"), path) }
                         if n == 0 { break }
                         data.append(contentsOf: buffer[0..<n])
                     }
@@ -244,13 +244,13 @@ public final class SFTPClient: @unchecked Sendable {
     private func uploadNow(_ local: URL, to path: String, mode: UInt32, progress: (UInt64) -> Void,
                            isCancelled: () -> Bool) async throws {
         guard let input = try? FileHandle(forReadingFrom: local) else {
-            throw SSHConnectionError.channelFailed("Cannot read \(local.path)")
+            throw SSHConnectionError.channelFailed(L("Cannot read {path}", ["path": local.path]))
         }
         defer { try? input.close() }
         let temporary = path + ".tabby-upload-" + String(UInt32.random(in: 0...UInt32.max), radix: 16)
         let remote = try await run { [self] handle -> RemoteFile in
             guard let file = sftp_open(handle, temporary, O_WRONLY | O_CREAT | O_TRUNC, mode_t(mode)) else {
-                throw failure("Cannot create", temporary)
+                throw failure(L("Cannot create"), temporary)
             }
             return RemoteFile(file)
         }
@@ -263,7 +263,7 @@ public final class SFTPClient: @unchecked Sendable {
                         var offset = 0
                         while offset < raw.count {
                             let n = sftp_write(remote.file, raw.baseAddress! + offset, raw.count - offset)
-                            guard n > 0 else { throw failure("Cannot write", temporary) }
+                            guard n > 0 else { throw failure(L("Cannot write"), temporary) }
                             offset += n
                         }
                     }
@@ -274,9 +274,9 @@ public final class SFTPClient: @unchecked Sendable {
                 remote.close()
                 if let existing = sftp_lstat(handle, path) {
                     sftp_attributes_free(existing)
-                    guard sftp_unlink(handle, path) == 0 else { throw failure("Cannot replace", path) }
+                    guard sftp_unlink(handle, path) == 0 else { throw failure(L("Cannot replace"), path) }
                 }
-                guard sftp_rename(handle, temporary, path) == 0 else { throw failure("Cannot rename", temporary) }
+                guard sftp_rename(handle, temporary, path) == 0 else { throw failure(L("Cannot rename"), temporary) }
             }
         } catch {
             _ = try? await run { handle in
