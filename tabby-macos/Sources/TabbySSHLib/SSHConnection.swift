@@ -699,9 +699,11 @@ public final class SSHConnection: @unchecked Sendable {
             }
             if options.keepaliveInterval > 0, Date().timeIntervalSince(lastKeepalive) >= options.keepaliveInterval {
                 lastKeepalive = Date()
-                // Non-blocking: the reply is handled by the poll, never waited for here.
+                // Traffic only; TCP keep-alive notices a dead peer (applyKeepAlive). Not
+                // libssh's keep-alive: that global request's late refusal was taken as the
+                // answer to the next one (tcpip-forward), which then was never sent.
                 ssh_set_blocking(session, 0)
-                ssh_send_keepalive(session)
+                ssh_send_ignore(session, "")
                 ssh_set_blocking(session, 1)
             }
         }

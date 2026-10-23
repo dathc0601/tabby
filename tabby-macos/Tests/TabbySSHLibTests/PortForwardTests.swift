@@ -53,6 +53,34 @@ final class PortForwardTests: XCTestCase {
         close(fd)
     }
 
+    /// Found in the M8 walk: with keep-alive on (Tabby's default), Remote failed with "Global
+    /// request tcpip-forward failed" and nothing listened on the server. libssh's keep-alive is
+    /// a global request whose refusal arrived later and was taken as tcpip-forward's answer,
+    /// which then was never sent; every other keep-alive did the same. Tries at three moments
+    /// so one falls after a keep-alive.
+    func testARemoteForwardWorksWithKeepAliveOn() async throws {
+        var options = SSHConnectionOptions(host: "127.0.0.1", port: sshd.port, user: sshd.user,
+                                           knownHostsFile: sshd.directory.appendingPathComponent("known_hosts").path)
+        options.privateKeys = [sshd.keyPath]
+        options.globalKnownHostsFile = nil
+        options.homeDirectory = sshd.directory.path
+        options.keepaliveInterval = 1
+        let living = SSHConnection(options: options, prompter: ScriptedPrompter(), passwords: InMemoryPasswordStore())
+        try await living.connect()
+        defer { living.disconnect() }
+        try await Task.sleep(nanoseconds: 700_000_000)
+
+        for attempt in 1...3 {
+            try await Task.sleep(nanoseconds: 700_000_000)
+            let port = try TestSSHD.freePort()
+            let id = try await living.addForward(ForwardedPort(type: .remote, port: port, targetAddress: "127.0.0.1", targetPort: echo.port))
+            let fd = try connectTCP(port)
+            XCTAssertEqual(roundTrip(fd, "remote forward"), "remote forward", "attempt \(attempt)")
+            close(fd)
+            await living.removeForward(id)
+        }
+    }
+
     func testADynamicForwardIsASOCKSProxy() async throws {
         let port = try TestSSHD.freePort()
         _ = try await connection.addForward(ForwardedPort(type: .dynamic, port: port))
