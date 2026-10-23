@@ -145,4 +145,33 @@ final class ConnectionPaneTests: XCTestCase {
         factory.sessions[1].onStatus?(.connected)
         XCTAssertEqual(engine.cleared, 1, "a reconnect clears as usual")
     }
+
+    // Tabby's serial and telnet tabs count `close` or `quit` as ending the session on
+    // purpose; SSH keeps exit / logout / ^D.
+    func testAutoClosesASerialOrTelnetTabOnCloseOrQuit() throws {
+        let cases: [(String, String, Bool)] = [
+            ("telnet", "quit\r", true), ("serial", "close\r", true), ("telnet", "exit\r", false),
+            ("ssh", "exit\r", true), ("ssh", "quit\r", false),
+        ]
+        for (type, input, closes) in cases {
+            let (pane, _, factory) = try makeFakePane(type: type)
+            var closeRequested = false
+            pane.onRequestClose = { _ in closeRequested = true }
+            pane.start()
+            pane.send(text: input)
+            factory.sessions[0].onClosed?(nil)
+            XCTAssertEqual(closeRequested, closes, "\(type) \(input)")
+        }
+    }
+
+    // Tabby's `TelnetTabComponent.canClose`; serial tabs never ask.
+    func testATelnetPaneAsksBeforeClosingWhileConnected() throws {
+        let (telnet, _, _) = try makeFakePane(type: "telnet")
+        XCTAssertNil(telnet.closeWarning(sshWarnOnClose: false), "not started")
+        telnet.start()
+        XCTAssertEqual(telnet.closeWarning(sshWarnOnClose: false), "Disconnect from example.org?")
+        let (serial, _, _) = try makeFakePane(type: "serial")
+        serial.start()
+        XCTAssertNil(serial.closeWarning(sshWarnOnClose: true))
+    }
 }

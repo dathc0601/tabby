@@ -91,6 +91,8 @@ public enum HotkeyCatalog {
         // SSH
         add("restart-ssh-session", "Restart current SSH session", "SSH")
         add("open-sftp", "Open SFTP panel", "SSH")
+        // Telnet
+        add("restart-telnet-session", "Restart current Telnet session", "Telnet")
         return e
     }()
 

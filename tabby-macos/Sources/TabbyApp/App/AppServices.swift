@@ -5,6 +5,7 @@ import TabbyCore
 import TabbyTerminal
 import TabbySSH
 import TabbySSHLib
+import TabbyTelnet
 import TabbyAccount
 
 /// Process-wide services: configuration, profiles, sessions, theme. Replaces the Angular
@@ -69,7 +70,7 @@ public final class AppServices {
         let ssh = SSHProfileProvider(sshConfig: {
             try? String(contentsOfFile: NSHomeDirectory() + "/.ssh/config", encoding: .utf8)
         })
-        profiles = ProfileRegistry(config: config, providers: [local, ssh], recents: recents)
+        profiles = ProfileRegistry(config: config, providers: [local, ssh, TelnetProfileProvider()], recents: recents)
 
         let askpassPath = Self.askpassExecutablePath()
         sshFactory = SSHSessionFactory(
@@ -104,6 +105,7 @@ public final class AppServices {
             MainActor.assumeIsolated { config.value("ssh.x11Display")?.stringValue }.flatMap { $0.isEmpty ? nil : $0 }
         }
         factories["local"] = LocalSessionFactory()
+        factories["telnet"] = TelnetSessionFactory()
         factories["ssh"] = SSHBackendFactory(openSSH: sshFactory, library: libSSHFactory,
                                              configuredBackend: { MainActor.assumeIsolated { config.value("ssh.backend")?.stringValue } })
         loadError = error

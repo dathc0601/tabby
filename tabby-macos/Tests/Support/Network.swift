@@ -110,4 +110,93 @@ public func readAll(_ fd: Int32, timeout: TimeInterval = 20) -> Data {
     }
     return received
 }
+/// A one-client TCP server on 127.0.0.1 driven by the test: it records what the client sends
+/// and sends what the test tells it to (a telnet server whose every byte the test chooses).
+public final class ScriptedTCPServer: @unchecked Sendable {
+    public let port: Int
+    private let listener: Int32
+    private let lock = NSLock()
+    private var client: Int32 = -1
+    private var bytes = Data()
+    private var clientClosed = false
+
+    public init() throws {
+        let (fd, port) = try listeningSocket(backlog: 1)
+        listener = fd
+        self.port = port
+        Thread { [weak self] in
+            let client = accept(fd, nil, nil)
+            guard client >= 0 else { return }
+            var yes: Int32 = 1
+            setsockopt(client, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout<Int32>.size))
+            guard let self else { close(client); return }
+            self.lock.withLock { self.client = client }
+            var buffer = [UInt8](repeating: 0, count: 4096)
+            while true {
+                let n = read(client, &buffer, buffer.count)
+                if n <= 0 { break }
+                self.lock.withLock { self.bytes.append(contentsOf: buffer[0..<n]) }
+            }
+            self.lock.withLock { self.clientClosed = true }
+        }.start()
+    }
+
+    public var hasClient: Bool { lock.withLock { client >= 0 } }
+    /// Everything the client has sent so far.
+    public var received: Data { lock.withLock { bytes } }
+    /// The client closed its end.
+    public var clientHasClosed: Bool { lock.withLock { clientClosed } }
+
+    public func send(_ data: Data) {
+        let fd = lock.withLock { client }
+        guard fd >= 0 else { return }
+        data.withUnsafeBytes { raw in
+            var offset = 0
+            while offset < raw.count {
+                let n = write(fd, raw.baseAddress! + offset, raw.count - offset)
+                if n <= 0 { break }
+                offset += n
+            }
+        }
+    }
+
+    public func send(_ text: String) { send(Data(text.utf8)) }
+
+    /// Closes the connection from the server's side.
+    public func closeClient() {
+        let fd = lock.withLock { () -> Int32 in
+            defer { client = -1 }
+            return client
+        }
+        if fd >= 0 {
+            shutdown(fd, SHUT_RDWR)
+            close(fd)
+        }
+    }
+
+    public func stop() {
+        closeClient()
+        shutdown(listener, SHUT_RDWR)
+        close(listener)
+    }
+
+    deinit { stop() }
+}
+
+/// Runs the main run loop until `condition` holds or `timeout` passes; sessions deliver
+/// their callbacks on the main queue.
+@discardableResult
+public func spinMainLoop(timeout: TimeInterval = 5, until condition: () -> Bool) -> Bool {
+    let deadline = Date().addingTimeInterval(timeout)
+    while !condition() {
+        if Date() > deadline { return false }
+        RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.01))
+    }
+    return true
+}
+
+extension Data {
+    /// Whether `other` appears in this data as a contiguous run.
+    public func contains(_ other: Data) -> Bool { range(of: other) != nil }
+}
 #endif

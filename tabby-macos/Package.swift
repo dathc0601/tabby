@@ -159,6 +159,10 @@ let package = Package(
             dependencies: ["TabbySSHLib", "TabbyCore", "TabbyTestSupport"]
         ),
         .testTarget(
+            name: "TabbyTelnetTests",
+            dependencies: ["TabbyTelnet", "TabbyCore", "TabbyTerminal", "TabbyTestSupport"]
+        ),
+        .testTarget(
             name: "TabbyCoreTests",
             dependencies: ["TabbyCore"],
             resources: [.copy("Fixtures")]

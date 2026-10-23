@@ -102,8 +102,11 @@ type from `options.scripts`, not just SSH. Local shells get login scripts as a r
 
 | Type | Messages |
 |---|---|
-| Serial | "Port opened"; "Port closed" (the device went away or hung up); on end `` ` SERIAL ` session closed `` |
-| Telnet | "Connecting to <host>"; "Connected"; "Connection closed"; on end `` ` TELNET ` <host>: session closed ``; errors `` ` X ` Socket error: <message> `` |
+| Serial | "Port opened"; "Port closed" (the device went away or hung up); on end "<device>: session closed" |
+| Telnet | "Connecting to <host>"; "Connected"; "Connection closed" (the peer closed); on end "<host>: session closed"; errors `` ` X ` Socket error: <message> `` |
+
+★ The end line uses the same badge as the other lines (Tabby prints it with an uppercase
+` SERIAL ` / ` TELNET ` badge), the way TabbyMac's SSH says "<host>: session closed".
 
 **`clearServiceMessagesOnConnect`** is now implemented. When it is set, the pane clears the
 terminal on `.connected`, as Tabby's `ConnectableTerminalTabComponent` does.

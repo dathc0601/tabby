@@ -234,13 +234,21 @@ public final class TerminalPane: TerminalEngineDelegate {
 
     /// Why closing this pane should ask first, or nil. A busy child process always asks; an
     /// open SSH connection asks when the profile's `warnOnClose` (else the global
-    /// `ssh.warnOnClose`) is on, as in Tabby's `SSHTabComponent.canClose`.
+    /// `ssh.warnOnClose`) is on, as in Tabby's `SSHTabComponent.canClose`; an open telnet
+    /// connection always asks (`TelnetTabComponent.canClose`).
     public func closeWarning(sshWarnOnClose: Bool) -> String? {
         if let name = activeProcessName { return "\(name) is still running." }
-        guard profile.type == "ssh", isRunning, session != nil else { return nil }
-        let options = SSHOptions(profile.options)
-        guard options.warnOnClose ?? sshWarnOnClose else { return nil }
-        return "Disconnect from \(options.host)?"
+        guard isRunning, session != nil else { return nil }
+        switch profile.type {
+        case "ssh":
+            let options = SSHOptions(profile.options)
+            guard options.warnOnClose ?? sshWarnOnClose else { return nil }
+            return "Disconnect from \(options.host)?"
+        case "telnet":
+            return "Disconnect from \(TelnetOptions(profile.options).host)?"
+        default:
+            return nil
+        }
     }
 
     // MARK: Output
@@ -321,9 +329,13 @@ public final class TerminalPane: TerminalEngineDelegate {
         }
     }
 
-    /// Tabby treats a session as deliberately ended when the last input was ^D or `exit`.
+    /// Tabby treats a session as deliberately ended when the last input was ^D, `exit` or
+    /// `logout`; serial and telnet tabs use `close` or `quit` instead.
     private func isExplicitlyTerminated(code: Int32?) -> Bool {
         let tail = recentInput.trimmingCharacters(in: .whitespaces)
+        if profile.type == "serial" || profile.type == "telnet" {
+            return tail.hasSuffix("close\r") || tail.hasSuffix("quit\r")
+        }
         return tail.hasSuffix("\u{04}") || tail.hasSuffix("exit\r") || tail.hasSuffix("logout\r")
     }
 
