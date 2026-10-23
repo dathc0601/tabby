@@ -56,6 +56,23 @@ final class ConnectionTypesUITests: XCTestCase {
         XCTAssertNil(StreamOptions(resolved.options).outputNewlines)
     }
 
+    /// Design C6a: the editor's Device menu lists external ports with Tabby's description, then
+    /// the Mac's own ports after a separator.
+    func testTheDeviceMenuListsExternalPortsThenBuiltInOnes() {
+        let ports = [SerialPortInfo(path: "/dev/cu.debug-console"),
+                     SerialPortInfo(path: "/dev/cu.usbserial-1420", description: "FTDI FT3K2PQ1"),
+                     SerialPortInfo(path: "/dev/cu.usbmodem2101")]
+        XCTAssertEqual(ProfileEditorSheet.deviceMenu(ports: ports), [
+            .port(title: "cu.usbserial-1420 (FTDI FT3K2PQ1)", path: "/dev/cu.usbserial-1420"),
+            .port(title: "cu.usbmodem2101", path: "/dev/cu.usbmodem2101"),
+            .separator,
+            .port(title: "cu.debug-console", path: "/dev/cu.debug-console"),
+        ])
+        XCTAssertEqual(ProfileEditorSheet.deviceMenu(ports: [SerialPortInfo(path: "/dev/cu.debug-console")]),
+                       [.port(title: "cu.debug-console", path: "/dev/cu.debug-console")], "no separator without external ports")
+        XCTAssertEqual(ProfileEditorSheet.deviceMenu(ports: []), [])
+    }
+
     func testDefaultIconsPerType() {
         XCTAssertEqual(ProfileIcons.symbol(for: ProfileIcons.defaultIcon(forType: "serial")), "cable.connector")
         XCTAssertEqual(ProfileIcons.symbol(for: ProfileIcons.defaultIcon(forType: "telnet")), "network")

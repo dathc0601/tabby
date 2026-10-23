@@ -123,8 +123,11 @@ public final class SerialProfileProvider: ProfileProvider {
         return Profile(type: "serial", name: q, options: ["port": .string(port), "baudrate": .int(baud)])
     }
 
+    /// `port · baud`, the port alone, or that the profile asks for both (design C7).
     public func description(for profile: Profile) -> String {
-        SerialOptions(profile.options).port ?? ""
+        let o = SerialOptions(profile.options)
+        guard let port = o.port else { return "Ask every time" }
+        return o.baudrate.map { "\(port) · \($0)" } ?? port
     }
 
     public func suggestedName(for profile: Profile) -> String? {

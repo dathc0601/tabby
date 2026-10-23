@@ -83,9 +83,14 @@ final class SerialProfileTests: XCTestCase {
         XCTAssertNil(SerialProfileProvider.quickConnectString(SerialOptions([:])))
     }
 
-    func testDescriptionIsThePort() {
+    /// Design C7: the profile list, start page and selectors describe a serial profile by its
+    /// port and rate, or say it asks.
+    func testDescriptionIsThePortAndRate() {
         let p = provider()
         XCTAssertEqual(p.description(for: Profile(type: "serial", name: "", options: ["port": "/dev/cu.a"])), "/dev/cu.a")
+        XCTAssertEqual(p.description(for: Profile(type: "serial", name: "", options: ["port": "/dev/cu.a", "baudrate": 115200])),
+                       "/dev/cu.a · 115200")
+        XCTAssertEqual(p.description(for: Profile(type: "serial", name: "", options: [:])), "Ask every time")
         XCTAssertEqual(p.suggestedName(for: Profile(type: "serial", name: "", options: ["port": "/dev/cu.a"])), "/dev/cu.a")
         XCTAssertNil(p.suggestedName(for: Profile(type: "serial", name: "", options: [:])))
     }

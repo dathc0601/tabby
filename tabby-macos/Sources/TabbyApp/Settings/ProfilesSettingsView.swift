@@ -306,6 +306,22 @@ struct ProfileEditorSheet: View {
         type == "ssh" ? Page.allCases : [.general, .advanced, .colors, .scripts]
     }
 
+    enum DeviceMenuEntry: Equatable {
+        case port(title: String, path: String)
+        case separator
+    }
+
+    /// The Device menu (design C6a): external ports with Tabby's description, then the Mac's
+    /// own ports after a separator.
+    static func deviceMenu(ports: [SerialPortInfo]) -> [DeviceMenuEntry] {
+        func entry(_ port: SerialPortInfo) -> DeviceMenuEntry {
+            .port(title: port.description.map { "\(port.deviceName) (\($0))" } ?? port.deviceName, path: port.path)
+        }
+        let external = ports.filter { !$0.isInternal }.map(entry)
+        let builtIn = ports.filter(\.isInternal).map(entry)
+        return external + (external.isEmpty || builtIn.isEmpty ? [] : [.separator]) + builtIn
+    }
+
     /// Whether the type connects somewhere (and so has service messages to clear).
     private var isConnection: Bool { ["ssh", "serial", "telnet"].contains(profile.type) }
 
@@ -422,11 +438,13 @@ struct ProfileEditorSheet: View {
 
     private var header: some View {
         HStack(spacing: 12) {
+            // The profile's colour behind its icon at 20% (design C6/C7).
+            let tint = profile.color.flatMap(RGBColor.init(hex:)) ?? chrome.accent
             Image(systemName: ProfileIcons.symbol(for: profile.icon ?? ProfileIcons.defaultIcon(forType: profile.type)))
-                .font(.system(size: 18))
-                .foregroundStyle((profile.color.flatMap(RGBColor.init(hex:)) ?? chrome.accent).color)
-                .frame(width: 36, height: 36)
-                .background(RoundedRectangle(cornerRadius: 8).fill(chrome.fill.color))
+                .font(.system(size: 20))
+                .foregroundStyle(tint.color)
+                .frame(width: 40, height: 40)
+                .background(RoundedRectangle(cornerRadius: 9).fill(tint.withAlpha(0.2).color))
             VStack(alignment: .leading, spacing: 2) {
                 TextField(namePlaceholder, text: $profile.name)
                     .textFieldStyle(.plain).font(ChromeFont.headline)
@@ -479,7 +497,7 @@ struct ProfileEditorSheet: View {
                 }
             }
             if isConnection {
-                SettingsRow("Clear terminal after connection", subtitle: "Hides the connection messages once connected",
+                SettingsRow("Clear terminal after connection", subtitle: "Removes the connection messages once connected",
                             isOn: $profile.clearServiceMessagesOnConnect)
             }
         }
@@ -517,24 +535,28 @@ struct ProfileEditorSheet: View {
     private var serialGeneral: some View {
         let ports = AppServices.shared.serialPorts.ports
         return VStack(alignment: .leading, spacing: 18) {
-            SettingsGroup(footer: "Without a device or a baud rate, they are asked for each time the profile opens.") {
+            SettingsGroup(footer: "Without a device or a baud rate, Tabby asks each time the profile opens.") {
                 SettingsRow("Device") {
                     HStack(spacing: 6) {
-                        RowField(placeholder: "Ask every time", text: option("port"), width: 240)
+                        RowField(placeholder: "Ask every time", text: option("port"), width: 300)
                         Menu {
-                            ForEach(ports, id: \.path) { port in
-                                Button(port.description.map { "\(port.deviceName) (\($0))" } ?? port.deviceName) {
-                                    profile.options["port"] = .string(port.path)
+                            let entries = Self.deviceMenu(ports: ports)
+                            ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in
+                                switch entry {
+                                case let .port(title, path):
+                                    Button(title) { profile.options["port"] = .string(path) }
+                                case .separator:
+                                    Divider()
                                 }
                             }
-                            if ports.isEmpty { Text("No serial ports found") }
+                            if entries.isEmpty { Text("No serial ports found") }
                         } label: { Image(systemName: "chevron.up.chevron.down") }
                             .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                     }
                 }
                 SettingsRow("Baud rate") {
                     HStack(spacing: 6) {
-                        RowField(placeholder: "Ask every time", text: optionalIntOption("baudrate"), width: 120)
+                        RowField(placeholder: "Ask every time", text: optionalIntOption("baudrate"), width: 180)
                         Menu {
                             Button("Ask every time") { profile.options["baudrate"] = .null }
                             ForEach(BaudRates.standard, id: \.self) { rate in
@@ -552,12 +574,12 @@ struct ProfileEditorSheet: View {
     private var serialAdvanced: some View {
         SettingsGroup {
             SettingsRow("Data bits") {
-                RowPicker(selection: intOption("databits", default: 8)) {
+                RowSegments(selection: intOption("databits", default: 8)) {
                     ForEach([5, 6, 7, 8], id: \.self) { Text(String($0)).tag($0) }
                 }
             }
             SettingsRow("Stop bits") {
-                RowPicker(selection: Binding(get: { profile.options["stopbits"]?.doubleValue ?? 1 },
+                RowSegments(selection: Binding(get: { profile.options["stopbits"]?.doubleValue ?? 1 },
                                              set: { profile.options["stopbits"] = $0 == 1.5 ? .double($0) : .int(Int($0)) })) {
                     Text("1").tag(1.0)
                     Text("1.5").tag(1.5)
@@ -565,7 +587,7 @@ struct ProfileEditorSheet: View {
                 }
             }
             SettingsRow("Parity") {
-                RowPicker(selection: Binding(get: { profile.options["parity"]?.stringValue ?? "none" },
+                RowSegments(selection: Binding(get: { profile.options["parity"]?.stringValue ?? "none" },
                                              set: { profile.options["parity"] = .string($0) })) {
                     Text("None").tag("none")
                     Text("Even").tag("even")
@@ -587,10 +609,10 @@ struct ProfileEditorSheet: View {
             SettingsGroup {
                 SettingsRow("Host") {
                     HStack(spacing: 8) {
-                        RowField(placeholder: "example.com", text: option("host"), width: 220)
+                        RowField(placeholder: "example.com", text: option("host"), width: 300)
                         Text("Port").foregroundStyle(chrome.textMuted.color).fixedSize()
                         TextField("23", value: intOption("port", default: 23), format: .number.grouping(.never))
-                            .textFieldStyle(.roundedBorder).font(.custom("Menlo", size: 12)).frame(width: 60)
+                            .textFieldStyle(.roundedBorder).font(.custom("Menlo", size: 12)).frame(width: 56)
                     }
                 }
             }
