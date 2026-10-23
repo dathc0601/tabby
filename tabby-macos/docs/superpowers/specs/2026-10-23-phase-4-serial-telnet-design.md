@@ -60,8 +60,9 @@ it.
 | `implicit_lf` | every `\r` becomes `\r\n` |
 | `strip`, `cr`, `lf`, `crlf` | `\r\n` and lone `\r` are first normalised to `\n`, then `\n` becomes ``, `\r`, `\n` or `\r\n` |
 
-★ A `\r` at the end of a chunk waits for the next chunk (or 50 ms), so a CRLF split
-across reads counts as one newline.
+★ A `\r` at the end of a chunk is remembered, and an `\n` starting the next chunk is then
+skipped, so a CRLF split across reads counts as one newline (output only; typed input keeps
+no such state).
 
 **Output path:** session → newline translation → hexdump (if `hex`) → login scripts →
 terminal.

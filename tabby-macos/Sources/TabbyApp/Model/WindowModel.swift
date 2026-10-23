@@ -12,8 +12,8 @@ public protocol WindowModelUI: AnyObject {
     func notifyProcessEnded(_ pane: TerminalPane, code: Int32?)
     func modelDidBecomeEmpty()
     /// Asks which port and baud rate a serial profile without them should use (Tabby asks
-    /// the rate in `getNewTabParameters`); the completion gets the profile with the answers,
-    /// or nil when the user cancelled.
+    /// the rate in `getNewTabParameters`); the completion gets the profile with the answers.
+    /// When the user cancels, it may never be called (or gets nil): nothing opens either way.
     func completeSerialProfile(_ profile: Profile, missing: [SerialProfileProvider.Parameter],
                                completion: @escaping (Profile?) -> Void)
 }

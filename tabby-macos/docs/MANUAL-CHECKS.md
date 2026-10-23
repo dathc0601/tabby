@@ -377,23 +377,27 @@ own: only list it.
       rate). The tab opens with " Serial  Port opened"; `AT` answers `OK`.
 - [ ] Chip: `tty · 115200`, Connected; its Baud rate button changes the rate and the label.
       The rate survives quitting and relaunching (no questions on restore).
-- [ ] Line by line: `> ` prompt; typing edits locally; Return sends the line (the device
+- [x] Line by line: `> ` prompt; typing edits locally; Return sends the line (the device
       prints it); device output clears the prompt and it comes back. Hexadecimal input
       `41 54 0d` sends `AT\r`; Hexadecimal output shows `bin` as a dump.
-- [ ] Newlines: "Force CRLF" input newlines makes the device receive `\r\n` for Return.
-- [ ] Unplugging (Ctrl-C the device) prints "Port closed" and "… session closed", then "Press
+- [x] Newlines: "Force CRLF" input newlines makes the device receive `\r\n` for Return.
+- [x] Unplugging (Ctrl-C the device) prints "Port closed" and "… session closed", then "Press
       any key to restart"; with the device running again, a key reconnects.
-- [ ] A second tab on the same port says it is busy; `close` + Return in Auto mode closes
-      the tab.
-- [ ] A login script on a serial profile (expect `login:`, send `root`) answers the device's
+- [x] A second tab on the same port says it is busy; `close` + Return in Auto mode closes
+      the tab when the port then goes away.
+- [x] A login script on a serial profile (expect `login:`, send `root`) answers the device's
       `login` prompt.
 - [ ] Telnet profile to 127.0.0.1:2323: "Connecting to 127.0.0.1", "Connected", a shell;
       `stty size` matches the pane and follows a resize; chip `127.0.0.1:2323`; Quick connect
       `127.0.0.1:2323` works too.
-- [ ] ⌘W on a connected telnet tab asks "Disconnect from 127.0.0.1?"; `exit` in the shell
-      prints "Connection closed" and "127.0.0.1: session closed", and a key reconnects.
-- [ ] Raw socket connection template to an `nc -l` peer: typed lines are echoed locally and
-      reach nc with CRLF; nc's lines show in the tab.
+- [x] ⌘W on a connected telnet tab asks "Disconnect from 127.0.0.1?" (quitting asks the
+      same); `exit` in the shell prints "Connection closed" and "127.0.0.1: session closed",
+      and a key reconnects.
+- [x] A raw socket (the "Raw socket connection" defaults: local echo, CRLF output) to an
+      `nc -l` peer: typed lines are echoed locally and reach the peer with no telnet bytes;
+      the peer's LF lines show properly.
+- [x] Quitting and relaunching restores the serial and telnet tabs with their settings; they
+      connect again without asking anything.
 - [ ] Profile editor: the Serial and Telnet pages save their settings (device menu, baud rate
       menu with "Ask every time", data/stop bits, parity, flow control, stream processing,
       "Clear terminal after connection"); Settings › SSH › Quick connect uses lists SSH,
