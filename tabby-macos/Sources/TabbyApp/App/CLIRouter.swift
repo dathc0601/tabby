@@ -108,12 +108,20 @@ final class CLIRouter {
     }
 
     /// Tabby's `OpenPathCLIHandler`: a directory opens there; a `.sh` or `.command` script
-    /// runs in the default profile, which stays open after it.
+    /// runs in the default profile, which stays open after it. ★ It asks first: unlike
+    /// Tabby's, this one is reachable from a link (`tabbymac://path?path=…`), which any web
+    /// page can open.
     private func openPath(_ path: String, in controller: MainWindowController) {
         if isDirectory(path) { return openDirectory(path, in: controller) }
         guard FileManager.default.fileExists(atPath: path), ["sh", "command"].contains((path as NSString).pathExtension) else {
             return fail(L("Cannot handle scripts of this type"), in: controller)
         }
+        confirm(L("Run \"{command}\"?", ["command": path]), L("Run")) { [weak self] ok in
+            if ok { self?.runScript(path, in: controller) }
+        }
+    }
+
+    private func runScript(_ path: String, in controller: MainWindowController) {
         var profile = AppServices.shared.defaultProfile()
         var options = LocalOptions(profile.options)
         options.args.append(path)

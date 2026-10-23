@@ -149,7 +149,7 @@ both entry points, Tabby's command set:
 | `paste [text]` (`-e/--escape`) | `tabbymac://paste?text=…&escape=true` | Asks "Paste …?", then types it into the focused pane |
 | `recent <index>` | `tabbymac://recent?profileNumber=…` | Opens a recent profile |
 | `quickConnect <provider> <query>` | `tabbymac://quickConnect?providerId=…&query=…` | Quick-connect tab (`ssh`, `telnet`, `serial`) |
-| `<path>` | — | A directory opens there; a `.sh` or `.command` file runs in the default profile |
+| `<path>` | `tabbymac://path?path=…` | A directory opens there; a `.sh` or `.command` file runs in the default profile after asking ★ (a link can name it) |
 | — | `ssh://[user@]host[:port]` | Quick-connect SSH tab |
 | — | `telnet://host[:port]` | Quick-connect telnet tab |
 

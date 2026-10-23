@@ -124,6 +124,11 @@ final class CLIRouterTests: XCTestCase {
         XCTAssertEqual(tabs.count, 1)
         let script = directory.appendingPathComponent("deploy.sh")
         try "echo hi\n".write(to: script, atomically: true, encoding: .utf8)
+        answer = false
+        router.handle(.path("deploy.sh"), cwd: directory.path)
+        XCTAssertEqual(asked, ["Run \"\(script.path)\"?"], "a link can name a script: it asks first")
+        XCTAssertEqual(tabs.count, 1, "Cancel runs nothing")
+        answer = true
         router.handle(.path("deploy.sh"), cwd: directory.path)
         let options = LocalOptions(try XCTUnwrap(lastProfile).options)
         XCTAssertEqual(options.args.last, script.path, "the default shell runs the script")
@@ -131,6 +136,7 @@ final class CLIRouterTests: XCTestCase {
         try "x".write(to: directory.appendingPathComponent("notes.txt"), atomically: true, encoding: .utf8)
         router.handle(.path("notes.txt"), cwd: directory.path)
         XCTAssertEqual(tabs.count, 2)
+        XCTAssertEqual(asked.count, 2, "nothing to ask for a file it won't run")
         XCTAssertEqual(lastToast, "Cannot handle scripts of this type")
     }
 
