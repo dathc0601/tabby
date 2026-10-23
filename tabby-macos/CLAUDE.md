@@ -29,7 +29,9 @@ Read `README.md` and `docs/ARCHITECTURE.md` before larger changes.
   branch `claude/phase-3-libssh`): the libssh backend (`TabbySSHLib`, `CLibSSH`) is the default
   for SSH tabs; `ssh.backend: openssh` keeps the old one. SFTP panel, transfers, Ports popover,
   keyboard-interactive panel, shared connections, jump hosts, proxies, agent/X11 forwarding,
-  Test connection. Needs `brew install libssh` to build. Its on-screen checks are M8.
+  Test connection. Needs `brew install libssh` to build. Its on-screen checks are M8, walked
+  on 2026-10-23 against Docker test servers (fixes in the Findings table); open: X11 with
+  XQuartz, dropping files from Finder, Show in Finder, and M4 again on `ssh.backend: openssh`.
 - SSH integration tests start their own unprivileged sshd (`TestSSHD`); wrap runs that might
   hang with a deadline (macOS has no `timeout`), and never call `Process.waitUntilExit()` from
   an async test (it needs a run loop).

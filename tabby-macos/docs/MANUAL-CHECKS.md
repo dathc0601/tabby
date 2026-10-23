@@ -301,42 +301,57 @@ your Mac password, as in M4) or use a VPS you own. The integration tests already
 logins, forwards, SFTP, proxies and agent forwarding against a throwaway sshd; these items
 cover what only the window shows and what the test sshd can't do (PAM, 2FA, X11).
 
-- [ ] First connection: the host key card shows the type and fingerprint and "Remember in
+- [x] First connection: the host key card shows the type and fingerprint and "Remember in
       known_hosts"; unticked, the next connection asks again. With the key changed in
       known_hosts, the warning shows both fingerprints and Return rejects.
-- [ ] Password login asks once with "Remember in Keychain"; the next login says "Using saved
+- [x] Password login asks once with "Remember in Keychain"; the next login says "Using saved
       password". A wrong saved password is deleted and asked for again.
-- [ ] An encrypted key asks for its passphrase once (Remember), not again afterwards.
-- [ ] A 2FA host (keyboard-interactive) shows the panel at the top of the pane: "prompt n of
+- [x] An encrypted key asks for its passphrase once (Remember), not again afterwards.
+- [x] A 2FA host (keyboard-interactive) shows the panel at the top of the pane: "prompt n of
       m", the instruction with clickable links, hidden field, Back, Cancel, Continue. Cancel
       ends the login; the terminal gets its full height back.
-- [ ] Two tabs of a profile open on one connection (second tab instant, no host key
+- [x] Two tabs of a profile open on one connection (second tab instant, no host key
       question); closing one leaves the other working.
-- [ ] Jump host profile: connects through the jump profile; a loop names both profiles.
-- [ ] Agent: a key only in the agent logs in; with Agent forwarding, `ssh-add -l` on the
+- [x] Jump host profile: connects through the jump profile; a loop names both profiles.
+- [x] Agent: a key only in the agent logs in; with Agent forwarding, `ssh-add -l` on the
       server lists it.
 - [ ] X11 (XQuartz installed, server with xauth): `xeyes` from the server opens on this Mac.
-- [ ] Chip: Ports and SFTP buttons are enabled only while connected. Ports: add Local
+      *Not walked: the test Mac has no XQuartz.*
+- [x] Chip: Ports and SFTP buttons are enabled only while connected. Ports: add Local
       127.0.0.1:8000 → a web server, open it in a browser; Remote and Dynamic (browser SOCKS
       proxy) work; × puts the forward back in the form; a busy port shows the error.
-- [ ] A profile's saved forwards start on connect; a busy one shows a toast and the session
+- [x] A profile's saved forwards start on connect; a busy one shows a toast and the session
       carries on.
 - [ ] SFTP (chip, ⌘ hotkey `open-sftp` if bound, pane menu "Open SFTP Panel"): opens at the
       shell's folder when it reports one (OSC 7), else the last one, else /; breadcrumb and
       typed path (double-click); Filter; Go up; click a folder / a link / a file (save
       panel); drop files and a folder from Finder; Create directory opens it; Delete asks;
       Download directory into "Download here" with "name (1)" on a clash; Edit locally
-      re-uploads on save; a click on the terminal above closes the panel.
+      re-uploads on save; a click on the terminal above closes the panel. *Everything but the
+      drop from Finder passed (the harness cannot drag).*
 - [ ] Transfers: the tab bar button appears with the first transfer and opens its popover;
-      progress, speed, cancel, Show in Finder; Clear finished asks while one runs.
-- [ ] Profile editor: Test connection reports "Connected as … · key fingerprint" or the
+      progress, speed, cancel, Show in Finder; Clear finished asks while one runs. *All but
+      Show in Finder, which was not clicked.*
+- [x] Profile editor: Test connection reports "Connected as … · key fingerprint" or the
       reason; its questions appear over the editor. Ciphers, keep-alive count, ready
       timeout, Backspace (Ctrl-H shows `^H` in `cat -v`) and "Reopen in the last directory"
       save and take effect.
-- [ ] Settings › SSH: a custom agent socket and an X11 display are used.
+- [ ] Settings › SSH: a custom agent socket and an X11 display are used. *The agent socket
+      passed; the X11 display needs XQuartz.*
 - [ ] `ssh.backend: openssh` in config.yaml: SSH tabs use the system client again (M4 passes);
-      a profile's `backend: library` overrides it.
-- [ ] The panels follow the colour scheme (switch schemes with the SFTP and 2FA panels open).
+      a profile's `backend: library` overrides it. *The switch and the override passed (a login
+      with each); M4 was not walked again on the system client.*
+- [x] The panels follow the colour scheme (switch schemes with the SFTP and 2FA panels open).
+
+M8 walked on 2026-10-23 against throwaway servers in Docker on 127.0.0.1: an OpenSSH server
+(password, plain, encrypted and agent-only keys, a web server on its port 8080, OSC 7 in the
+prompt) and a scripted keyboard-interactive server (two prompts with a link, then a second
+round). The agent was a separate `ssh-agent` holding one test key, set as Settings › SSH ›
+SSH agent, with `SSH_AUTH_SOCK` unset. For "a busy port", use one that a program you started
+listens on: binding 127.0.0.1 succeeds next to another program's wildcard listener (OpenSSH
+behaves the same), so the forward would take that program's local traffic. Every walked item
+passed after the fixes in Findings. Left for the owner: X11 with XQuartz, dropping files from
+Finder, Show in Finder, and M4 again with `ssh.backend: openssh`.
 
 ## Findings
 
@@ -389,5 +404,14 @@ cover what only the window shows and what the test sshd can't do (PAM, 2FA, X11)
 | 2026-10-23 | M7 | Change password… took the new password once, so a typo left only the recovery key. | `71cd4725` |
 | 2026-10-23 | M7 | At 706 pt the signed-out Account card put its title one word a line and cut "Create account". | `c99a7dca` |
 | 2026-10-23 | M7 | After signing in again, the sign-out card said "0 keys" and then emptied `<config>/keys`. | `b74bfb47` |
+| 2026-10-23 | M8 | The keyboard-interactive panel's field never had the keys: the pane made the panel's host first responder, and a new field after Continue or Back had no focus. | `28ab6e7c` |
+| 2026-10-23 | M8 | A jump host failed with "Receiving banner: too large banner": a direct-tcpip channel's first bytes (the target sshd's banner) arrived with the open confirmation and went to a placeholder handler. | `0d0a4822` |
+| 2026-10-23 | M8 | The chip's Ports button opened an empty bubble the first time: the popover was built before its model was set. | `2382074b` |
+| 2026-10-23 | M8 | Remote forwards failed with "Global request tcpip-forward failed" once a keep-alive had gone out: libssh took the keep-alive's late refusal as tcpip-forward's answer and never sent it. | `a9b31c53` |
+| 2026-10-23 | M8 | A background tab's forward toast brought that tab to the front; at restore it slid under another tab's password card. | `ec8b9228` |
+| 2026-10-23 | M8 | With the pointer resting over the selector, the row that slid under it took the selection, and Return opened Quick connect instead of the profile. | `05742116` |
+| 2026-10-23 | M8 | Double-clicking the SFTP breadcrumb showed the path field without the keys. | `ac5d6443` |
+| 2026-10-23 | M8 | Edit locally never uploaded a change written into the file in place (shell, editors that overwrite); only the folder was watched. | `a0ace81c` |
+| 2026-10-23 | M8 | config.yaml edited by hand while the app ran was overwritten at quit, though nothing had changed in the app. | `53c4c4b5` |
 
 Open: the M5 notification item, blocked by macOS on the test Mac (see the item).
