@@ -257,25 +257,54 @@ busy: another program has it open", "Unsupported baud rate <n>", "No serial port
 - Both appear in the selector's quick-connect rows, and in Settings › Profiles › "Quick
   connect uses".
 
-## UI (until the owner's designs arrive; 4.5 replaces this section)
+## UI (from the owner's Claude Design canvas "Tabby Connections", C1–C10)
 
-- **Chip.** `SSHStatusChip` becomes a connection chip with a per-type descriptor:
-  - SSH: `user@host:port`, with SFTP and Ports.
-  - Serial: `<device> · <baud>`, with a "Baud rate" popover that lists the standard rates and
-    has a custom field.
-  - Telnet: `host:port`.
-  - The states and colours stay the same.
-- **Selectors.** Baud rate and serial port use `SelectorPanel` with free input.
-- **Profile editor.** Pages are chosen by type instead of `isSSH`.
-  - Serial General: Device, Baud rate, and a Stream processing group.
-  - Serial Advanced: data and stop bits, parity, flow-control toggles, Slow feed, Backspace.
-  - Telnet General: Host, Port, and the Stream processing group.
-  - Telnet Advanced: Backspace.
-  - Colours and Login scripts are shared.
-  - Picker labels and subtitles are Tabby's.
-- **Profile lists.** The New menu has Local, SSH, Serial and Telnet. Icons are
-  `memorychip` (Tabby's `fa-microchip`) and `network` (`fa-network-wired`). Start-page
-  subtitles come from `provider.description`.
+Built only from the existing tokens and components. ★ marks a choice the canvas leaves open
+or a deviation from it.
+
+- **Type icons.** Serial `cable.connector` (Tabby's `fa-microchip`; `memorychip` read as
+  RAM), Telnet `network`, SSH `server.rack` (also for the SSH template). Profiles keep
+  Tabby's Font Awesome names; the mapping is in `ProfileIcons`. A tab whose profile has no
+  icon shows its type's icon.
+- **Connection chip (C1).** Unchanged size, dot colours and buttons. Serial
+  `<device> · <baud>` with "Baud rate" where SSH has Ports (`textFaint` and disabled unless
+  connected; shown pressed while its popover is open); Telnet `host:port` with Reconnect only.
+- **Pane labels (C1b).** In a split, each pane shows `n · title` at its top-right (`fill`,
+  radius 5, 11 pt `textMuted`); the chip takes its place while the chip is visible. Single
+  panes show none. ★ no setting.
+- **Baud-rate popover (C2).** 320 pt, from the chip: "Baud rate" + device, the standard
+  rates with the one in use checked and marked "In use", a Custom numeric field, keycaps
+  ↩ apply / esc close. A rate applies on click; ↩ applies the custom field. A failure shows
+  the toast "Could not change the baud rate" with the error.
+- **Baud-rate selector (C3).** Placeholder "Baud rate", 115200 selected and in view, a
+  non-standard number offers `Use custom rate “250000”` (pencil).
+- **Serial-port selector (C4).** Placeholder "Serial port or a device path"; "Ports" rows
+  (device name, description or path) then "Built in" rows dimmed; a typed path offers
+  `Use <path>` first; empty state "No ports found" / "Connect a device, or type its path".
+- **Show Serial connections (C5, ⌥K).** "Saved profiles", then the template "Serial
+  connection" ("Asks for the port and baud rate", `plus`, no header), then "Ports"
+  (`Serial: <description>`, path). A typed `path@rate` puts "Quick connect" first
+  ("<path> at <rate> baud"). Footer hint `⌥K serial`.
+- **Profile editor (C6, C7).** Header tile 40 × 40, the profile colour at 20 % behind the
+  icon (all types ★). "Clear terminal after connection" — "Removes the connection messages
+  once connected". Serial General: Device (Menlo field, "Ask every time" ★ where the canvas
+  says "Automatic", menu of ports then built-in ports), Baud rate ("Ask every time", menu),
+  footer "Without a device or a baud rate, Tabby asks each time the profile opens.", then
+  Stream processing. Serial Advanced: Data bits / Stop bits / Parity as segments, RTS / CTS,
+  XON, XOFF, Xany, Slow feed, Backspace sends, Ignore titles. Telnet General: Host filling
+  the row with an inline Port (placeholder 23), Stream processing; Advanced: Backspace sends,
+  Ignore titles. Stream-processing pickers keep Tabby's names and subtitles (the subtitle
+  sits beside the picker ★).
+- **Profile lists (C7, C8).** New menu: Local terminal, SSH connection, Serial connection,
+  Telnet connection. Badges "Serial" / "Telnet". A serial profile's description is
+  `<path> · <baud>`, `<path>`, or "Ask every time" (tree, start page, selectors ★ one rule).
+  ⌘E quick-connect rows read "Quick connect · <type title>" with the type icon and the query
+  as subtitle.
+- **Terminal messages (C9).** Badges black on white (SSH keeps cyan); errors start with
+  ` X ` black on red, then the text in the default colour. The hexdump offset, `｜` and `╳`
+  are bright black. Connection tabs end with "Session closed. Press any key to reconnect."
+- **Close warnings (C10).** "Close this tab?" with Cancel / Close (destructive, no ↩ ★ for
+  every destructive confirm); "Quit TabbyMac?" with Quit as the default button.
 
 ## Tests
 
