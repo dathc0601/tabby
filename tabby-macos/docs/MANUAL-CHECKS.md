@@ -376,10 +376,9 @@ own: only list it.
 - [x] The template asks for the port (a typed path such as `~/tabbymac-m9/tty` is offered
       as "Use /Users/…/tabbymac-m9/tty"), then the baud rate (115200 selected; typing 250000 offers it as a custom
       rate). The tab opens with " Serial  Port opened"; `AT` answers `OK`.
-- [ ] Chip: `tty · 115200`, Connected; its Baud rate button changes the rate and the label.
+- [x] Chip: `tty · 115200`, Connected; its Baud rate button changes the rate and the label.
       The rate survives quitting and relaunching (no questions on restore). *The label and
-      the restore passed; the Baud rate button was not clicked (the live change has a test on
-      a pty).*
+      the restore passed; the Baud rate button (now a popover) was walked in M9b.*
 - [x] Line by line: `> ` prompt; typing edits locally; Return sends the line (the device
       prints it); device output clears the prompt and it comes back. Hexadecimal input
       `41 54 0d` sends `AT\r`; Hexadecimal output shows `bin` as a dump.
@@ -418,6 +417,48 @@ because the owner was using the Mac. Left for the owner:
   a rate above 230400 (custom rates fail on a pty by design), another app holding the port
   (exclusive mode), unplugging the cable;
 - a real telnet device (a switch or router console).
+
+## M9b Designed serial and telnet screens (milestone 4.5)
+
+The Claude Design canvas "Tabby Connections" (C1–C10), applied in milestone 4.5. Same setup
+as M9 (fake device, busybox telnetd); `DesignSnapshotTests.testSerialAndTelnetScreens`
+renders the static screens, so these items cover what moves or needs the real window.
+
+- [x] C1: a split with a serial and a telnet pane shows `2 · Core switch`-style labels at the
+      top right; hovering a pane shows its chip in the label's place; a single pane has no
+      label. Serial tabs use the `cable.connector` icon. *Tab icons are off by default
+      (`terminal.showTabProfileIcon`); the icon was checked in the selectors and the editor.*
+- [x] C2: the chip's Baud rate opens the popover (button shown pressed): 115200 checked and
+      "In use"; clicking 9600 applies it (chip label changes, popover closes); a Custom rate
+      and Return apply it; a rate the port refuses shows "Could not change the baud rate".
+      *250000 on the pty showed the toast; clicking 9600 changed the chip to `tty · 9600`.*
+- [x] C3: a profile with no rate opens the baud-rate list with 115200 selected and in view;
+      typing 250000 offers `Use custom rate “250000”`.
+- [x] C4: a profile with no device lists ports, then the Mac's own ports dimmed under "Built
+      in"; a typed path is offered first.
+- [x] C5: ⌥K lists saved serial profiles, the "Serial connection" template ("Asks for the
+      port and baud rate"), then ports, with `⌥K serial` in the footer; typing
+      `<path>@9600` offers "Quick connect" first ("… at 9600 baud").
+- [x] C6/C7: the editor's Serial and Telnet pages: header tile in the profile colour, Device
+      menu (ports, separator, built-in ports), data bits / stop bits / parity as segments,
+      the design's footer and subtitle; Telnet Host with the inline Port. The New menu lists
+      Local terminal, SSH, Serial and Telnet connection; the list shows "Serial"/"Telnet"
+      badges and serial profiles as `path · baud` or "Ask every time". *Walked: the Serial
+      General page and its Device menu, the list and the New menu (icons missing: Findings).
+      The Advanced page's segments and the Telnet page: snapshots.*
+- [x] C8: ⌘E with `127.0.0.1:2323` typed shows the matching profiles in their groups, then
+      "Quick connect · SSH connection / Serial connection / Telnet connection".
+- [x] C9: an error line starts with a black ` X ` on red and the message in the normal colour;
+      the hexdump's offset is dim; a closed connection says "Press any key to reconnect".
+      *A second tab on the busy port showed the error line; the hexdump is in the snapshot.*
+- [x] C10: ⌘W on a connected telnet tab asks "Close this tab?" with Cancel / Close; Return
+      does not close it, Escape cancels; quitting asks "Quit TabbyMac?" with Quit as the
+      default. *Both alerts listed the same warning once per pane (Findings).*
+
+M9b walked on 2026-10-23 with the same fake device and a busybox telnetd, keys sent to the
+app's process where possible and clicks only after re-reading the window's position. The
+Mac's own serial port (an LG monitor) was listed, never opened. Three fixes came out of it
+(Findings). Left for the owner: the items in M9 still marked open, and real hardware.
 
 ## Findings
 
@@ -481,5 +522,9 @@ because the owner was using the Mac. Left for the owner:
 | 2026-10-23 | M8 | config.yaml edited by hand while the app ran was overwritten at quit, though nothing had changed in the app. | `53c4c4b5` |
 | 2026-10-23 | M9 | A new telnet tab to busybox showed extra prompts: the pane sent the same window size more than once and the shell redraws on every NAWS. | `e916c03f` |
 | 2026-10-23 | M9 | A telnet profile made with New → Telnet (local echo, Tabby's default) showed every key twice against a shell that echoes. Local echo now stands aside while the server echoes. | `cc2b1be2` |
+
+| 2026-10-23 | M9b | The selector panel was 32 pt taller than its content, an empty band above the search field (the title bar's height, added by the hosting view). | `0008aee6` |
+| 2026-10-23 | M9b | Closing a split tab with two panes on one host, or quitting, listed "Disconnect from 127.0.0.1?" twice. | `af98c0f9` |
+| 2026-10-23 | M9b | The New menu on Settings › Profiles showed no type icons (design C7). | `847c06fb` |
 
 Open: the M5 notification item, blocked by macOS on the test Mac (see the item).
