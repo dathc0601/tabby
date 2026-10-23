@@ -1,7 +1,7 @@
 import Foundation
 import TabbyCore
 
-/// A byte-stream session behind a terminal tab: local PTY, SSH, later serial/telnet.
+/// A byte-stream session behind a terminal tab: local PTY, SSH, serial or telnet.
 /// Port of `BaseSession` (`tabby-terminal/src/session.ts`). All callbacks run on the main queue.
 public protocol TerminalSession: AnyObject {
     var onOutput: ((Data) -> Void)? { get set }
@@ -31,6 +31,17 @@ public enum SessionStatus: Equatable, Sendable {
 
 public extension TerminalSession {
     func activeProcessName() -> String? { nil }
+}
+
+/// A session that writes its own lines (badges, errors) which must reach the terminal as they
+/// are, past any stream processing (Tabby's `serviceMessage$`).
+public protocol ServiceOutputSource: AnyObject {
+    var onServiceOutput: ((Data) -> Void)? { get set }
+}
+
+/// A session whose peer can ask for local echo (telnet `DO ECHO`).
+public protocol LocalEchoSource: AnyObject {
+    var onLocalEchoChanged: ((Bool) -> Void)? { get set }
 }
 
 /// Creates sessions for a profile type. The app registers one factory per provider.

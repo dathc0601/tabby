@@ -88,6 +88,9 @@ public final class TerminalPane: TerminalEngineDelegate {
     @ObservationIgnored private var loginScripts: LoginScriptRunner?
     @ObservationIgnored private let progressDetector = ProgressDetector()
     @ObservationIgnored private var started = false
+    /// A restored pane keeps its replayed scrollback when it first connects, even if the
+    /// profile clears service messages on connect.
+    @ObservationIgnored private var keepsRestoredScrollback = false
 
     /// Ask the app to close this pane (session ended with close behaviour).
     @ObservationIgnored public var onRequestClose: ((TerminalPane) -> Void)?
@@ -120,10 +123,7 @@ public final class TerminalPane: TerminalEngineDelegate {
             workingDirectory = restore.cwd
             if let cwd = restore.cwd { self.context.workingDirectory = cwd }
         }
-        if profile.type == "ssh" {
-            let scripts = SSHOptions(profile.options).scripts
-            if !scripts.isEmpty { loginScripts = LoginScriptRunner(scripts: scripts) }
-        }
+        keepsRestoredScrollback = restore?.savedState?.isEmpty == false
     }
 
     /// The title shown in the tab: custom > dynamic (unless disabled) > profile name.
@@ -158,8 +158,12 @@ public final class TerminalPane: TerminalEngineDelegate {
             s.onClosed = { [weak self] code in self?.handleClosed(code) }
             s.onStatus = { [weak self] st in
                 self?.status = st
-                if st == .connected { self?.reconnectAttempt = 0 }
+                if st == .connected { self?.connected() }
             }
+            // Each connection runs the profile's login scripts afresh, as Tabby builds its
+            // LoginScriptProcessor per session; every type has them, not just SSH.
+            let scripts = (profile.options["scripts"]?.arrayValue ?? []).compactMap(LoginScript.init)
+            loginScripts = scripts.isEmpty ? nil : LoginScriptRunner(scripts: scripts)
             session = s
             userClosed = false
             disconnectedByHand = false
@@ -175,6 +179,17 @@ public final class TerminalPane: TerminalEngineDelegate {
             state = .failed(error.localizedDescription)
             engine?.feed(Data("\r\n\u{1b}[31m\(error.localizedDescription)\u{1b}[0m\r\n".utf8))
         }
+    }
+
+    private func connected() {
+        reconnectAttempt = 0
+        // Tabby's `clearServiceMessagesOnConnect` (ConnectableTerminalTabComponent).
+        guard profile.type != "local", profile.clearServiceMessagesOnConnect else { return }
+        if keepsRestoredScrollback {
+            keepsRestoredScrollback = false
+            return
+        }
+        engine?.clearScreen()
     }
 
     /// Starts the session once the view has laid out (no-op if already started).

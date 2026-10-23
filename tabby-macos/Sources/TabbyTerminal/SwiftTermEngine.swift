@@ -144,6 +144,11 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
         engineDelegate?.engine(self, send: Data([0x0c]))
     }
 
+    public func clearScreen() {
+        clearScrollback()
+        feed(text: "\u{1b}[H\u{1b}[2J")
+    }
+
     public func snapshotText(maxLines: Int) -> String {
         let data = getTerminal().getBufferAsData(kind: .normal)
         let text = String(decoding: data, as: UTF8.self)

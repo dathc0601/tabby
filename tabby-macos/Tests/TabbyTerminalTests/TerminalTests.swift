@@ -18,6 +18,8 @@ final class FakeEngine: TerminalEngine {
     func selectAll() {}
     func clearSelection() {}
     func clearBuffer() { output = Data() }
+    var cleared = 0
+    func clearScreen() { cleared += 1; output = Data() }
     func snapshotText(maxLines: Int) -> String { text }
     func scroll(_ action: TerminalScrollAction) {}
     func apply(settings: TerminalSettings, scheme: ColorScheme, fontSize: Double) {}

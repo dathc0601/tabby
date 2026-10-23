@@ -211,7 +211,7 @@ public final class SSHSession: TerminalSession {
 
     /// Writes a Tabby-style service message: an inverse ` SSH ` badge and the text.
     private func serviceMessage(_ text: String) {
-        onOutput?(Data("\u{1b}[0;30;46m SSH \u{1b}[0m \(text)\r\n".utf8))
+        onOutput?(ServiceMessage.line(text, badge: .ssh))
     }
 
     // MARK: Prompts

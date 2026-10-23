@@ -231,7 +231,7 @@ public final class LibSSHSession: TerminalSession {
         guard !ended else { return }
         if !cancelled {
             let text = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            onOutput?(Data("\u{1b}[0;37;41m X \u{1b}[0m \u{1b}[31m\(text)\u{1b}[0m\r\n".utf8))
+            onOutput?(ServiceMessage.error(text))
         }
         releaseConnection()
         end(nil)
@@ -248,7 +248,7 @@ public final class LibSSHSession: TerminalSession {
 
     /// A Tabby-style service line: an inverse ` SSH ` badge and the text.
     func serviceMessage(_ text: String) {
-        onOutput?(Data("\u{1b}[0;30;46m SSH \u{1b}[0m \(text.replacingOccurrences(of: "\n", with: "\r\n      "))\r\n".utf8))
+        onOutput?(ServiceMessage.line(text, badge: .ssh))
     }
 }
 

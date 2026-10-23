@@ -40,7 +40,7 @@ public struct Profile: Hashable, Identifiable, Sendable {
         weight: Int = 0,
         isBuiltin: Bool = false,
         isTemplate: Bool = false,
-        clearServiceMessagesOnConnect: Bool = true,
+        clearServiceMessagesOnConnect: Bool? = nil,
         terminalColorScheme: ConfigValue? = nil,
         extra: [String: ConfigValue] = [:]
     ) {
@@ -56,7 +56,7 @@ public struct Profile: Hashable, Identifiable, Sendable {
         self.weight = weight
         self.isBuiltin = isBuiltin
         self.isTemplate = isTemplate
-        self.clearServiceMessagesOnConnect = clearServiceMessagesOnConnect
+        self.clearServiceMessagesOnConnect = clearServiceMessagesOnConnect ?? Self.clearsServiceMessagesByDefault(type: type)
         self.terminalColorScheme = terminalColorScheme
         self.extra = extra
     }
@@ -86,7 +86,7 @@ public struct Profile: Hashable, Identifiable, Sendable {
             weight: v["weight"]?.intValue ?? 0,
             isBuiltin: v["isBuiltin"]?.boolValue ?? false,
             isTemplate: v["isTemplate"]?.boolValue ?? false,
-            clearServiceMessagesOnConnect: v["clearServiceMessagesOnConnect"]?.boolValue ?? true,
+            clearServiceMessagesOnConnect: v["clearServiceMessagesOnConnect"]?.boolValue,
             terminalColorScheme: v["terminalColorScheme"].flatMap { $0.isNull ? nil : $0 },
             extra: (v.objectValue ?? [:]).filter { !Profile.knownKeys.contains($0.key) }
         )
@@ -106,10 +106,16 @@ public struct Profile: Hashable, Identifiable, Sendable {
         if behaviorOnSessionEnd != .auto { o["behaviorOnSessionEnd"] = .string(behaviorOnSessionEnd.rawValue) }
         if weight != 0 { o["weight"] = .int(weight) }
         if isTemplate { o["isTemplate"] = true }
-        if !clearServiceMessagesOnConnect { o["clearServiceMessagesOnConnect"] = false }
+        if clearServiceMessagesOnConnect != Self.clearsServiceMessagesByDefault(type: type) {
+            o["clearServiceMessagesOnConnect"] = .bool(clearServiceMessagesOnConnect)
+        }
         if let terminalColorScheme { o["terminalColorScheme"] = terminalColorScheme }
         return .object(o)
     }
+
+    /// Whether a connection clears its service messages once connected when the profile
+    /// doesn't say: Tabby's provider defaults (SSH yes; serial and telnet no).
+    public static func clearsServiceMessagesByDefault(type: String) -> Bool { type == "ssh" }
 
     /// Tabby's id scheme for user profiles: `<type>:custom:<slug(name)>:<uuid>`.
     public static func makeId(type: String, name: String) -> String {

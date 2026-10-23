@@ -18,6 +18,9 @@ public protocol TerminalEngine: AnyObject {
     func clearSelection()
     /// ⌘K: clear the screen and scrollback.
     func clearBuffer()
+    /// Clears the screen and scrollback without telling the program (no ^L): a connection
+    /// clearing its service messages once it is up.
+    func clearScreen()
     /// Plain-text snapshot of scrollback + screen, used for tab recovery.
     func snapshotText(maxLines: Int) -> String
     func scroll(_ action: TerminalScrollAction)
