@@ -379,13 +379,28 @@ final class PaneContainerView: NSView {
             pane.isSearchVisible = true
             needsLayout = true
         }
-        // Focus the field.
+        focusSearchField()
+    }
+
+    /// Puts the keys in the bar's text field. Making the hosting view first responder is not
+    /// enough (the keys stop at the host), and the field may need a turn or two to exist.
+    private func focusSearchField(attempts: Int = 5) {
         DispatchQueue.main.async { [weak self] in
             MainActor.assumeIsolated {
-                guard let host = self?.searchHost else { return }
-                self?.window?.makeFirstResponder(host)
+                guard let self, let host = self.searchHost else { return }
+                if let field = Self.editableTextField(in: host) {
+                    self.window?.makeFirstResponder(field)
+                } else if attempts > 0 {
+                    self.focusSearchField(attempts: attempts - 1)
+                }
             }
         }
+    }
+
+    private static func editableTextField(in view: NSView) -> NSTextField? {
+        if let field = view as? NSTextField, field.isEditable { return field }
+        for sub in view.subviews { if let field = editableTextField(in: sub) { return field } }
+        return nil
     }
 
     func hideSearch() {

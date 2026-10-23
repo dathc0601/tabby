@@ -25,6 +25,25 @@ final class PaneMarginTests: XCTestCase {
         return tab.focusedPane.flatMap { controller.paneView(for: $0) }
     }
 
+    /// Found in the M6 walk: after ⌘F the first keys went nowhere. The bar's field took focus
+    /// on appear, then the pane made the bar's host first responder, which took it away.
+    func testSearchOpensWithItsFieldReadyForTyping() throws {
+        let controller = WindowManager.shared.newWindow(openDefaultTab: false)
+        defer { TestApp.dispose(controller) }
+        let tab = try XCTUnwrap(controller.model.openTab(profile: TestApp.profile("search", "sleep 30")))
+        TestApp.pump(until: { (self.paneView(controller, tab)?.bounds.width ?? 0) > 100 })
+        let window = try XCTUnwrap(controller.window)
+        XCTAssertTrue(controller.runCommand("search"))
+        func fieldIsEditing() -> Bool {
+            guard let editor = window.firstResponder as? NSTextView, editor.isFieldEditor,
+                  let field = editor.delegate as? NSTextField else { return false }
+            return field.placeholderString == "Search"
+        }
+        TestApp.pump(until: fieldIsEditing, timeout: 2)
+        TestApp.pump(0.2)
+        XCTAssertTrue(fieldIsEditing(), "keys go to \(String(describing: window.firstResponder))")
+    }
+
     func testTheTerminalSitsInsideTabbysMargin() throws {
         let controller = WindowManager.shared.newWindow(openDefaultTab: false)
         defer { TestApp.dispose(controller) }
