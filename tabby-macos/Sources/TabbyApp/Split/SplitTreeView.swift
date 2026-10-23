@@ -308,7 +308,11 @@ final class PaneContainerView: NSView {
             _ = self.overlay.popoverOpen
             _ = self.overlay.labelIndex
             _ = self.pane.title
-        }, apply: { [weak self] in self?.needsLayout = true })
+        }, apply: { [weak self] in
+            guard let self else { return }
+            self.overlay.connectionChanged(to: self.pane.connectionState)
+            self.needsLayout = true
+        })
         let paneID = pane.id
         authLoop = ObservationLoop(track: {
             // The prompt index too: Continue and Back put a new field in the panel.

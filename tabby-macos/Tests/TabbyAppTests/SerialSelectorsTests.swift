@@ -74,6 +74,15 @@ final class SerialSelectorsTests: XCTestCase {
         XCTAssertNotNil(config.trailingHint, "⌥K is bound by default")
     }
 
+    /// Review: profiles without an id (a hand-edited config) must not share a row id.
+    func testRowsHaveUniqueIdsEvenWithoutProfileIds() {
+        let provider = SerialProfileProvider(ports: { self.ports })
+        let a = Profile(type: "serial", name: "A", options: ["port": "/dev/cu.a"])
+        let b = Profile(type: "serial", name: "B", options: ["port": "/dev/cu.b"])
+        let ids = SerialSelectors.connectionsSelector(profiles: [a, b] + provider.builtinProfiles(), provider: provider) { _ in }.items.map(\.id)
+        XCTAssertEqual(Set(ids).count, ids.count, "\(ids)")
+    }
+
     func testAPathWithARateIsAQuickConnectRowFirst() throws {
         let provider = SerialProfileProvider(ports: { self.ports })
         var opened: Profile?

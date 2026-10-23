@@ -86,7 +86,8 @@ struct BaudRatePopover: View {
         .padding(6)
         .frame(width: 320)
         .foregroundStyle(chrome.text.color)
-        .onAppear { customFocused = !model.custom.isEmpty }
+        // The Custom field takes the keys, so "↩ apply" applies what is typed.
+        .onAppear { customFocused = true }
     }
 
     private var separator: some View {

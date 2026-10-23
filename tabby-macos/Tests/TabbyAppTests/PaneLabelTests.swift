@@ -23,9 +23,24 @@ final class PaneLabelTests: XCTestCase {
         XCTAssertEqual(corner(.disconnected, label: 2), .chip, "a dropped connection always shows the chip")
         XCTAssertEqual(corner(.connecting, label: 1), .chip)
         XCTAssertEqual(corner(.connected, popover: true, label: 2), .chip, "the chip stays while its popover is open")
-        XCTAssertEqual(corner(nil, hovering: true, label: 1), .label(1), "a local pane has no chip")
+        XCTAssertEqual(corner(nil, hovering: true, label: 1), .none, "review: the label stands aside for the text under the pointer")
+        XCTAssertEqual(corner(nil, label: 1), .label(1), "a local pane has no chip")
         XCTAssertEqual(corner(nil, label: nil), .none)
         XCTAssertEqual(corner(.connected, label: nil), .none, "a single pane has no label")
+    }
+
+    /// Review: a popover's button disappears when its session ends (the popover with it), and
+    /// its "open" flag was left set, keeping the chip up after reconnecting.
+    func testADroppedConnectionClosesThePopoverFlag() {
+        let overlay = PaneOverlayState()
+        overlay.popoverOpen = true
+        overlay.connectionChanged(to: .connected)
+        XCTAssertTrue(overlay.popoverOpen)
+        overlay.connectionChanged(to: .disconnected)
+        XCTAssertFalse(overlay.popoverOpen)
+        overlay.popoverOpen = true
+        overlay.connectionChanged(to: nil)
+        XCTAssertFalse(overlay.popoverOpen)
     }
 
     func testTheLabelText() {

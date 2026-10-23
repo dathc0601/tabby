@@ -17,6 +17,12 @@ final class PaneOverlayState {
     /// A chip popover (Ports, Baud rate) is open: the pointer leaves the pane to use it.
     var popoverOpen = false
 
+    /// A popover's button goes with its session, and the popover with it, before the button
+    /// can report it closed; a connection that is not up has no popover open.
+    func connectionChanged(to state: TerminalPane.ConnectionState?) {
+        if state != .connected && popoverOpen { popoverOpen = false }
+    }
+
 }
 
 /// The pane's top-right corner (design C1b): the connection chip, or in a split the pane's
@@ -27,9 +33,11 @@ enum PaneCorner: Equatable {
     case none
 
     /// The chip shows while the pointer is over the pane, while its popover is open, and
-    /// whenever the connection is not up; local panes have none.
+    /// whenever the connection is not up. Local panes have none; their label stands aside
+    /// while the pointer is over them, so it never covers the text being worked on.
     static func content(state: TerminalPane.ConnectionState?, hovering: Bool, popoverOpen: Bool, labelIndex: Int?) -> PaneCorner {
         if let state, hovering || popoverOpen || state != .connected { return .chip }
+        if state == nil && hovering { return .none }
         return labelIndex.map { .label($0) } ?? .none
     }
 

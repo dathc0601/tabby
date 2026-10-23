@@ -116,13 +116,14 @@ enum SerialSelectors {
         let saved = profiles.filter { !$0.isBuiltin }
         let templates = profiles.filter { $0.isBuiltin && $0.isTemplate }
         let ports = profiles.filter { $0.isBuiltin && !$0.isTemplate }
-        let items = saved.map { p in
-            SelectorItem(id: "saved-\(p.id)", title: p.name, group: "Saved profiles", subtitle: provider.description(for: p),
+        // Ids carry the position: a hand-edited config can have profiles without an id.
+        let items = saved.enumerated().map { index, p in
+            SelectorItem(id: "saved-\(index)-\(p.id)", title: p.name, group: "Saved profiles", subtitle: provider.description(for: p),
                          icon: ProfileIcons.symbol(for: p.icon ?? ProfileIcons.defaultIcon(forType: "serial")), color: p.color) { open(p) }
-        } + templates.map { p in
-            SelectorItem(id: "template-\(p.id)", title: p.name, subtitle: "Asks for the port and baud rate", icon: "plus") { open(p) }
-        } + ports.map { p in
-            SelectorItem(id: "port-\(p.id)", title: p.name, group: "Ports", subtitle: provider.description(for: p),
+        } + templates.enumerated().map { index, p in
+            SelectorItem(id: "template-\(index)-\(p.id)", title: p.name, subtitle: "Asks for the port and baud rate", icon: "plus") { open(p) }
+        } + ports.enumerated().map { index, p in
+            SelectorItem(id: "port-\(index)-\(p.id)", title: p.name, group: "Ports", subtitle: provider.description(for: p),
                          icon: ProfileIcons.symbol(for: p.icon ?? ProfileIcons.defaultIcon(forType: "serial")), color: p.color) { open(p) }
         }
         return SelectorConfig(placeholder: "Serial port or profile", items: items, dynamicItems: { query in

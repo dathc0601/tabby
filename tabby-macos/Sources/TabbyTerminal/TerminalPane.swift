@@ -179,7 +179,7 @@ public final class TerminalPane: TerminalEngineDelegate {
             }
         } catch {
             state = .failed(error.localizedDescription)
-            engine?.feed(Data("\r\n\u{1b}[31m\(error.localizedDescription)\u{1b}[0m\r\n".utf8))
+            engine?.feed(Data("\r\n".utf8) + ServiceMessage.error(error.localizedDescription))
         }
     }
 
