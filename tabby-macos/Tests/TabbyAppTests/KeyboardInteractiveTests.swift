@@ -92,6 +92,48 @@ final class KeyboardInteractiveTests: XCTestCase {
         XCTAssertEqual(container.engine.frame, container.bounds.insetBy(dx: margin, dy: margin))
     }
 
+    /// Found in the M8 walk: typed keys went nowhere. The pane made the panel's host first
+    /// responder (not its field), and a new field after Continue or Back had no focus either.
+    func testThePanelsFieldTakesTheKeys() throws {
+        TestApp.boot()
+        let c = WindowManager.shared.newWindow(openDefaultTab: false)
+        defer { TestApp.dispose(c) }
+        c.model.openTab()
+        let window = try XCTUnwrap(c.window)
+        TestApp.pump(until: { self.views(window.contentView!).contains { $0 is PaneContainerView } })
+        let container = try XCTUnwrap(views(window.contentView!).compactMap { $0 as? PaneContainerView }.first)
+        let pane = container.pane
+        var result: KeyboardInteractiveAnswer??
+        Task { result = .some(await KeyboardInteractivePanels.shared.ask(self.round(prefilled: [nil, nil]), in: pane.id, owner: ObjectIdentifier(self))) }
+        TestApp.pump(until: { container.subviews.contains { $0 is NSHostingView<KeyboardInteractivePanel> } })
+        let panel = try XCTUnwrap(container.subviews.first { $0 is NSHostingView<KeyboardInteractivePanel> })
+        let model = try XCTUnwrap(KeyboardInteractivePanels.shared.models[pane.id])
+
+        func editingField() -> NSTextField? {
+            guard let editor = window.firstResponder as? NSTextView, editor.isFieldEditor,
+                  let field = editor.delegate as? NSTextField, field.isDescendant(of: panel) else { return nil }
+            return field
+        }
+        func settles(secure: Bool, _ step: String) {
+            TestApp.pump(until: { editingField().map { ($0 is NSSecureTextField) == secure } ?? false }, timeout: 2)
+            TestApp.pump(0.2)
+            let field = editingField()
+            XCTAssertNotNil(field, "\(step): keys go to \(String(describing: window.firstResponder))")
+            XCTAssertEqual(field.map { $0 is NSSecureTextField }, secure, "\(step): the field for this prompt")
+        }
+
+        settles(secure: true, "on appear")
+        model.proceed()
+        settles(secure: false, "after Continue")
+        model.goBack()
+        settles(secure: true, "after Back")
+
+        model.cancel()
+        TestApp.pump(until: { result != nil })
+        TestApp.pump(until: { window.firstResponder === container.engine }, timeout: 2)
+        XCTAssertTrue(window.firstResponder === container.engine, "the terminal gets the keys back")
+    }
+
     /// Review C2: when the session ends (its tab closed), its question is cancelled.
     func testASessionsQuestionIsCancelledWhenItEnds() {
         let owner = NSObject()

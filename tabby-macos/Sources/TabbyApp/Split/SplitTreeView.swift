@@ -289,7 +289,8 @@ final class PaneContainerView: NSView {
         }
         let paneID = pane.id
         authLoop = ObservationLoop(track: {
-            _ = KeyboardInteractivePanels.shared.models[paneID]
+            // The prompt index too: Continue and Back put a new field in the panel.
+            _ = KeyboardInteractivePanels.shared.models[paneID]?.index
         }, apply: { [weak self] in self?.updateAuthPanel() })
         sftpLoop = ObservationLoop(track: {
             _ = SFTPPanels.shared.controllers[paneID]
@@ -320,13 +321,17 @@ final class PaneContainerView: NSView {
     private func updateAuthPanel() {
         let model = KeyboardInteractivePanels.shared.models[pane.id]
         if let model {
-            if let authHost, authHost.rootView.model === model { return }
+            if let authHost, authHost.rootView.model === model {
+                // Continue or Back: SwiftUI swaps in the field for the next prompt.
+                focusField(in: authHost, secure: model.isSecure)
+                return
+            }
             authHost?.removeFromSuperview()
             let host = NSHostingView(rootView: KeyboardInteractivePanel(model: model))
             host.safeAreaRegions = []
             addSubview(host)
             authHost = host
-            window?.makeFirstResponder(host)
+            focusField(in: host, secure: model.isSecure)
         } else if let authHost {
             authHost.removeFromSuperview()
             self.authHost = nil
@@ -452,27 +457,32 @@ final class PaneContainerView: NSView {
             pane.isSearchVisible = true
             needsLayout = true
         }
-        focusSearchField()
+        if let searchHost { focusField(in: searchHost) }
     }
 
-    /// Puts the keys in the bar's text field. Making the hosting view first responder is not
-    /// enough (the keys stop at the host), and the field may need a turn or two to exist.
-    private func focusSearchField(attempts: Int = 5) {
-        DispatchQueue.main.async { [weak self] in
+    /// Puts the keys in the text field of a SwiftUI bar or panel. Making the hosting view first
+    /// responder is not enough (the keys stop at the host), and the field may need a turn or
+    /// two to exist. `secure` waits for that kind of field (a panel swapping a hidden field
+    /// for a plain one still shows the old one for a turn).
+    private func focusField(in host: NSView, secure: Bool? = nil, attempts: Int = 5) {
+        DispatchQueue.main.async { [weak self, weak host] in
             MainActor.assumeIsolated {
-                guard let self, let host = self.searchHost else { return }
-                if let field = Self.editableTextField(in: host) {
+                guard let self, let host, host.superview === self else { return }
+                if let field = Self.editableTextField(in: host, secure: secure) {
                     self.window?.makeFirstResponder(field)
                 } else if attempts > 0 {
-                    self.focusSearchField(attempts: attempts - 1)
+                    self.focusField(in: host, secure: secure, attempts: attempts - 1)
                 }
             }
         }
     }
 
-    private static func editableTextField(in view: NSView) -> NSTextField? {
-        if let field = view as? NSTextField, field.isEditable { return field }
-        for sub in view.subviews { if let field = editableTextField(in: sub) { return field } }
+    private static func editableTextField(in view: NSView, secure: Bool? = nil) -> NSTextField? {
+        if let field = view as? NSTextField, field.isEditable,
+           secure.map({ $0 == (field is NSSecureTextField) }) ?? true {
+            return field
+        }
+        for sub in view.subviews { if let field = editableTextField(in: sub, secure: secure) { return field } }
         return nil
     }
 

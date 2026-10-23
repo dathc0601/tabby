@@ -70,7 +70,8 @@ final class KeyboardInteractiveModel {
 }
 
 /// The strip docked at the top of the pane; it pushes the terminal down. Hosted directly in
-/// an NSHostingView, so it feeds the live theme to its content.
+/// an NSHostingView, so it feeds the live theme to its content. The pane puts the keys in its
+/// field (`PaneContainerView.focusField`): SwiftUI focus state does not reach an AppKit host.
 struct KeyboardInteractivePanel: View {
     let model: KeyboardInteractiveModel
 
@@ -82,7 +83,6 @@ struct KeyboardInteractivePanel: View {
 private struct KeyboardInteractiveContent: View {
     @Bindable var model: KeyboardInteractiveModel
     @Environment(\.chrome) private var chrome
-    @FocusState private var focused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -107,7 +107,6 @@ private struct KeyboardInteractiveContent: View {
                 .font(.custom("Menlo", size: 12))
                 .textFieldStyle(.roundedBorder)
                 .frame(maxWidth: 280)
-                .focused($focused)
                 .onSubmit { model.proceed() }
                 if model.showsRemember {
                     Toggle("Remember", isOn: $model.remember).toggleStyle(.switch).controlSize(.mini)
@@ -126,8 +125,6 @@ private struct KeyboardInteractiveContent: View {
         .foregroundStyle(chrome.text.color)
         .background(chrome.surfaceChrome.color)
         .overlay(alignment: .bottom) { Rectangle().fill(chrome.accent.color).frame(height: 2) }
-        .onAppear { focused = true }
-        .onChange(of: model.index) { _, _ in focused = true }
     }
 
     /// The instruction as written, with its links clickable.
