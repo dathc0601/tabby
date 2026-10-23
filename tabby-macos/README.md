@@ -57,7 +57,7 @@ read, never written.
 | Profiles | Selector (⌘E) with recents, groups, built-ins, quick connect; editor for local, SSH, serial and telnet profiles; save layout as profile |
 | SSH | Built-in client (libssh): password, key, agent and keyboard-interactive auth (2FA panel in the pane); host keys in known_hosts with a changed-key warning; passwords in the login keychain; jump-host chains; SOCKS/HTTP proxies and proxy commands; agent and X11 forwarding; shared connections; `~/.ssh/config` import; Test connection. `ssh.backend: openssh` uses the system OpenSSH client instead |
 | SFTP and forwards | SFTP panel in the pane (browse, filter, upload by drop, download, folder download, Edit locally, delete); transfers popover; live local, remote and dynamic (SOCKS) port forwards from the connection chip |
-| Serial | Ports listed through IOKit and kept current; a profile per port, ⌥K selector, quick connect `/dev/cu.x@9600`; asks for the port and baud rate when a profile has none; data/stop bits, parity, RTS/CTS and XON/XOFF, slow feed; change the rate while connected |
+| Serial | Ports listed through IOKit and kept current; a profile per port, ⌥K selector, quick connect `/dev/cu.x@9600`; asks for the port and baud rate when a profile has none; data/stop bits, parity, RTS/CTS and XON/XOFF, slow feed; change the rate while connected from the chip's popover |
 | Telnet | Telnet with Tabby's option negotiation (echo, window size, terminal type) and raw TCP sockets; quick connect `host:port` |
 | Stream processing | For serial and telnet: local echo, line-by-line and hex input, hexdump output, newline translation; login scripts on every profile type |
 | Window | Integrated title bar, vibrancy, opacity, docked "Quake" mode with a global hotkey (Ctrl-Space) |

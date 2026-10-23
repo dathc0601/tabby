@@ -150,7 +150,8 @@ through `MainWindowController.runCommand(_:)` using Tabby's hotkey ids.
    M8.
 4. **Serial and telnet (phase 4).** Serial ports over termios and IOKit, telnet and raw
    sockets over Network.framework, Tabby's stream processing, login scripts for every type.
-   On-screen checks in M9; the final look follows the owner's Claude Design screens.
+   The screens follow the owner's Claude Design canvas "Tabby Connections". On-screen
+   checks in M9 and M9b.
 5. **More of Tabby.** `tabby://` URL and CLI handlers, localization from
    `../locale/*.po`, process-completion notifications per tab, SwiftTerm 2.x once Xcode 26
    is the baseline.

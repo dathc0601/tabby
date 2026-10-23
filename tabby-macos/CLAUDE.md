@@ -35,11 +35,12 @@ Read `README.md` and `docs/ARCHITECTURE.md` before larger changes.
 - Phase 4 (started 2026-10-23, spec `docs/superpowers/specs/2026-10-23-phase-4-serial-telnet-design.md`,
   branch `claude/phase-4-serial-telnet`): serial (`TabbySerial`) and telnet (`TabbyTelnet`)
   sessions, Tabby's stream processing (`StreamProcessor`, `ProcessedSession`), login scripts
-  for every type. The screens still follow the existing components; the owner is making
-  Claude Design screens for them (milestone 4.5). On-screen checks are M9, walked on
-  2026-10-23 against a fake device and a Docker busybox telnetd (fixes in the Findings
-  table); open: the chip's Baud rate button, the editor and Settings items on screen, and
-  real USB-serial / telnet hardware.
+  for every type. Milestone 4.5 applied the owner's Claude Design canvas "Tabby
+  Connections" (C1–C10: chip and pane labels, baud-rate popover, serial selectors, editor
+  pages, quick-connect rows, terminal messages, alerts). On-screen checks are M9 and M9b,
+  walked on 2026-10-23 against a fake device and a Docker busybox telnetd (fixes in the
+  Findings table); open: saving the editor pages and the Settings items on screen, and real
+  USB-serial / telnet hardware.
 - Serial tests use pty pairs (`Tests/Support/PTYPair.swift`); never open a real `/dev/cu.*`
   in tests or walks, only list it. `scripts/fake-serial-device.py` is the walk's device.
 - SSH integration tests start their own unprivileged sshd (`TestSSHD`); wrap runs that might
