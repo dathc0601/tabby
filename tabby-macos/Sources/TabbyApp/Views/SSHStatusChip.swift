@@ -21,6 +21,12 @@ struct SSHStatusChip: View {
     var body: some View {
         ChipContent(pane: pane, hover: hover).chromeEnvironment()
     }
+
+    /// `user@host:port`. Verbatim: an interpolated Int in a localized `Text` gets the locale's
+    /// digit grouping (`2.222` in Vietnamese, `2,222` in English).
+    static func address(_ options: SSHOptions) -> Text {
+        Text(verbatim: "\(options.user)@\(options.host):\(options.port)")
+    }
 }
 
 private struct ChipContent: View {
@@ -33,7 +39,7 @@ private struct ChipContent: View {
             let options = SSHOptions(pane.profile.options)
             HStack(spacing: 8) {
                 StatusDot(color: Self.color(state, chrome), size: 7)
-                Text("\(options.user)@\(options.host):\(options.port)").font(.custom("Menlo", size: 12)).lineLimit(1)
+                SSHStatusChip.address(options).font(.custom("Menlo", size: 12)).lineLimit(1)
                 Text(Self.label(state)).font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
                 if state == .disconnected || state == .connected {
                     Button { reconnect(state, options) } label: {
