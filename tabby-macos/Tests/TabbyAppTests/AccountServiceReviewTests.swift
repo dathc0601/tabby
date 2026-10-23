@@ -85,6 +85,30 @@ final class AccountServiceReviewTests: XCTestCase {
         XCTAssertEqual(service.status, .upToDate, "the poll retries a failed sync once the server answers again")
     }
 
+    /// Found in the M7 walk: with Auto off, the other Mac's change still arrived within
+    /// seconds. The poll synced whatever the setting said.
+    func testAutoOffStopsThePollToo() async throws {
+        let server = InMemorySyncServer()
+        let (a, aConfig, _) = try makeService(server, poll: 0.1)
+        _ = try await a.register(email: "auto@example.com", password: "pw", keepSignedIn: true)
+        await a.finishRegistration()
+        let (b, bConfig, _) = try makeService(server)
+        try await b.signIn(email: "auto@example.com", password: "pw", keepSignedIn: false)
+
+        aConfig.set("account.auto", false)
+        aConfig.set("terminal.fontSize", 17)  // a local change waiting to upload
+        a.localDataChanged()                   // as AppServices reports config changes
+        XCTAssertTrue(a.hasLocalChanges)
+        bConfig.set("terminal.fontSize", 21)
+        await b.syncNow()
+        try await Task.sleep(nanoseconds: 800_000_000)  // several polls
+        XCTAssertEqual(aConfig.value("terminal.fontSize")?.doubleValue, 17, "nothing is pulled while Auto is off")
+        XCTAssertTrue(a.hasLocalChanges, "nothing is pushed while Auto is off")
+
+        await a.syncNow()
+        XCTAssertFalse(a.hasLocalChanges, "Sync now still works")
+    }
+
     // I1 (app side): a change made while a sync runs is synced afterwards.
     func testAChangeDuringASyncIsSyncedAfterwards() async throws {
         let server = InMemorySyncServer()

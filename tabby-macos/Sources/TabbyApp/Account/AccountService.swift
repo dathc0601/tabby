@@ -256,6 +256,8 @@ final class AccountService {
         pollTimer = Timer.scheduledTimer(withTimeInterval: pollInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 guard let self, let engine = self.engine, self.status != .syncing else { return }
+                // Auto off: no automatic sync of any kind, only Sync now.
+                guard self.local.config.value("account.auto")?.boolValue ?? true else { return }
                 // Retry a failed sync and push changes that are still waiting; otherwise only
                 // sync when another Mac uploaded.
                 if case .failed = self.status {
