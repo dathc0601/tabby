@@ -76,6 +76,14 @@ final class StreamProcessorTests: XCTestCase {
         XCTAssertEqual(text(out.toTerminal), "ab\r\n")
     }
 
+    func testLocalEchoStandsAsideWhileThePeerEchoes() {
+        let p = processor(input: "local-echo")
+        p.peerEchoes = true
+        XCTAssertTrue(p.fromTerminal(data("a")).toTerminal.isEmpty)
+        p.peerEchoes = false
+        XCTAssertEqual(text(p.fromTerminal(data("b")).toTerminal), "b")
+    }
+
     func testForcedEchoWorksInNormalMode() {
         let p = processor()
         p.forceEcho = true

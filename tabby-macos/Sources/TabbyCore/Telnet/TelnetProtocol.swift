@@ -25,6 +25,8 @@ public final class TelnetProtocol {
         public var toPeer = Data()
         /// Set when the peer turned our local echo on or off.
         public var localEcho: Bool?
+        /// Set when the peer started or stopped echoing what we send.
+        public var peerEcho: Bool?
     }
 
     private enum State {
@@ -35,6 +37,8 @@ public final class TelnetProtocol {
     public private(set) var isActive = false
     /// Whether we echo what is typed because the peer asked (`DO ECHO`).
     public var localEcho: Bool { local.contains(Option.echo) }
+    /// Whether the peer echoes what is typed (it said `WILL ECHO`).
+    public var peerEchoes: Bool { remote.contains(Option.echo) }
     public var terminalType = "XTERM-256COLOR"
 
     private var state = State.data
@@ -127,6 +131,7 @@ public final class TelnetProtocol {
     private func handle(_ command: UInt8, _ option: UInt8, into result: inout Result) {
         switch command {
         case Byte.WILL:
+            defer { if option == Option.echo, remote.contains(option) { result.peerEcho = true } }
             if pendingRemote.remove(option) != nil {
                 remote.insert(option)
                 remoteEchoChanged(option, on: true, into: &result)
@@ -140,11 +145,13 @@ public final class TelnetProtocol {
                 emit(Byte.DONT, option, into: &result)
             }
         case Byte.WONT:
+            let echoed = option == Option.echo && remote.contains(option)
             if pendingRemote.remove(option) != nil {
                 remote.remove(option)
             } else if remote.remove(option) != nil {
                 emit(Byte.DONT, option, into: &result)
             }
+            if echoed { result.peerEcho = false }
         case Byte.DO:
             if pendingLocal.remove(option) != nil {
                 local.insert(option)

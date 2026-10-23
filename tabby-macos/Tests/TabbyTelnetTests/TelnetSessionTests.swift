@@ -16,6 +16,7 @@ final class TelnetSessionTests: XCTestCase {
         var statuses: [SessionStatus] = []
         var closed: [Int32?] = []
         var echo: [Bool] = []
+        var peerEcho: [Bool] = []
         var outputText: String { String(decoding: output, as: UTF8.self) }
         var serviceText: String { String(decoding: service, as: UTF8.self) }
     }
@@ -28,6 +29,7 @@ final class TelnetSessionTests: XCTestCase {
         session.onStatus = { r.statuses.append($0) }
         session.onClosed = { r.closed.append($0) }
         session.onLocalEchoChanged = { r.echo.append($0) }
+        session.onPeerEchoChanged = { r.peerEcho.append($0) }
         return (session, r)
     }
 
@@ -71,6 +73,8 @@ final class TelnetSessionTests: XCTestCase {
         XCTAssertTrue(spinMainLoop { server.hasClient })
         server.send(Data([IAC, DO, ECHO]))
         XCTAssertTrue(spinMainLoop { r.echo == [true] })
+        server.send(Data([IAC, WILL, ECHO]))
+        XCTAssertTrue(spinMainLoop { r.peerEcho == [true] && r.echo == [true, false] }, "the server echoes; we stop")
         session.kill()
     }
 

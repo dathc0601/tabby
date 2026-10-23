@@ -216,6 +216,9 @@ public final class StreamProcessor {
     public let options: StreamOptions
     /// Local echo requested by the peer (telnet `DO ECHO`), on top of the input mode.
     public var forceEcho = false
+    /// The peer echoes what it gets (telnet `WILL ECHO`): "Local echo" stands aside, or every
+    /// key would show twice (Tabby echoes anyway).
+    public var peerEchoes = false
     public var usesLineEditor: Bool { options.inputMode == .readline || options.inputMode == .readlineHex }
 
     private var output: NewlineTranslator
@@ -249,7 +252,7 @@ public final class StreamProcessor {
     public func fromTerminal(_ data: Data) -> Input {
         var result = Input()
         guard usesLineEditor else {
-            if options.inputMode == .localEcho || forceEcho {
+            if (options.inputMode == .localEcho && !peerEchoes) || forceEcho {
                 result.toTerminal = echoTranslator.translate(data)
             }
             result.toSession = input.translate(data)

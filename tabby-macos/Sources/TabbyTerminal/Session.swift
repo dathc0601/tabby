@@ -39,9 +39,11 @@ public protocol ServiceOutputSource: AnyObject {
     var onServiceOutput: ((Data) -> Void)? { get set }
 }
 
-/// A session whose peer can ask for local echo (telnet `DO ECHO`).
+/// A session whose peer can ask for local echo (telnet `DO ECHO`) or echo by itself
+/// (`WILL ECHO`).
 public protocol LocalEchoSource: AnyObject {
     var onLocalEchoChanged: ((Bool) -> Void)? { get set }
+    var onPeerEchoChanged: ((Bool) -> Void)? { get set }
 }
 
 /// Creates sessions for a profile type. The app registers one factory per provider.

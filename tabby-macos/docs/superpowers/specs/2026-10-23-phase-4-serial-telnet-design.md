@@ -70,6 +70,8 @@ terminal.
 **Input path:** keys → local echo (`local-echo`, or when telnet asked for it) → line editor
 (readline modes) → hex decoding (`readline-hex`) → input newline translation → session.
 - Local echo applies `crlf` translation to what it echoes, like Tabby.
+- ★ "Local echo" stands aside while a telnet peer echoes (`WILL ECHO`). Tabby's telnet
+  default is local echo, so against a shell every key showed twice. Raw sockets keep it.
 
 **Line editor** (★ replaces Node's `readline`):
 - The prompt is `> `, or `hex> ` in `readline-hex`.

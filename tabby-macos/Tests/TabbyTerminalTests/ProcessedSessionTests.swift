@@ -10,6 +10,7 @@ final class RawConnectionFake: TerminalSession, ServiceOutputSource, LocalEchoSo
     var onStatus: ((SessionStatus) -> Void)?
     var onServiceOutput: ((Data) -> Void)?
     var onLocalEchoChanged: ((Bool) -> Void)?
+    var onPeerEchoChanged: ((Bool) -> Void)?
     private(set) var isRunning = false
     private(set) var written = Data()
     private(set) var size: (cols: Int, rows: Int)?
@@ -72,6 +73,14 @@ final class ProcessedSessionTests: XCTestCase {
         session.write(Data("b".utf8))
         XCTAssertEqual(shown(), "b")
         XCTAssertEqual(String(decoding: raw.written, as: UTF8.self), "ab")
+    }
+
+    func testThePeersEchoReachesTheProcessor() throws {
+        let (session, raw, shown) = make(["inputMode": "local-echo"])
+        try session.start(cols: 80, rows: 24)
+        raw.onPeerEchoChanged?(true)
+        session.write(Data("a".utf8))
+        XCTAssertEqual(shown(), "", "the peer echoes it")
     }
 
     func testLifecyclePassesThrough() throws {

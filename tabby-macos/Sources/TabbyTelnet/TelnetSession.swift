@@ -28,6 +28,7 @@ public final class TelnetSession: TerminalSession, ServiceOutputSource, LocalEch
     public var onStatus: ((SessionStatus) -> Void)?
     public var onServiceOutput: ((Data) -> Void)?
     public var onLocalEchoChanged: ((Bool) -> Void)?
+    public var onPeerEchoChanged: ((Bool) -> Void)?
 
     public let options: TelnetOptions
     public private(set) var isRunning = false
@@ -122,6 +123,7 @@ public final class TelnetSession: TerminalSession, ServiceOutputSource, LocalEch
         let result = telnet.receive(data)
         if !result.toPeer.isEmpty { send(result.toPeer) }
         if let echo = result.localEcho { onLocalEchoChanged?(echo) }
+        if let echo = result.peerEcho { onPeerEchoChanged?(echo) }
         if !result.toTerminal.isEmpty { onOutput?(result.toTerminal) }
     }
 

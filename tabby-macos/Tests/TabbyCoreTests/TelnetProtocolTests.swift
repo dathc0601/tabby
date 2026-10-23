@@ -106,6 +106,18 @@ final class TelnetProtocolTests: XCTestCase {
                        "while the server echoes, we don't")
     }
 
+    // The peer saying it echoes is reported, so "Local echo" can stand aside (M9: a New →
+    // Telnet profile, local echo by default, printed every key twice against a shell).
+    func testThePeersOwnEchoIsReported() {
+        let p = started()
+        XCTAssertFalse(p.peerEchoes)
+        XCTAssertEqual(p.receive(Data([IAC, WILL, ECHO])).peerEcho, true)
+        XCTAssertTrue(p.peerEchoes)
+        XCTAssertEqual(p.receive(Data([IAC, WONT, ECHO])).peerEcho, false)
+        XCTAssertFalse(p.peerEchoes)
+        XCTAssertNil(p.receive(Data([IAC, WILL, SGA])).peerEcho)
+    }
+
     func testCommandsAnywhereInTheStreamAreRemoved() {
         let p = started()
         let r = p.receive(Data("ab".utf8) + Data([IAC, GA]) + Data("cd".utf8) + Data([IAC, WILL, LINEMODE]) + Data("ef".utf8))

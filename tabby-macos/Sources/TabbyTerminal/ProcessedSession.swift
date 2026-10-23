@@ -39,6 +39,7 @@ public final class ProcessedSession: TerminalSession {
             self.show(self.processor.clearPrompt() + data)
         }
         (inner as? LocalEchoSource)?.onLocalEchoChanged = { [weak self] on in self?.processor.forceEcho = on }
+        (inner as? LocalEchoSource)?.onPeerEchoChanged = { [weak self] on in self?.processor.peerEchoes = on }
         try inner.start(cols: cols, rows: rows)
         scheduleSettle()
     }
