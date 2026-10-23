@@ -37,6 +37,25 @@ final class ConnectionTypesUITests: XCTestCase {
         XCTAssertEqual(ProfileEditorSheet.named(Profile(type: "telnet", name: "Router", options: ["host": "r"])).name, "Router")
     }
 
+    // Review: "Normal" and "Keep" were stored as null and then dropped, so Tabby's telnet
+    // defaults (local echo, CRLF) came back; the pickers showed Normal/Keep regardless.
+    func testTheEditorShowsAndSavesNormalAndKeep() {
+        TestApp.boot()
+        var p = ProfileTypes.newProfile("telnet")
+        p.options["host"] = "h"
+        XCTAssertEqual(ProfileEditorSheet.effectiveOption(p, "inputMode"), "local-echo", "shows what runs")
+        XCTAssertEqual(ProfileEditorSheet.effectiveOption(p, "outputNewlines"), "crlf")
+        p.options["inputMode"] = .null       // the pickers' "Normal"
+        p.options["outputNewlines"] = .null  // and "Keep"
+        p.options["cwd"] = .null             // an ordinary empty value
+        XCTAssertEqual(ProfileEditorSheet.effectiveOption(p, "inputMode"), "")
+        let saved = ProfileEditorSheet.finalized(p)
+        XCTAssertNil(saved.options["cwd"], "empty values still go")
+        let resolved = AppServices.shared.profiles.resolved(Profile(config: saved.configValue))
+        XCTAssertNil(StreamOptions(resolved.options).inputMode)
+        XCTAssertNil(StreamOptions(resolved.options).outputNewlines)
+    }
+
     func testDefaultIconsPerType() {
         XCTAssertEqual(ProfileIcons.symbol(for: ProfileIcons.defaultIcon(forType: "serial")), "memorychip")
         XCTAssertEqual(ProfileIcons.symbol(for: ProfileIcons.defaultIcon(forType: "telnet")), "network")

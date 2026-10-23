@@ -309,10 +309,31 @@ struct ProfileEditorSheet: View {
     /// Whether the type connects somewhere (and so has service messages to clear).
     private var isConnection: Bool { ["ssh", "serial", "telnet"].contains(profile.type) }
 
-    /// A stream-processing option (`inputMode`…): "" for Tabby's null.
+    /// A stream-processing option (`inputMode`…): "" for Tabby's null, which is stored as an
+    /// explicit null so it beats a type default that isn't null (telnet's local echo, CRLF).
     private func modeOption(_ key: String) -> Binding<String> {
-        Binding(get: { profile.options[key]?.stringValue ?? "" },
+        Binding(get: { Self.effectiveOption(profile, key) },
                 set: { profile.options[key] = $0.isEmpty ? .null : .string($0) })
+    }
+
+    /// Options whose null means something ("Normal", "Keep") and is kept when saving.
+    static let meaningfulNulls: Set<String> = ["inputMode", "outputMode", "inputNewlines", "outputNewlines"]
+
+    /// The value an option has once the type's defaults apply ("" for null).
+    static func effectiveOption(_ profile: Profile, _ key: String) -> String {
+        if let value = profile.options[key] { return value.stringValue ?? "" }
+        return AppServices.shared.profiles.resolved(profile).options[key]?.stringValue ?? ""
+    }
+
+    /// The profile as saved: named by its provider when unnamed, empty values dropped except
+    /// the ones whose null overrides a default.
+    static func finalized(_ profile: Profile) -> Profile {
+        var p = named(profile)
+        if var o = p.options.objectValue {
+            for (k, v) in o where v.isNull && !meaningfulNulls.contains(k) { o[k] = nil }
+            p.options = .object(o)
+        }
+        return p
     }
 
     private func option(_ key: String) -> Binding<String> {
@@ -587,12 +608,12 @@ struct ProfileEditorSheet: View {
     /// Tabby's stream-processing settings, with its names and descriptions.
     private var streamProcessing: some View {
         SettingsGroup("Stream processing") {
-            SettingsRow("Input mode", subtitle: StreamModeNames.inputDescription(profile.options["inputMode"]?.stringValue)) {
+            SettingsRow("Input mode", subtitle: StreamModeNames.inputDescription(Self.effectiveOption(profile, "inputMode"))) {
                 RowPicker(selection: modeOption("inputMode")) {
                     ForEach(StreamModeNames.inputModes, id: \.value) { Text($0.name).tag($0.value) }
                 }
             }
-            SettingsRow("Output mode", subtitle: StreamModeNames.outputDescription(profile.options["outputMode"]?.stringValue)) {
+            SettingsRow("Output mode", subtitle: StreamModeNames.outputDescription(Self.effectiveOption(profile, "outputMode"))) {
                 RowPicker(selection: modeOption("outputMode")) {
                     ForEach(StreamModeNames.outputModes, id: \.value) { Text($0.name).tag($0.value) }
                 }
@@ -822,15 +843,7 @@ struct ProfileEditorSheet: View {
         return p
     }
 
-    private func finalProfile() -> Profile {
-        var p = Self.named(profile)
-        // Drop empty optional values so config.yaml stays tidy.
-        if var o = p.options.objectValue {
-            for (k, v) in o where v.isNull { o[k] = nil }
-            p.options = .object(o)
-        }
-        return p
-    }
+    private func finalProfile() -> Profile { Self.finalized(profile) }
 }
 
 /// The design's colour swatches: none plus the scheme's six ANSI colours, stored as hex as in
