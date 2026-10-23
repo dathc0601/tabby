@@ -26,21 +26,8 @@ struct AccountSettingsView: View {
     }
 
     private var signedOut: some View {
-        HStack(spacing: 18) {
-            Image(systemName: "arrow.triangle.2.circlepath.icloud").font(.system(size: 26)).foregroundStyle(chrome.accent.color)
-                .frame(width: 52, height: 52).background(Circle().fill(chrome.accentFill.color))
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Use TabbyMac on every Mac").font(ChromeFont.headline)
-                Text("Sign in to sync profiles, passwords, private keys and settings. Everything is encrypted on this Mac before it leaves it.")
-                    .font(ChromeFont.callout).foregroundStyle(chrome.textMuted.color).fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer()
-            Button("Create account") { AccountSheets.present(.register, in: NSApp.keyWindow) }.buttonStyle(ChromeButtonStyle(large: true))
-            Button("Sign in…") { AccountSheets.present(.signIn, in: NSApp.keyWindow) }.buttonStyle(ChromeButtonStyle(kind: .primary, large: true))
-        }
-        .padding(22)
-        .background(RoundedRectangle(cornerRadius: 10).fill(chrome.surfaceRaised.color))
-        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(chrome.border.color, lineWidth: 0.5))
+        SignedOutAccountCard(createAccount: { AccountSheets.present(.register, in: NSApp.keyWindow) },
+                             signIn: { AccountSheets.present(.signIn, in: NSApp.keyWindow) })
     }
 
     @ViewBuilder
@@ -299,6 +286,49 @@ struct VaultSettingsView: View {
             revealed[secret] = nil
             refresh += 1
         }
+    }
+}
+/// Settings › Account & sync while signed out.
+struct SignedOutAccountCard: View {
+    let createAccount: () -> Void
+    let signIn: () -> Void
+    @Environment(\.chrome) private var chrome
+
+    /// One row when it fits; in a narrow window the buttons go under the text.
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 18) {
+                icon
+                text.frame(minWidth: 220, alignment: .leading)
+                Spacer(minLength: 0)
+                buttons
+            }
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 14) { icon; text }
+                HStack(spacing: 8) { Spacer(minLength: 0); buttons }
+            }
+        }
+        .padding(22)
+        .background(RoundedRectangle(cornerRadius: 10).fill(chrome.surfaceRaised.color))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(chrome.border.color, lineWidth: 0.5))
+    }
+
+    private var icon: some View {
+        Image(systemName: "arrow.triangle.2.circlepath.icloud").font(.system(size: 26)).foregroundStyle(chrome.accent.color)
+            .frame(width: 52, height: 52).background(Circle().fill(chrome.accentFill.color))
+    }
+
+    private var text: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Use TabbyMac on every Mac").font(ChromeFont.headline)
+            Text("Sign in to sync profiles, passwords, private keys and settings. Everything is encrypted on this Mac before it leaves it.")
+                .font(ChromeFont.callout).foregroundStyle(chrome.textMuted.color).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @ViewBuilder private var buttons: some View {
+        Button("Create account", action: createAccount).buttonStyle(ChromeButtonStyle(large: true)).fixedSize()
+        Button("Sign in…", action: signIn).buttonStyle(ChromeButtonStyle(kind: .primary, large: true)).fixedSize()
     }
 }
 #endif

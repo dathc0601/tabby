@@ -42,6 +42,14 @@ final class SettingsLayoutTests: XCTestCase {
                                  "the error wraps onto a line or two of its own")
     }
 
+    /// Found in the M7 walk at 706 pt: signed out, the Account card squeezed its title to one
+    /// word a line and cut "Create account" to "Create…". The buttons go under the text instead.
+    func testTheSignedOutAccountCardKeepsItsTitleOnOneLine() {
+        let card = SignedOutAccountCard(createAccount: {}, signIn: {}).chromeEnvironment()
+        let size = NSHostingController(rootView: card).sizeThatFits(in: CGSize(width: 419 - 56, height: 800))
+        XCTAssertLessThanOrEqual(size.height, 200, "the title and text are not squeezed into a narrow column")
+    }
+
     /// The page itself fits (rather than being cut off): 640 pt minus the 221 pt sidebar.
     func testTheColorSchemePageFitsBesideTheSidebar() {
         let host = NSHostingController(rootView: ColorSchemeSettingsView())
