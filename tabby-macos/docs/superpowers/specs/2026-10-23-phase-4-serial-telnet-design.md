@@ -98,8 +98,10 @@ type from `options.scripts`, not just SSH. Local shells get login scripts as a r
 `\e[0;30;<bg>m <badge> \e[0m <text>\r\n`:
 - SSH keeps its cyan background (46).
 - Serial and Telnet use white (47), as Tabby does.
-- `ServiceMessage.error(text)` writes the red ` X ` line.
-- Both SSH backends switch to the helper, with no change to their output.
+- `ServiceMessage.error(text)` writes ` X ` in black on red, then the text in the
+  terminal's colour (design C9; Tabby's sessions write `colors.bgRed.black(' X ')`). A
+  session that cannot start prints the same line.
+- Both SSH backends switch to the helper; their error lines change with it (C9).
 
 **Messages**
 
@@ -122,8 +124,8 @@ terminal on `.connected`, as Tabby's `ConnectableTerminalTabComponent` does.
 **Session end with `.auto`** uses Tabby's rule:
 - Serial and telnet sessions are "explicitly terminated" when the last input ends with
   `close\r` or `quit\r`.
-- Otherwise the pane prints its usual "Session closed. Press any key to restart." and any
-  key reconnects.
+- Otherwise the pane prints "Session closed. Press any key to reconnect." (C9; a local
+  shell still says "restart") and any key reconnects.
 - `.reconnect` uses the existing backoff (Tabby retries immediately).
 
 **Close warning.**
@@ -270,8 +272,9 @@ or a deviation from it.
   `<device> · <baud>` with "Baud rate" where SSH has Ports (`textFaint` and disabled unless
   connected; shown pressed while its popover is open); Telnet `host:port` with Reconnect only.
 - **Pane labels (C1b).** In a split, each pane shows `n · title` at its top-right (`fill`,
-  radius 5, 11 pt `textMuted`); the chip takes its place while the chip is visible. Single
-  panes show none. ★ no setting.
+  radius 5, 11 pt `textMuted`); the chip takes its place while the chip is visible, and a
+  local pane's label hides while the pointer is over it (★ review: it covered the end of the
+  first row). Single panes show none. ★ no setting.
 - **Baud-rate popover (C2).** 320 pt, from the chip: "Baud rate" + device, the standard
   rates with the one in use checked and marked "In use", a Custom numeric field, keycaps
   ↩ apply / esc close. A rate applies on click; ↩ applies the custom field. A failure shows

@@ -522,7 +522,6 @@ Mac's own serial port (an LG monitor) was listed, never opened. Three fixes came
 | 2026-10-23 | M8 | config.yaml edited by hand while the app ran was overwritten at quit, though nothing had changed in the app. | `53c4c4b5` |
 | 2026-10-23 | M9 | A new telnet tab to busybox showed extra prompts: the pane sent the same window size more than once and the shell redraws on every NAWS. | `e916c03f` |
 | 2026-10-23 | M9 | A telnet profile made with New → Telnet (local echo, Tabby's default) showed every key twice against a shell that echoes. Local echo now stands aside while the server echoes. | `cc2b1be2` |
-
 | 2026-10-23 | M9b | The selector panel was 32 pt taller than its content, an empty band above the search field (the title bar's height, added by the hosting view). | `0008aee6` |
 | 2026-10-23 | M9b | Closing a split tab with two panes on one host, or quitting, listed "Disconnect from 127.0.0.1?" twice. | `af98c0f9` |
 | 2026-10-23 | M9b | The New menu on Settings › Profiles showed no type icons (design C7). | `847c06fb` |
