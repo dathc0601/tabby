@@ -12,6 +12,8 @@
 //   TabbyIPC       Unix-socket messages shared by the app and the askpass helper.
 //   tabby-askpass  Tiny helper that OpenSSH runs as SSH_ASKPASS; forwards prompts to the app.
 //   TabbySSHLib    macOS: SSH sessions in-process over libssh (channels, SFTP, live forwards).
+//   TabbySerial    macOS: serial-port sessions (termios, IOKit port list and hot-plug).
+//   TabbyTelnet    macOS: telnet and raw TCP sessions over Network.framework.
 //   TabbyAccount   Sign-in, snapshot of this Mac's profiles/secrets/keys, sync engine.
 //   TabbySyncProtocol  Account & sync wire format shared with ../tabby-sync-server: DTOs,
 //                  SyncSnapshot, SyncMerger, VaultCrypto. Foundation + swift-crypto only (no
@@ -70,6 +72,8 @@ let package = Package(
             dependencies: [
                 "TabbyCore", "TabbyTerminal", "TabbySSH",
                 .target(name: "TabbySSHLib", condition: .when(platforms: [.macOS])),
+                .target(name: "TabbySerial", condition: .when(platforms: [.macOS])),
+                .target(name: "TabbyTelnet", condition: .when(platforms: [.macOS])),
                 // The app layer is AppKit-only; on Linux it is empty, and keeping swift-crypto's
                 // C++ out of `TabbyMacDev` avoids the Swift 6.1 libswiftObservation link error
                 // described at TabbySyncProtocolTests.
@@ -89,6 +93,21 @@ let package = Package(
                 "TabbyCore", "TabbyTerminal", "TabbySSH",
                 .target(name: "CLibSSH", condition: .when(platforms: [.macOS])),
             ]
+        ),
+        // Serial ports and telnet (phase 4). The byte-level logic (stream processing, the
+        // telnet protocol) is in TabbyCore so it is tested on Linux; these hold the I/O.
+        .target(
+            name: "TabbySerial",
+            dependencies: ["TabbyCore", "TabbyTerminal"]
+        ),
+        .target(
+            name: "TabbyTelnet",
+            dependencies: ["TabbyCore", "TabbyTerminal"]
+        ),
+        // Socket and pty helpers shared by the integration test targets (not shipped).
+        .target(
+            name: "TabbyTestSupport",
+            path: "Tests/Support"
         ),
         // Personal account and sync on this Mac: HTTP client, change tracking, snapshot of the
         // local profiles / secrets / keys / known_hosts / settings, and the sync engine.
@@ -137,7 +156,7 @@ let package = Package(
         ),
         .testTarget(
             name: "TabbySSHLibTests",
-            dependencies: ["TabbySSHLib", "TabbyCore"]
+            dependencies: ["TabbySSHLib", "TabbyCore", "TabbyTestSupport"]
         ),
         .testTarget(
             name: "TabbyCoreTests",
