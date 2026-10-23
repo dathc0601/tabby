@@ -328,6 +328,9 @@ public final class LocalSyncData {
     }
 
     /// The same by ids, as the change tracker remembers them after a relaunch.
+    /// Key files copied here from the account (`<config>/keys`).
+    var syncedKeyCount: Int { keyStore.records().count }
+
     func remove(profileIDs: Set<String>, groupIDs: Set<String>, secretIDs: [String]) {
         let keep = { (key: String, ids: Set<String>) in
             let list = (self.config.user[key]?.arrayValue ?? []).filter { !ids.contains($0["id"]?.stringValue ?? "") }

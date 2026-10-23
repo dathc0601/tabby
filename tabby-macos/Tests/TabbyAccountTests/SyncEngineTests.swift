@@ -254,6 +254,27 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertNil(b.passwords.password(host: "a.example.com", port: 22, user: "deploy"))
     }
 
+    /// Found in the M7 walk: after signing in again, the sign-out card said "0 keys" came from
+    /// the account, yet Remove synced data empties `<config>/keys`, where every file is a copy
+    /// from the account. The count says what will be removed.
+    func testTheKeyCountMatchesWhatRemovalDeletes() async throws {
+        try await signInBoth()
+        let path = try a.writeKey("id_ed25519", "-----KEY FROM A-----")
+        a.addProfile(id: "ssh:a", name: "a", host: "a.example.com", keys: [path])
+        let offered = try await a.engine.sync()
+        a.config.set("account.approvedKeyFiles", .array(offered.pendingKeyFiles.map { .string($0.id) }))
+        _ = try await a.engine.sync()
+        _ = try await b.engine.sync()
+        XCTAssertEqual(b.keys.records().count, 1)
+
+        // Signing in again starts a new state file: what is already here counts as this Mac's.
+        try FileManager.default.removeItem(at: b.root.appendingPathComponent("sync-state.json"))
+        _ = try await b.engine.sync()
+        XCTAssertEqual(b.engine.removableCounts.keys, 1, "the copy in <config>/keys is still the account's")
+        b.engine.removeSyncedData()
+        XCTAssertTrue(b.keys.records().isEmpty)
+    }
+
     /// State files written before origins were recorded remove nothing rather than guess.
     func testAnOlderStateFileRemovesNothing() async throws {
         let decoded = try SyncCoding.decoder.decode(ChangeTracker.self, from: Data(#"{"items":{"profiles":{"ssh:x":{"hash":"h","modifiedAt":"2026-10-01T00:00:00.000Z"}}},"deleted":{},"texts":{}}"#.utf8))

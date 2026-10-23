@@ -266,8 +266,9 @@ public final class SyncEngine {
     public var removableCounts: SyncedCounts {
         let tracker = loadState().tracker
         let secrets = tracker.fromAccountIDs("secrets").filter { $0.hasPrefix("ssh:password|") || $0.hasPrefix("ssh:key-passphrase|") }
+        // Every file in `<config>/keys` is a copy from the account, and removal empties it.
         return SyncedCounts(profiles: tracker.fromAccountIDs("profiles").count, passwords: secrets.count,
-                            keys: tracker.fromAccountIDs("keyFiles").count)
+                            keys: local.syncedKeyCount)
     }
 
     /// Deletes what came from the account from this Mac only (nothing is uploaded). Works from
