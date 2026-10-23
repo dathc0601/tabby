@@ -91,7 +91,7 @@ final class AccountService {
         var model = [CChar](repeating: 0, count: max(size, 1))
         sysctlbyname("hw.model", &model, &size, nil, 0)
         let v = ProcessInfo.processInfo.operatingSystemVersion
-        return DeviceInfo(name: Host.current().localizedName ?? "Mac", model: String(cString: model),
+        return DeviceInfo(name: Host.current().localizedName ?? L("Mac"), model: String(cString: model),
                           os: "macOS \(v.majorVersion).\(v.minorVersion).\(v.patchVersion)")
     }
 
@@ -145,7 +145,7 @@ final class AccountService {
     /// Why a recovery failed, in the recovery card's words (the server says "invalid
     /// credentials" for a wrong key, which the sign-in card words as a wrong password).
     struct RecoveryRefused: LocalizedError {
-        var errorDescription: String? { "The email or recovery key is not right." }
+        var errorDescription: String? { L("The email or recovery key is not right.") }
     }
 
     func recover(email: String, recoveryKey: String, newPassword: String, keepSignedIn: Bool) async throws {

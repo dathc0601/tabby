@@ -54,12 +54,12 @@ struct AccountAvatar: View {
 @MainActor
 func accountStatusLine(_ account: AccountService) -> String {
     switch account.status {
-    case .signedOut: return "Signed out"
+    case .signedOut: return L("Signed out")
     case .syncing: return "Syncing…"
     case .failed(let message): return message
     case .upToDate:
-        guard let date = account.lastSyncAt else { return "Up to date" }
-        if Date().timeIntervalSince(date) < 30 { return "Synced just now" }
+        guard let date = account.lastSyncAt else { return L("Up to date") }
+        if Date().timeIntervalSince(date) < 30 { return L("Synced just now") }
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .full
         return "Synced " + f.localizedString(for: date, relativeTo: Date())
@@ -89,7 +89,7 @@ struct AccountToolbarButton: View {
                 AccountPopover(close: { showPopover = false }, openSettings: openSettings).chromeEnvironment()
             }
         } else {
-            IconButton(symbol: "person.crop.circle", help: "Sign in to sync profiles and keys") {
+            IconButton(symbol: "person.crop.circle", help: L("Sign in to sync profiles and keys")) {
                 AccountSheets.present(.signIn, in: NSApp.keyWindow)
             }
         }
@@ -109,7 +109,7 @@ struct AccountPopover: View {
                 AccountAvatar(email: account.session?.email ?? "", size: 34)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(account.session?.email ?? "").font(ChromeFont.bodyEmphasised)
-                    Text("Personal account").font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
+                    Text(L("Personal account")).font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
                 }
             }
             .padding(14)
@@ -119,24 +119,24 @@ struct AccountPopover: View {
                     if account.status == .syncing { ProgressView().controlSize(.small) }
                     Text(accountStatusLine(account)).font(ChromeFont.callout).lineLimit(2)
                 }
-                Text(verbatim: [Plural.count(account.counts.profiles, "profile"), Plural.count(account.counts.passwords, "password"), Plural.count(account.counts.keys, "key")].joined(separator: " · "))
+                Text(verbatim: [Plural.count(account.counts.profiles, one: "1 profile", other: "{n} profiles"), Plural.count(account.counts.passwords, one: "1 password", other: "{n} passwords"), Plural.count(account.counts.keys, one: "1 key", other: "{n} keys")].joined(separator: " · "))
                     .font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
                 if !account.devices.isEmpty {
-                    Label("\(account.devices.count) Macs", systemImage: "laptopcomputer").font(ChromeFont.caption)
+                    Label(L("{devicesCount} Macs", ["devicesCount": account.devices.count]), systemImage: "laptopcomputer").font(ChromeFont.caption)
                         .foregroundStyle(chrome.textMuted.color)
                 }
             }
             .padding(14)
             Rectangle().fill(chrome.separator.color).frame(height: 1)
             VStack(spacing: 2) {
-                row("arrow.triangle.2.circlepath", "Sync now", shortcut: StartPageView.shortcut("sync-now")) {
+                row("arrow.triangle.2.circlepath", L("Sync now"), shortcut: StartPageView.shortcut("sync-now")) {
                     Task { await account.syncNow() }
                 }
-                row("person.crop.circle", "Account & sync settings…") {
+                row("person.crop.circle", L("Account & sync settings…")) {
                     close()
                     openSettings()
                 }
-                row("rectangle.portrait.and.arrow.right", "Sign out…") {
+                row("rectangle.portrait.and.arrow.right", L("Sign out…")) {
                     close()
                     AccountSheets.presentSignOut(in: NSApp.keyWindow)
                 }
@@ -200,25 +200,25 @@ struct RecoveryKeyTexts: Equatable {
     init(purpose: RecoveryKeyPurpose, profiles: Int) {
         switch purpose {
         case .signUp:
-            step = "Step 2 of 2"
-            title = "Save your recovery key"
-            message = "If you forget your password, this key is the only way to decrypt your synced profiles and private keys. TabbyMac can't reset it for you."
-            footer = Plural.count(profiles, "profile") + " on this Mac will upload next"
-            confirm = "Start syncing"
+            step = L("Step 2 of 2")
+            title = L("Save your recovery key")
+            message = L("If you forget your password, this key is the only way to decrypt your synced profiles and private keys. TabbyMac can't reset it for you.")
+            footer = L("{profiles} on this Mac will upload next", ["profiles": Plural.count(profiles, one: "1 profile", other: "{n} profiles")])
+            confirm = L("Start syncing")
             needsSavedConfirmation = true
         case .regenerated:
             step = nil
-            title = "Your new recovery key"
-            message = "The old key no longer works. Keep this one somewhere safe: with your email it unlocks your synced data if you forget your password."
+            title = L("Your new recovery key")
+            message = L("The old key no longer works. Keep this one somewhere safe: with your email it unlocks your synced data if you forget your password.")
             footer = nil
-            confirm = "Done"
+            confirm = L("Done")
             needsSavedConfirmation = true
         case .viewed:
             step = nil
-            title = "Your recovery key"
-            message = "With your email it unlocks your synced data if you forget your password."
+            title = L("Your recovery key")
+            message = L("With your email it unlocks your synced data if you forget your password.")
             footer = nil
-            confirm = "Done"
+            confirm = L("Done")
             needsSavedConfirmation = false
         }
     }
@@ -227,8 +227,8 @@ struct RecoveryKeyTexts: Equatable {
 /// Change password…: the new password is typed twice, as at sign-up.
 enum NewPasswordCheck {
     static func problem(new: String, again: String) -> String? {
-        if PasswordStrength.score(new) < 2 { return "The new password is too short." }
-        if new != again { return "The passwords don't match; nothing was changed." }
+        if PasswordStrength.score(new) < 2 { return L("The new password is too short.") }
+        if new != again { return L("The passwords don't match; nothing was changed.") }
         return nil
     }
 }
@@ -318,7 +318,7 @@ struct AccountSheet: View {
             .textFieldStyle(.plain)
             if secure {
                 Button { showPassword.toggle() } label: { Image(systemName: showPassword ? "eye.slash" : "eye") }
-                    .buttonStyle(.plain).foregroundStyle(chrome.textMuted.color).help(showPassword ? "Hide" : "Show")
+                    .buttonStyle(.plain).foregroundStyle(chrome.textMuted.color).help(showPassword ? L("Hide") : L("Show"))
             }
         }
         .padding(.horizontal, 10)
@@ -352,22 +352,22 @@ struct AccountSheet: View {
     // A1
     private var signIn: some View {
         Group {
-            header("arrow.triangle.2.circlepath.icloud", "Sign in to TabbyMac",
-                   "Your profiles, keys and settings follow you to every Mac. They are encrypted here before upload.")
-            field("envelope", "Email", $email)
-            field("lock", "Password", $password, secure: true)
+            header("arrow.triangle.2.circlepath.icloud", L("Sign in to TabbyMac"),
+                   L("Your profiles, keys and settings follow you to every Mac. They are encrypted here before upload."))
+            field("envelope", L("Email"), $email)
+            field("lock", L("Password"), $password, secure: true)
             HStack {
-                Toggle("Keep me signed in", isOn: $keepSignedIn).toggleStyle(.checkbox)
+                Toggle(L("Keep me signed in"), isOn: $keepSignedIn).toggleStyle(.checkbox)
                 Spacer()
-                Button("Forgot password?") { mode = .forgotPassword; error = nil }.buttonStyle(.link)
+                Button(L("Forgot password?")) { mode = .forgotPassword; error = nil }.buttonStyle(.link)
             }
             errorLine
             HStack {
-                Button("New to TabbyMac? Create account") { mode = .register; error = nil }.buttonStyle(.link)
+                Button(L("New to TabbyMac? Create account")) { mode = .register; error = nil }.buttonStyle(.link)
                 Spacer()
                 if working { ProgressView().controlSize(.small) }
-                Button("Not now", action: dismiss).buttonStyle(ChromeButtonStyle(large: true)).keyboardShortcut(.cancelAction)
-                Button("Sign in") {
+                Button(L("Not now"), action: dismiss).buttonStyle(ChromeButtonStyle(large: true)).keyboardShortcut(.cancelAction)
+                Button(L("Sign in")) {
                     run {
                         try await account.signIn(email: email, password: password, keepSignedIn: keepSignedIn)
                         mode = .restored
@@ -383,24 +383,24 @@ struct AccountSheet: View {
     // A2
     private var register: some View {
         Group {
-            header("person.crop.circle.badge.plus", "Create your account",
-                   "Your password also encrypts your synced data. TabbyMac never receives it, so it can't reset it for you.",
-                   step: "Step 1 of 2")
-            field("envelope", "Email", $email)
-            field("lock", "Password", $password, secure: true)
+            header("person.crop.circle.badge.plus", L("Create your account"),
+                   L("Your password also encrypts your synced data. TabbyMac never receives it, so it can't reset it for you."),
+                   step: L("Step 1 of 2"))
+            field("envelope", L("Email"), $email)
+            field("lock", L("Password"), $password, secure: true)
             PasswordStrength(password: password)
-            field("lock.rotation", "Confirm password", $confirm, secure: true)
+            field("lock.rotation", L("Confirm password"), $confirm, secure: true)
             if !confirm.isEmpty && confirm != password {
-                Text("The passwords don't match.").font(ChromeFont.caption).foregroundStyle(chrome.danger.color)
+                Text(L("The passwords don't match.")).font(ChromeFont.caption).foregroundStyle(chrome.danger.color)
             }
-            Toggle("Keep me signed in", isOn: $keepSignedIn).toggleStyle(.checkbox)
+            Toggle(L("Keep me signed in"), isOn: $keepSignedIn).toggleStyle(.checkbox)
             errorLine
             HStack {
-                Button("Have an account? Sign in") { mode = .signIn; error = nil }.buttonStyle(.link)
+                Button(L("Have an account? Sign in")) { mode = .signIn; error = nil }.buttonStyle(.link)
                 Spacer()
                 if working { ProgressView().controlSize(.small) }
-                Button("Cancel", action: dismiss).buttonStyle(ChromeButtonStyle(large: true)).keyboardShortcut(.cancelAction)
-                Button("Continue") {
+                Button(L("Cancel"), action: dismiss).buttonStyle(ChromeButtonStyle(large: true)).keyboardShortcut(.cancelAction)
+                Button(L("Continue")) {
                     run {
                         let key = try await account.register(email: email, password: password, keepSignedIn: keepSignedIn)
                         mode = .recoveryKey(key.displayString)
@@ -416,21 +416,21 @@ struct AccountSheet: View {
     // "Forgot password?": recovery key + new password.
     private var forgot: some View {
         Group {
-            header("key", "Use your recovery key",
-                   "Enter the recovery key you saved when you created the account, then choose a new password.")
-            field("envelope", "Email", $email)
+            header("key", L("Use your recovery key"),
+                   L("Enter the recovery key you saved when you created the account, then choose a new password."))
+            field("envelope", L("Email"), $email)
             field("key", "XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX", $recoveryKey)
                 .font(.custom("Menlo", size: 12))
-            field("lock", "New password", $password, secure: true)
+            field("lock", L("New password"), $password, secure: true)
             PasswordStrength(password: password)
-            field("lock.rotation", "Confirm new password", $confirm, secure: true)
+            field("lock.rotation", L("Confirm new password"), $confirm, secure: true)
             errorLine
             HStack {
-                Button("Back to sign in") { mode = .signIn; error = nil }.buttonStyle(.link)
+                Button(L("Back to sign in")) { mode = .signIn; error = nil }.buttonStyle(.link)
                 Spacer()
                 if working { ProgressView().controlSize(.small) }
-                Button("Cancel", action: dismiss).buttonStyle(ChromeButtonStyle(large: true)).keyboardShortcut(.cancelAction)
-                Button("Reset password") {
+                Button(L("Cancel"), action: dismiss).buttonStyle(ChromeButtonStyle(large: true)).keyboardShortcut(.cancelAction)
+                Button(L("Reset password")) {
                     run {
                         try await account.recover(email: email, recoveryKey: recoveryKey, newPassword: password, keepSignedIn: keepSignedIn)
                         mode = .restored
@@ -459,14 +459,14 @@ struct AccountSheet: View {
             }
             HStack(spacing: 8) {
                 Button { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(key, forType: .string) } label: {
-                    Label("Copy", systemImage: "doc.on.doc")
+                    Label(L("Copy"), systemImage: "doc.on.doc")
                 }
-                Button { RecoveryKeyExport.save(key) } label: { Label("Save as file…", systemImage: "arrow.down.doc") }
-                Button { RecoveryKeyExport.print(key) } label: { Label("Print", systemImage: "printer") }
+                Button { RecoveryKeyExport.save(key) } label: { Label(L("Save as file…"), systemImage: "arrow.down.doc") }
+                Button { RecoveryKeyExport.print(key) } label: { Label(L("Print"), systemImage: "printer") }
             }
             .buttonStyle(ChromeButtonStyle())
             if texts.needsSavedConfirmation {
-                Toggle("I've stored the recovery key somewhere safe", isOn: $savedKey).toggleStyle(.checkbox)
+                Toggle(L("I've stored the recovery key somewhere safe"), isOn: $savedKey).toggleStyle(.checkbox)
             }
             HStack {
                 if let footer = texts.footer {
@@ -489,23 +489,23 @@ struct AccountSheet: View {
         let c = account.counts
         let failed: String? = { if case .failed(let m) = account.status { return m } else { return nil } }()
         return Group {
-            header("checkmark.icloud", "Welcome back",
-                   failed ?? "Your setup is restored from your account. Passwords and keys went into this Mac's Keychain, so your saved servers connect without asking again.")
+            header("checkmark.icloud", L("Welcome back"),
+                   failed ?? L("Your setup is restored from your account. Passwords and keys went into this Mac's Keychain, so your saved servers connect without asking again."))
             VStack(spacing: 0) {
-                step("slider.horizontal.3", "Settings, hotkeys & colour schemes", "Done")
-                step("rectangle.stack", "Profiles & connections", "\(c.profiles)")
-                step("key", "Passwords & private keys", Plural.count(c.passwords, "password") + " · " + Plural.count(c.keys, "key"))
-                step("checkmark.shield", "Known hosts", "Done")
+                step("slider.horizontal.3", L("Settings, hotkeys & colour schemes"), L("Done"))
+                step("rectangle.stack", L("Profiles & connections"), "\(c.profiles)")
+                step("key", L("Passwords & private keys"), Plural.count(c.passwords, one: "1 password", other: "{n} passwords") + " · " + Plural.count(c.keys, one: "1 key", other: "{n} keys"))
+                step("checkmark.shield", L("Known hosts"), L("Done"))
             }
             .background(RoundedRectangle(cornerRadius: 10).fill(chrome.surface.color))
             HStack {
                 Spacer()
-                Button("Open profiles") {
+                Button(L("Open profiles")) {
                     dismiss()
                     _ = WindowManager.shared.activeController?.runCommand("profile-selector")
                 }
                 .buttonStyle(ChromeButtonStyle(large: true))
-                Button("Done", action: dismiss).buttonStyle(ChromeButtonStyle(kind: .primary, large: true)).keyboardShortcut(.defaultAction)
+                Button(L("Done"), action: dismiss).buttonStyle(ChromeButtonStyle(kind: .primary, large: true)).keyboardShortcut(.defaultAction)
             }
         }
     }
@@ -544,7 +544,7 @@ struct PasswordStrength: View {
 
     var body: some View {
         let score = Self.score(password)
-        let label = ["", "Too short", "Fair", "Good", "Strong"][score]
+        let label = ["", L("Too short"), L("Fair"), L("Good"), L("Strong")][score]
         let tint = score >= 3 ? chrome.success : (score == 2 ? chrome.warning : chrome.danger)
         HStack(spacing: 8) {
             HStack(spacing: 3) {
@@ -553,7 +553,7 @@ struct PasswordStrength: View {
                 }
             }
             .frame(width: 120)
-            Text(password.isEmpty ? "At least 8 characters; a password manager suggestion is fine." : "\(label) · \(password.count) characters")
+            Text(password.isEmpty ? L("At least 8 characters; a password manager suggestion is fine.") : "\(label) · \(password.count) characters")
                 .font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
         }
     }
@@ -563,19 +563,13 @@ struct PasswordStrength: View {
 @MainActor
 enum RecoveryKeyExport {
     static func text(_ key: String) -> String {
-        """
-        TabbyMac recovery key
-
-        \(key)
-
-        Keep this somewhere safe. With your email address it unlocks your synced profiles,
-        passwords and private keys if you forget your password.
-        """
+        L("TabbyMac recovery key") + "\n\n" + key + "\n\n"
+            + L("Keep this somewhere safe. With your email address it unlocks your synced profiles, passwords and private keys if you forget your password.") + "\n"
     }
 
     static func save(_ key: String) {
         let panel = NSSavePanel()
-        panel.nameFieldStringValue = "TabbyMac Recovery Key.txt"
+        panel.nameFieldStringValue = L("TabbyMac Recovery Key") + ".txt"
         panel.allowedContentTypes = [.plainText]
         guard panel.runModal() == .OK, let url = panel.url else { return }
         try? text(key).write(to: url, atomically: true, encoding: .utf8)
@@ -611,8 +605,8 @@ struct KeyFilesSheet: View {
                 Image(systemName: "key").font(.system(size: 18)).foregroundStyle(chrome.warning.color)
                     .frame(width: 36, height: 36).background(RoundedRectangle(cornerRadius: 8).fill(chrome.warning.withAlpha(0.18).color))
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Upload private keys to your account?").font(ChromeFont.headline)
-                    Text("Your other Macs need these to connect without setup. They are encrypted on this Mac first; the server can't read them.")
+                    Text(L("Upload private keys to your account?")).font(ChromeFont.headline)
+                    Text(L("Your other Macs need these to connect without setup. They are encrypted on this Mac first; the server can't read them."))
                         .font(ChromeFont.callout).foregroundStyle(chrome.textMuted.color).fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -623,7 +617,7 @@ struct KeyFilesSheet: View {
                         HStack {
                             Text(f.originalPath).font(.custom("Menlo", size: 12))
                             if f.isDefaultIdentity {
-                                Text("default identity").font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
+                                Text(L("default identity")).font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
                             }
                         }
                     }
@@ -634,16 +628,16 @@ struct KeyFilesSheet: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(RoundedRectangle(cornerRadius: 8).fill(chrome.surface.color))
-            Text("You can change this later in Settings › Account & sync.").font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
+            Text(L("You can change this later in Settings › Account & sync.")).font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
             HStack {
                 Spacer()
-                Button("Don't upload") {
+                Button(L("Don't upload")) {
                     AppServices.shared.account.decideKeyFiles(approve: [], decline: files.map(\.id))
                     dismiss()
                 }
                 .buttonStyle(ChromeButtonStyle(large: true))
                 .keyboardShortcut(.cancelAction)
-                Button(selected.isEmpty ? "Continue" : "Upload \(selected.count)") {
+                Button(selected.isEmpty ? L("Continue") : L("Upload {selectedCount}", ["selectedCount": selected.count])) {
                     AppServices.shared.account.decideKeyFiles(approve: Array(selected), decline: files.map(\.id).filter { !selected.contains($0) })
                     dismiss()
                 }
@@ -673,19 +667,19 @@ struct SignOutSheet: View {
                 Image(systemName: "rectangle.portrait.and.arrow.right").font(.system(size: 17)).foregroundStyle(chrome.accent.color)
                     .frame(width: 36, height: 36).background(RoundedRectangle(cornerRadius: 8).fill(chrome.accentFill.color))
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Sign out of TabbyMac?").font(ChromeFont.headline)
-                    Text("Syncing stops on this Mac. Your data stays in your account.").font(ChromeFont.callout)
+                    Text(L("Sign out of TabbyMac?")).font(ChromeFont.headline)
+                    Text(L("Syncing stops on this Mac. Your data stays in your account.")).font(ChromeFont.callout)
                         .foregroundStyle(chrome.textMuted.color)
                 }
             }
-            choice(false, "Keep a local copy", "Profiles and keys stay usable here, unsynced")
-            choice(true, "Remove synced data from this Mac",
-                   "Deletes the \(Plural.count(c.profiles, "profile")), \(Plural.count(c.passwords, "password")) and \(Plural.count(c.keys, "key")) that came from your account; what was made on this Mac stays")
+            choice(false, L("Keep a local copy"), L("Profiles and keys stay usable here, unsynced"))
+            choice(true, L("Remove synced data from this Mac"),
+                   L("Deletes the {profiles}, {passwords} and {keys} that came from your account; what was made on this Mac stays", ["profiles": Plural.count(c.profiles, one: "1 profile", other: "{n} profiles"), "passwords": Plural.count(c.passwords, one: "1 password", other: "{n} passwords"), "keys": Plural.count(c.keys, one: "1 key", other: "{n} keys")]))
             HStack {
                 Spacer()
                 if working { ProgressView().controlSize(.small) }
-                Button("Cancel", action: dismiss).buttonStyle(ChromeButtonStyle(large: true)).keyboardShortcut(.cancelAction)
-                Button("Sign out") {
+                Button(L("Cancel"), action: dismiss).buttonStyle(ChromeButtonStyle(large: true)).keyboardShortcut(.cancelAction)
+                Button(L("Sign out")) {
                     working = true
                     Task {
                         await account.signOut(removeSyncedData: removeData)

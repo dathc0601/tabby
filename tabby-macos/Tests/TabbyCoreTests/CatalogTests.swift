@@ -76,17 +76,11 @@ final class CatalogTests: XCTestCase {
     ].map { try! NSRegularExpression(pattern: $0) }
     static let prose = try! NSRegularExpression(pattern: #"^[A-Z][a-z’']+[.,:!?]?(?:[ \x{00A0}]\S+)*$"#)
     static let wrapped = try! NSRegularExpression(pattern: #"\b(L|Lkey)\(\s*$"#)
-    static let skippedLines = try! NSRegularExpression(pattern: #"NSLog\(|print\(|fatalError\(|assert|precondition\(|\.custom\(|NSFont\(name:|os_log|Logger\(|Notification\.Name\(|forResource:|setFrameAutosaveName|DispatchQueue\(label|identifier:"#)
+    static let skippedLines = try! NSRegularExpression(pattern: #"NSLog\(|(?<![.\w])print\(|fatalError\(|assert|precondition\(|\.custom\(|NSFont\(name:|os_log|Logger\(|Notification\.Name\(|forResource:|setFrameAutosaveName|DispatchQueue\(label|identifier:"#)
 
     /// Files not swept yet. Each sweep task (5.4a–e) removes its files; at the end of phase 5
     /// the list is empty.
     static let notYetSwept: Set<String> = [
-        "Sources/TabbyAccount/InMemorySyncServer.swift",
-        "Sources/TabbyAccount/SyncClient.swift",
-        "Sources/TabbyAccount/SyncEngine.swift",
-        "Sources/TabbyApp/Account/AccountService.swift",
-        "Sources/TabbyApp/Account/AccountSettingsView.swift",
-        "Sources/TabbyApp/Account/AccountViews.swift",
         "Sources/TabbyApp/Split/SplitOverlays.swift",
         "Sources/TabbyApp/Split/SplitTreeView.swift",
         "Sources/TabbyApp/Views/BaudRatePopover.swift",
@@ -154,6 +148,7 @@ final class CatalogTests: XCTestCase {
         XCTAssertEqual(hits(#"title: "user@host""#), ["user@host"])
         XCTAssertEqual(hits(#"Text("\(a ?? "Fallback text") items")"#), [#"\(a ?? "Fallback text") items"#])
         XCTAssertEqual(hits(#"NSLog("Could not save")"#), [])
+        XCTAssertEqual(hits(#"Button { export.print(key) } label: { Label("Print", systemImage: "printer") }"#), ["Print"])
         XCTAssertEqual(hits(#"x = "Menlo" // l10n-ignore"#), [])
         XCTAssertEqual(hits(#"Text("\(count)")"#), [])
         XCTAssertEqual(hits(#"let id = "new-tab""#), [])

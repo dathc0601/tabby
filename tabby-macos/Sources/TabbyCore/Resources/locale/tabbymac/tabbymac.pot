@@ -4,6 +4,18 @@ msgid ""
 msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 
+msgid "1 key"
+msgstr ""
+
+msgid "1 key file is waiting for your answer"
+msgstr ""
+
+msgid "1 password"
+msgstr ""
+
+msgid "1 profile"
+msgstr ""
+
 msgid "A socket path; empty uses the system agent (SSH_AUTH_SOCK)"
 msgstr ""
 
@@ -20,6 +32,9 @@ msgid "Accepting saves the key in known_hosts."
 msgstr ""
 
 msgid "Account & sync"
+msgstr ""
+
+msgid "Account & sync settings…"
 msgstr ""
 
 msgid "Actual Size"
@@ -58,6 +73,15 @@ msgstr ""
 msgid "Always on top when docked"
 msgstr ""
 
+msgid "Another Mac kept changing the account while this one synced. Try again in a moment."
+msgstr ""
+
+msgid "Another Mac synced with a newer TabbyMac. Update TabbyMac to keep syncing on this Mac."
+msgstr ""
+
+msgid "Ask again"
+msgstr ""
+
 msgid "Ask before connecting to a host whose key is unknown or changed"
 msgstr ""
 
@@ -70,6 +94,12 @@ msgstr ""
 msgid "Asks for the port and baud rate"
 msgstr ""
 
+msgid "At least 8 characters."
+msgstr ""
+
+msgid "At least 8 characters; a password manager suggestion is fine."
+msgstr ""
+
 msgid "Authentication"
 msgstr ""
 
@@ -77,6 +107,9 @@ msgid "Automatic follows the system language"
 msgstr ""
 
 msgid "Back"
+msgstr ""
+
+msgid "Back to sign in"
 msgstr ""
 
 msgid "Background"
@@ -112,10 +145,16 @@ msgstr ""
 msgid "Built in"
 msgstr ""
 
+msgid "Change"
+msgstr ""
+
 msgid "Changed"
 msgstr ""
 
 msgid "Changes from your other Macs are here."
+msgstr ""
+
+msgid "Change…"
 msgstr ""
 
 msgid "Clear Buffer"
@@ -163,6 +202,12 @@ msgstr ""
 msgid "Configuration"
 msgstr ""
 
+msgid "Confirm new password"
+msgstr ""
+
+msgid "Confirm password"
+msgstr ""
+
 msgid "Connect a device, or type its path"
 msgstr ""
 
@@ -184,10 +229,19 @@ msgstr ""
 msgid "Couldn't read config.yaml"
 msgstr ""
 
+msgid "Create account"
+msgstr ""
+
+msgid "Create your account"
+msgstr ""
+
 msgid "Ctrl-?"
 msgstr ""
 
 msgid "Ctrl-H"
+msgstr ""
+
+msgid "Current password"
 msgstr ""
 
 msgid "Cursor"
@@ -223,16 +277,31 @@ msgstr ""
 msgid "Delete (ESC [3~)"
 msgstr ""
 
+msgid "Delete account"
+msgstr ""
+
+msgid "Delete account…"
+msgstr ""
+
 msgid "Delete profile"
 msgstr ""
 
+msgid "Delete your account?"
+msgstr ""
+
 msgid "Delete “{name}”?"
+msgstr ""
+
+msgid "Deletes the {profiles}, {passwords} and {keys} that came from your account; what was made on this Mac stays"
 msgstr ""
 
 msgid "Detect progress in output"
 msgstr ""
 
 msgid "Device name"
+msgstr ""
+
+msgid "Devices"
 msgstr ""
 
 msgid "Disconnect tab"
@@ -259,6 +328,12 @@ msgstr ""
 msgid "Don't ask again"
 msgstr ""
 
+msgid "Don't upload"
+msgstr ""
+
+msgid "Done"
+msgstr ""
+
 msgid "Draw bold text in bright colours"
 msgstr ""
 
@@ -271,16 +346,31 @@ msgstr ""
 msgid "Edit “{name}”"
 msgstr ""
 
+msgid "Email"
+msgstr ""
+
+msgid "End-to-end encrypted"
+msgstr ""
+
 msgid "Enter Full Screen"
 msgstr ""
 
+msgid "Enter the recovery key you saved when you created the account, then choose a new password."
+msgstr ""
+
 msgid "Even"
+msgstr ""
+
+msgid "Every Mac is signed out and the synced data is deleted from the server."
 msgstr ""
 
 msgid "Expect"
 msgstr ""
 
 msgid "Failed: {text}"
+msgstr ""
+
+msgid "Fair"
 msgstr ""
 
 msgid "Filter by name or keys"
@@ -310,10 +400,19 @@ msgstr ""
 msgid "Forget the password for {user}@{host}?"
 msgstr ""
 
+msgid "Forgot password?"
+msgstr ""
+
 msgid "Forwards start with the session"
 msgstr ""
 
 msgid "Frame"
+msgstr ""
+
+msgid "Good"
+msgstr ""
+
+msgid "Have an account? Sign in"
 msgstr ""
 
 msgid "Hidden title bar"
@@ -328,7 +427,13 @@ msgstr ""
 msgid "Home"
 msgstr ""
 
+msgid "I've stored the recovery key somewhere safe"
+msgstr ""
+
 msgid "Icon & colour"
+msgstr ""
+
+msgid "If you forget your password, this key is the only way to decrypt your synced profiles and private keys. TabbyMac can't reset it for you."
 msgstr ""
 
 msgid "Ignore titles set by programs"
@@ -367,10 +472,22 @@ msgstr ""
 msgid "Insert new line"
 msgstr ""
 
+msgid "It is deleted from the Keychain, and from your other Macs at the next sync."
+msgstr ""
+
 msgid "It is removed from the Keychain here and, when passwords sync, on your other Macs."
 msgstr ""
 
+msgid "Keep a local copy"
+msgstr ""
+
+msgid "Keep me signed in"
+msgstr ""
+
 msgid "Keep the tab open after the process exits"
+msgstr ""
+
+msgid "Keep this somewhere safe. With your email address it unlocks your synced profiles, passwords and private keys if you forget your password."
 msgstr ""
 
 msgid "Keep-alive count"
@@ -379,10 +496,16 @@ msgstr ""
 msgid "Keep-alive interval"
 msgstr ""
 
+msgid "Key passphrase {id}…"
+msgstr ""
+
 msgid "Key type"
 msgstr ""
 
 msgid "Keyboard-interactive"
+msgstr ""
+
+msgid "Known hosts"
 msgstr ""
 
 msgid "Known hosts file"
@@ -400,10 +523,19 @@ msgstr ""
 msgid "Light appearance"
 msgstr ""
 
+msgid "Loading devices…"
+msgstr ""
+
 msgid "Log in"
 msgstr ""
 
 msgid "MACs"
+msgstr ""
+
+msgid "Mac"
+msgstr ""
+
+msgid "Make a new recovery key"
 msgstr ""
 
 msgid "Maximize Pane"
@@ -430,7 +562,13 @@ msgstr ""
 msgid "New local profile"
 msgstr ""
 
+msgid "New password"
+msgstr ""
+
 msgid "New tabs"
+msgstr ""
+
+msgid "New to TabbyMac? Create account"
 msgstr ""
 
 msgid "Next Pane"
@@ -472,13 +610,25 @@ msgstr ""
 msgid "No profiles match “{filter}”"
 msgstr ""
 
+msgid "No saved passwords"
+msgstr ""
+
 msgid "No serial ports found"
+msgstr ""
+
+msgid "Not now"
+msgstr ""
+
+msgid "Not on this Mac yet (it arrives with the next sync)"
 msgstr ""
 
 msgid "Not saved: {reason}"
 msgstr ""
 
 msgid "Not set"
+msgstr ""
+
+msgid "Not synced"
 msgstr ""
 
 msgid "Not valid YAML"
@@ -505,6 +655,9 @@ msgstr ""
 msgid "Open in a new tab"
 msgstr ""
 
+msgid "Open profiles"
+msgstr ""
+
 msgid "Option key acts as Meta"
 msgstr ""
 
@@ -517,10 +670,19 @@ msgstr ""
 msgid "Passphrase for key"
 msgstr ""
 
+msgid "Password changed. Your other Macs stay signed in."
+msgstr ""
+
 msgid "Password for {user}@{host}"
 msgstr ""
 
+msgid "Passwords & private keys"
+msgstr ""
+
 msgid "Paste on middle click"
+msgstr ""
+
+msgid "Personal account"
 msgstr ""
 
 msgid "Pin tab"
@@ -535,7 +697,22 @@ msgstr ""
 msgid "Previous tab (MRU order)"
 msgstr ""
 
+msgid "Print"
+msgstr ""
+
+msgid "Private key files"
+msgstr ""
+
+msgid "Private key passphrase · ••••••••"
+msgstr ""
+
+msgid "Private keys from your account"
+msgstr ""
+
 msgid "Process exited with code {code}"
+msgstr ""
+
+msgid "Profiles and keys stay usable here, unsynced"
 msgstr ""
 
 msgid "Proxy: {text}"
@@ -565,6 +742,12 @@ msgstr ""
 msgid "Reconnect tab"
 msgstr ""
 
+msgid "Recovery key"
+msgstr ""
+
+msgid "Regenerate…"
+msgstr ""
+
 msgid "Reject"
 msgstr ""
 
@@ -580,7 +763,19 @@ msgstr ""
 msgid "Remove"
 msgstr ""
 
+msgid "Remove synced data from this Mac"
+msgstr ""
+
+msgid "Remove {name}?"
+msgstr ""
+
+msgid "Removes the account and its encrypted data from the server. This Mac keeps its copy."
+msgstr ""
+
 msgid "Removes the connection messages once connected"
+msgstr ""
+
+msgid "Removing a Mac signs it out; it stops receiving updates."
 msgstr ""
 
 msgid "Reopen Closed Tab"
@@ -596,6 +791,9 @@ msgid "Replaces these settings with {path}"
 msgstr ""
 
 msgid "Reset"
+msgstr ""
+
+msgid "Reset password"
 msgstr ""
 
 msgid "Reset to the default"
@@ -622,10 +820,19 @@ msgstr ""
 msgid "Revert"
 msgstr ""
 
+msgid "Review…"
+msgstr ""
+
 msgid "SSH"
 msgstr ""
 
 msgid "SSH agent"
+msgstr ""
+
+msgid "SSH passwords and key passphrases from the Keychain, and the key files you approve"
+msgstr ""
+
+msgid "Save as file…"
 msgstr ""
 
 msgid "Save as…"
@@ -634,7 +841,13 @@ msgstr ""
 msgid "Save colour scheme as"
 msgstr ""
 
+msgid "Save your recovery key"
+msgstr ""
+
 msgid "Saved in Keychain"
+msgstr ""
+
+msgid "Saved in the Keychain"
 msgstr ""
 
 msgid "Saved in the login keychain."
@@ -676,6 +889,9 @@ msgstr ""
 msgid "Search settings"
 msgstr ""
 
+msgid "Security"
+msgstr ""
+
 msgid "Selection"
 msgstr ""
 
@@ -689,6 +905,9 @@ msgid "Serial port or profile"
 msgstr ""
 
 msgid "Session ended"
+msgstr ""
+
+msgid "Settings, hotkeys & colour schemes"
 msgstr ""
 
 msgid "Shape"
@@ -721,10 +940,40 @@ msgstr ""
 msgid "Show the Welcome tab"
 msgstr ""
 
+msgid "Show the recovery key"
+msgstr ""
+
 msgid "Show/hide window (global)"
 msgstr ""
 
 msgid "Shows a percentage in the tab when a command prints one"
+msgstr ""
+
+msgid "Sign in"
+msgstr ""
+
+msgid "Sign in to TabbyMac"
+msgstr ""
+
+msgid "Sign in to sync profiles and keys"
+msgstr ""
+
+msgid "Sign in to sync profiles, passwords, private keys and settings. Everything is encrypted on this Mac before it leaves it."
+msgstr ""
+
+msgid "Sign in…"
+msgstr ""
+
+msgid "Sign out"
+msgstr ""
+
+msgid "Sign out of TabbyMac?"
+msgstr ""
+
+msgid "Sign out…"
+msgstr ""
+
+msgid "Signed out"
 msgstr ""
 
 msgid "Size"
@@ -748,7 +997,19 @@ msgstr ""
 msgid "Start in directory"
 msgstr ""
 
+msgid "Start syncing"
+msgstr ""
+
+msgid "Step 1 of 2"
+msgstr ""
+
+msgid "Step 2 of 2"
+msgstr ""
+
 msgid "Stream processing"
+msgstr ""
+
+msgid "Strong"
 msgstr ""
 
 msgid "Sync account now"
@@ -757,7 +1018,19 @@ msgstr ""
 msgid "Sync failed"
 msgstr ""
 
+msgid "Sync now"
+msgstr ""
+
 msgid "Synced"
+msgstr ""
+
+msgid "Synced just now"
+msgstr ""
+
+msgid "Syncing"
+msgstr ""
+
+msgid "Syncing stops on this Mac. Your data stays in your account."
 msgstr ""
 
 msgid "System"
@@ -770,6 +1043,15 @@ msgid "Tab bar location"
 msgstr ""
 
 msgid "TabbyMac"
+msgstr ""
+
+msgid "TabbyMac Recovery Key"
+msgstr ""
+
+msgid "TabbyMac recovery key"
+msgstr ""
+
+msgid "TabbyMac saves these when you tick “Remember” at a password or passphrase prompt. Showing one may ask for your Mac password."
 msgstr ""
 
 msgid "Tabs stretch to fill the tab bar instead of using a fixed width"
@@ -796,10 +1078,43 @@ msgstr ""
 msgid "The clipboard holds {count} lines. Each line runs as soon as it reaches the shell."
 msgstr ""
 
+msgid "The current key stops working. Your TabbyMac account password:"
+msgstr ""
+
+msgid "The email or password is not right."
+msgstr ""
+
+msgid "The email or recovery key is not right."
+msgstr ""
+
+msgid "The new password is too short."
+msgstr ""
+
+msgid "The old key no longer works. Keep this one somewhere safe: with your email it unlocks your synced data if you forget your password."
+msgstr ""
+
+msgid "The passwords don't match."
+msgstr ""
+
+msgid "The passwords don't match; nothing was changed."
+msgstr ""
+
 msgid "The profile is removed here and, when profiles sync, on your other Macs. A password saved for it stays in the Keychain (Settings › Vault)."
 msgstr ""
 
+msgid "The recovery key is not on this Mac yet."
+msgstr ""
+
 msgid "The scheme grid and editor change this appearance"
+msgstr ""
+
+msgid "The server stores ciphertext only; your password never leaves this Mac."
+msgstr ""
+
+msgid "The sync server answered {status}."
+msgstr ""
+
+msgid "The sync server sent something unexpected."
 msgstr ""
 
 msgid "The top level must be a mapping"
@@ -808,10 +1123,25 @@ msgstr ""
 msgid "The window takes its colours from the active colour scheme"
 msgstr ""
 
+msgid "There is already an account with this email."
+msgstr ""
+
+msgid "This Mac"
+msgstr ""
+
+msgid "This Mac was signed out of the account."
+msgstr ""
+
 msgid "This is the first connection to {host}. Compare the fingerprint with the one your administrator gave you before accepting."
 msgstr ""
 
 msgid "Toggle Option as Meta key"
+msgstr ""
+
+msgid "Too many attempts. Wait a minute and try again."
+msgstr ""
+
+msgid "Too short"
 msgstr ""
 
 msgid "Translucent, blurred window background"
@@ -829,6 +1159,9 @@ msgstr ""
 msgid "Type a command"
 msgstr ""
 
+msgid "Type the new password again"
+msgstr ""
+
 msgid "Unanswered keep-alives before the connection counts as lost"
 msgstr ""
 
@@ -841,6 +1174,21 @@ msgstr ""
 msgid "Unlock"
 msgstr ""
 
+msgid "Unlocks the account if you forget the password"
+msgstr ""
+
+msgid "Up to date"
+msgstr ""
+
+msgid "Upload private keys to your account?"
+msgstr ""
+
+msgid "Upload {selectedCount}"
+msgstr ""
+
+msgid "Use TabbyMac on every Mac"
+msgstr ""
+
 msgid "Use custom rate \\u{201C}{rate}\\u{201D}"
 msgstr ""
 
@@ -850,10 +1198,16 @@ msgstr ""
 msgid "Use the global scheme"
 msgstr ""
 
+msgid "Use your recovery key"
+msgstr ""
+
 msgid "Use {path}"
 msgstr ""
 
 msgid "Used by SSH connections on the built-in client (ssh.backend: library, the default)."
+msgstr ""
+
+msgid "Used when the original key file is not on this Mac."
 msgstr ""
 
 msgid "Username for {host}"
@@ -871,6 +1225,9 @@ msgstr ""
 msgid "View"
 msgstr ""
 
+msgid "View…"
+msgstr ""
+
 msgid "Waiting for keys…"
 msgstr ""
 
@@ -881,6 +1238,12 @@ msgid "Warn when closing an open connection"
 msgstr ""
 
 msgid "Weight"
+msgstr ""
+
+msgid "Welcome back"
+msgstr ""
+
+msgid "What to sync"
 msgstr ""
 
 msgid "When the output contains the text, TabbyMac types the reply and presses Return."
@@ -901,6 +1264,9 @@ msgstr ""
 msgid "Window opacity"
 msgstr ""
 
+msgid "With your email it unlocks your synced data if you forget your password."
+msgstr ""
+
 msgid "Without a device or a baud rate, Tabby asks each time the profile opens."
 msgstr ""
 
@@ -919,13 +1285,40 @@ msgstr ""
 msgid "Yes"
 msgstr ""
 
+msgid "You can change this later in Settings › Account & sync."
+msgstr ""
+
 msgid "You could be under a man-in-the-middle attack right now, or the host key of {host} could have just been changed."
+msgstr ""
+
+msgid "Your TabbyMac account password."
 msgstr ""
 
 msgid "Your current TabbyMac settings, profiles and hotkeys will be replaced."
 msgstr ""
 
+msgid "Your new recovery key"
+msgstr ""
+
+msgid "Your other Macs need these to connect without setup. They are encrypted on this Mac first; the server can't read them."
+msgstr ""
+
+msgid "Your password also encrypts your synced data. TabbyMac never receives it, so it can't reset it for you."
+msgstr ""
+
+msgid "Your profiles, keys and settings follow you to every Mac. They are encrypted here before upload."
+msgstr ""
+
+msgid "Your recovery key"
+msgstr ""
+
+msgid "Your setup is restored from your account. Passwords and keys went into this Mac's Keychain, so your saved servers connect without asking again."
+msgstr ""
+
 msgid "Zoom"
+msgstr ""
+
+msgid "default identity"
 msgstr ""
 
 msgid "for the dark appearance"
@@ -943,6 +1336,15 @@ msgstr ""
 msgid "keyboard-interactive · prompt {number} of {total}"
 msgstr ""
 
+msgid "ssh default identity"
+msgstr ""
+
+msgid "{approvedCount} approved, {declinedCount} kept on this Mac only"
+msgstr ""
+
+msgid "{devicesCount} Macs"
+msgstr ""
+
 msgid "{error}\n\nDefaults are in use; your file was not modified."
 msgstr ""
 
@@ -958,10 +1360,31 @@ msgstr ""
 msgid "{name} · press a key combination"
 msgstr ""
 
+msgid "{n} key files are waiting for your answer"
+msgstr ""
+
+msgid "{n} keys"
+msgstr ""
+
+msgid "{n} passwords"
+msgstr ""
+
+msgid "{n} profiles"
+msgstr ""
+
+msgid "{os} · last seen {time}"
+msgstr ""
+
+msgid "{profiles} on this Mac will upload next"
+msgstr ""
+
 msgid "{title} exited with code {code}"
 msgstr ""
 
 msgid "{title}: session ended"
+msgstr ""
+
+msgid "{url} is not an HTTPS address."
 msgstr ""
 
 msgid "~/.ssh/known_hosts is read as well. Passwords you choose to remember are kept in the login keychain."

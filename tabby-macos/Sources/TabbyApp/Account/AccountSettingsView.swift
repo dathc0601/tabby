@@ -15,7 +15,7 @@ struct AccountSettingsView: View {
     var body: some View {
         let account = AppServices.shared.account
         let _ = AppServices.shared.configRevision
-        SettingsPage("Account & sync") {
+        SettingsPage(L("Account & sync")) {
             if let session = account.session {
                 signedIn(account, session)
             } else {
@@ -37,46 +37,46 @@ struct AccountSettingsView: View {
                 AccountAvatar(email: session.email, size: 40)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(session.email).font(ChromeFont.bodyEmphasised)
-                    Text("Personal account").font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
+                    Text(L("Personal account")).font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
                 }
                 Spacer()
-                Button("Sign out…") { AccountSheets.presentSignOut(in: NSApp.keyWindow) }.buttonStyle(ChromeButtonStyle())
+                Button(L("Sign out…")) { AccountSheets.presentSignOut(in: NSApp.keyWindow) }.buttonStyle(ChromeButtonStyle())
             }
             .padding(14)
             HStack(spacing: 10) {
                 statusIcon(account.status)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(statusTitle(account.status)).font(ChromeFont.bodyEmphasised)
-                    Text(verbatim: "\(accountStatusLine(account)) · " + [Plural.count(account.counts.profiles, "profile"), Plural.count(account.counts.passwords, "password"), Plural.count(account.counts.keys, "key")].joined(separator: ", "))
+                    Text(verbatim: "\(accountStatusLine(account)) · " + [Plural.count(account.counts.profiles, one: "1 profile", other: "{n} profiles"), Plural.count(account.counts.passwords, one: "1 password", other: "{n} passwords"), Plural.count(account.counts.keys, one: "1 key", other: "{n} keys")].joined(separator: ", "))
                         .font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color).lineLimit(2)
                 }
                 Spacer()
-                Toggle("Auto", isOn: ConfigBinding.bool("account.auto")).toggleStyle(.checkbox)
-                Button { Task { await account.syncNow() } } label: { Label("Sync now", systemImage: "arrow.triangle.2.circlepath") }
+                Toggle(L("Auto"), isOn: ConfigBinding.bool("account.auto")).toggleStyle(.checkbox)
+                Button { Task { await account.syncNow() } } label: { Label(L("Sync now"), systemImage: "arrow.triangle.2.circlepath") }
                     .buttonStyle(ChromeButtonStyle())
                     .disabled(account.status == .syncing)
             }
             .padding(14)
         }
-        SettingsGroup("What to sync") {
-            SettingsRow("Profiles & connections", isOn: ConfigBinding.bool("account.parts.profiles"))
-            SettingsRow("Passwords & private keys", subtitle: "SSH passwords and key passphrases from the Keychain, and the key files you approve",
+        SettingsGroup(L("What to sync")) {
+            SettingsRow(L("Profiles & connections"), isOn: ConfigBinding.bool("account.parts.profiles"))
+            SettingsRow(L("Passwords & private keys"), subtitle: L("SSH passwords and key passphrases from the Keychain, and the key files you approve"),
                         isOn: ConfigBinding.bool("account.parts.secrets"))
-            SettingsRow("Known hosts", isOn: ConfigBinding.bool("account.parts.knownHosts"))
-            SettingsRow("Settings, hotkeys & colour schemes", isOn: ConfigBinding.bool("account.parts.settings"))
+            SettingsRow(L("Known hosts"), isOn: ConfigBinding.bool("account.parts.knownHosts"))
+            SettingsRow(L("Settings, hotkeys & colour schemes"), isOn: ConfigBinding.bool("account.parts.settings"))
         }
         keyFiles(account)
-        SettingsGroup("Devices", footer: "Removing a Mac signs it out; it stops receiving updates.") {
+        SettingsGroup(L("Devices"), footer: L("Removing a Mac signs it out; it stops receiving updates.")) {
             if account.devices.isEmpty {
-                SettingsRow("Loading devices…") { EmptyView() }
+                SettingsRow(L("Loading devices…")) { EmptyView() }
             }
             ForEach(account.devices, id: \.id) { d in
-                SettingsRow(d.name, subtitle: "\(d.os) · last seen \(Self.relative(d.lastSeenAt))") {
+                SettingsRow(d.name, subtitle: L("{os} · last seen {time}", ["os": d.os, "time": Self.relative(d.lastSeenAt)])) {
                     if d.isCurrent {
-                        Text("This Mac").font(ChromeFont.caption).padding(.horizontal, 8).frame(height: 20)
+                        Text(L("This Mac")).font(ChromeFont.caption).padding(.horizontal, 8).frame(height: 20)
                             .foregroundStyle(chrome.accent.color).background(Capsule().fill(chrome.accentFill.color))
                     } else {
-                        Button("Remove") {
+                        Button(L("Remove")) {
                             Task {
                                 do { try await account.removeDevice(d.id) } catch { message = error.localizedDescription }
                             }
@@ -86,22 +86,22 @@ struct AccountSettingsView: View {
                 }
             }
         }
-        SettingsGroup("Security", footer: message) {
-            SettingsRow("End-to-end encrypted", subtitle: "The server stores ciphertext only; your password never leaves this Mac.") {
+        SettingsGroup(L("Security"), footer: message) {
+            SettingsRow(L("End-to-end encrypted"), subtitle: L("The server stores ciphertext only; your password never leaves this Mac.")) {
                 Image(systemName: "lock.shield").foregroundStyle(chrome.success.color)
             }
-            SettingsRow("Recovery key", subtitle: session.recoveryKey == nil ? "Not on this Mac yet (it arrives with the next sync)" : "Unlocks the account if you forget the password") {
+            SettingsRow(L("Recovery key"), subtitle: session.recoveryKey == nil ? L("Not on this Mac yet (it arrives with the next sync)") : L("Unlocks the account if you forget the password")) {
                 HStack(spacing: 6) {
-                    Button("View…") { askPassword(title: "Show the recovery key") { pw in
+                    Button(L("View…")) { askPassword(title: L("Show the recovery key")) { pw in
                         if let key = try await account.revealRecoveryKey(password: pw) {
                             message = nil
                             AccountSheets.present(.recoveryKey(key, .viewed), in: NSApp.keyWindow)
                         } else {
-                            message = "The recovery key is not on this Mac yet."
+                            message = L("The recovery key is not on this Mac yet.")
                         }
                     } }
                     .disabled(session.recoveryKey == nil)
-                    Button("Regenerate…") { askPassword(title: "Make a new recovery key", message: "The current key stops working. Your TabbyMac account password:") { pw in
+                    Button(L("Regenerate…")) { askPassword(title: L("Make a new recovery key"), message: L("The current key stops working. Your TabbyMac account password:")) { pw in
                         let key = try await account.regenerateRecoveryKey(password: pw)
                         message = nil
                         AccountSheets.present(.recoveryKey(key.displayString, .regenerated), in: NSApp.keyWindow)
@@ -109,11 +109,11 @@ struct AccountSettingsView: View {
                 }
                 .buttonStyle(ChromeButtonStyle())
             }
-            SettingsRow("Password") {
-                Button("Change…") { changePassword(account) }.buttonStyle(ChromeButtonStyle())
+            SettingsRow(L("Password")) {
+                Button(L("Change…")) { changePassword(account) }.buttonStyle(ChromeButtonStyle())
             }
-            SettingsRow("Delete account", subtitle: "Removes the account and its encrypted data from the server. This Mac keeps its copy.") {
-                Button("Delete account…") { askPassword(title: "Delete your account?", message: "Every Mac is signed out and the synced data is deleted from the server.", confirm: "Delete") { pw in
+            SettingsRow(L("Delete account"), subtitle: L("Removes the account and its encrypted data from the server. This Mac keeps its copy.")) {
+                Button(L("Delete account…")) { askPassword(title: L("Delete your account?"), message: L("Every Mac is signed out and the synced data is deleted from the server."), confirm: L("Delete")) { pw in
                     try await account.deleteAccount(password: pw)
                 } }
                 .buttonStyle(ChromeButtonStyle(kind: .destructive))
@@ -127,16 +127,16 @@ struct AccountSettingsView: View {
         let approved = config.value("account.approvedKeyFiles")?.stringArrayValue ?? []
         let declined = config.value("account.declinedKeyFiles")?.stringArrayValue ?? []
         if !account.pendingKeyFiles.isEmpty || !approved.isEmpty || !declined.isEmpty {
-            SettingsGroup("Private key files") {
+            SettingsGroup(L("Private key files")) {
                 if !account.pendingKeyFiles.isEmpty {
-                    SettingsRow(account.pendingKeyFiles.count == 1 ? "1 key file is waiting for your answer"
-                                : "\(account.pendingKeyFiles.count) key files are waiting for your answer") {
-                        Button("Review…") { AccountSheets.presentKeyFiles(account.pendingKeyFiles, in: NSApp.keyWindow) }
+                    SettingsRow(Plural.count(account.pendingKeyFiles.count, one: "1 key file is waiting for your answer",
+                                             other: "{n} key files are waiting for your answer")) {
+                        Button(L("Review…")) { AccountSheets.presentKeyFiles(account.pendingKeyFiles, in: NSApp.keyWindow) }
                             .buttonStyle(ChromeButtonStyle(kind: .primary))
                     }
                 }
-                SettingsRow("\(approved.count) approved, \(declined.count) kept on this Mac only") {
-                    Button("Ask again") {
+                SettingsRow(L("{approvedCount} approved, {declinedCount} kept on this Mac only", ["approvedCount": approved.count, "declinedCount": declined.count])) {
+                    Button(L("Ask again")) {
                         config.set("account.approvedKeyFiles", nil)
                         config.set("account.declinedKeyFiles", nil)
                         Task { await account.syncNow() }
@@ -160,10 +160,10 @@ struct AccountSettingsView: View {
 
     private func statusTitle(_ status: AccountService.Status) -> String {
         switch status {
-        case .syncing: return "Syncing"
-        case .failed: return "Not synced"
-        case .signedOut: return "Signed out"
-        case .upToDate: return "Up to date"
+        case .syncing: return L("Syncing")
+        case .failed: return L("Not synced")
+        case .signedOut: return L("Signed out")
+        case .upToDate: return L("Up to date")
         }
     }
 
@@ -173,7 +173,7 @@ struct AccountSettingsView: View {
         return f.localizedString(for: date, relativeTo: Date())
     }
 
-    private func askPassword(title: String, message text: String = "Your TabbyMac account password.", confirm: String = "Continue",
+    private func askPassword(title: String, message text: String = L("Your TabbyMac account password."), confirm: String = L("Continue"),
                              _ action: @escaping (String) async throws -> Void) {
         Prompts.text(in: NSApp.keyWindow, title: title, message: text, secure: true, confirm: confirm) { value, _ in
             guard let value, !value.isEmpty else { return }
@@ -184,10 +184,10 @@ struct AccountSettingsView: View {
     }
 
     private func changePassword(_ account: AccountService) {
-        askPassword(title: "Current password") { old in
-            Prompts.text(in: NSApp.keyWindow, title: "New password", message: "At least 8 characters.", secure: true, confirm: "Continue") { new, _ in
+        askPassword(title: L("Current password")) { old in
+            Prompts.text(in: NSApp.keyWindow, title: L("New password"), message: L("At least 8 characters."), secure: true, confirm: L("Continue")) { new, _ in
                 guard let new else { return }
-                Prompts.text(in: NSApp.keyWindow, title: "Type the new password again", secure: true, confirm: "Change") { again, _ in
+                Prompts.text(in: NSApp.keyWindow, title: L("Type the new password again"), secure: true, confirm: L("Change")) { again, _ in
                     guard let again else { return }
                     if let problem = NewPasswordCheck.problem(new: new, again: again) {
                         message = problem
@@ -196,7 +196,7 @@ struct AccountSettingsView: View {
                     Task {
                         do {
                             try await account.changePassword(old: old, new: new)
-                            message = "Password changed. Your other Macs stay signed in."
+                            message = L("Password changed. Your other Macs stay signed in.")
                         } catch {
                             message = error.localizedDescription
                         }
@@ -219,24 +219,24 @@ struct VaultSettingsView: View {
         let _ = refresh
         let secrets = ((try? services.passwords.savedSecrets()) ?? []).sorted { Self.title($0) < Self.title($1) }
         let keys = services.keyFiles.records()
-        SettingsPage("Vault") {
-            SettingsGroup("Saved in the Keychain", footer: "TabbyMac saves these when you tick “Remember” at a password or passphrase prompt. Showing one may ask for your Mac password.") {
-                if secrets.isEmpty { SettingsRow("No saved passwords") { EmptyView() } }
+        SettingsPage(L("Vault")) {
+            SettingsGroup(L("Saved in the Keychain"), footer: L("TabbyMac saves these when you tick “Remember” at a password or passphrase prompt. Showing one may ask for your Mac password.")) {
+                if secrets.isEmpty { SettingsRow(L("No saved passwords")) { EmptyView() } }
                 ForEach(secrets, id: \.self) { secret in
                     SettingsRow(Self.title(secret), subtitle: revealed[secret] ?? Self.subtitle(secret)) {
                         HStack(spacing: 6) {
-                            Button(revealed[secret] == nil ? "Show" : "Hide") { toggle(secret) }
-                            Button("Remove") { remove(secret) }.foregroundStyle(chrome.danger.color)
+                            Button(revealed[secret] == nil ? L("Show") : L("Hide")) { toggle(secret) }
+                            Button(L("Remove")) { remove(secret) }.foregroundStyle(chrome.danger.color)
                         }
                         .buttonStyle(ChromeButtonStyle(kind: .plain))
                     }
                 }
             }
-            SettingsGroup("Private keys from your account", footer: "Used when the original key file is not on this Mac.") {
-                if keys.isEmpty { SettingsRow("None") { EmptyView() } }
+            SettingsGroup(L("Private keys from your account"), footer: L("Used when the original key file is not on this Mac.")) {
+                if keys.isEmpty { SettingsRow(L("None")) { EmptyView() } }
                 ForEach(keys, id: \.id) { k in
-                    SettingsRow(k.originalPath, subtitle: k.isDefaultIdentity ? "ssh default identity" : nil) {
-                        Button("Remove") {
+                    SettingsRow(k.originalPath, subtitle: k.isDefaultIdentity ? L("ssh default identity") : nil) {
+                        Button(L("Remove")) {
                             services.keyFiles.remove(id: k.id)
                             refresh += 1
                         }
@@ -250,14 +250,14 @@ struct VaultSettingsView: View {
     static func title(_ s: SavedSecret) -> String {
         switch s {
         case let .password(host, port, user): return port > 0 && port != 22 ? "\(user)@\(host):\(port)" : "\(user)@\(host)"
-        case let .passphrase(keyID): return "Key passphrase \(keyID.prefix(12))…"
+        case let .passphrase(keyID): return L("Key passphrase {id}…", ["id": keyID.prefix(12)])
         }
     }
 
     static func subtitle(_ s: SavedSecret) -> String {
         switch s {
         case .password: return "SSH password · ••••••••"
-        case .passphrase: return "Private key passphrase · ••••••••"
+        case .passphrase: return L("Private key passphrase · ••••••••")
         }
     }
 
@@ -274,9 +274,9 @@ struct VaultSettingsView: View {
     }
 
     private func remove(_ secret: SavedSecret) {
-        Prompts.confirm(in: NSApp.keyWindow, title: "Remove \(Self.title(secret))?",
-                        message: "It is deleted from the Keychain, and from your other Macs at the next sync.",
-                        confirm: "Remove", destructive: true) { ok in
+        Prompts.confirm(in: NSApp.keyWindow, title: L("Remove {name}?", ["name": Self.title(secret)]),
+                        message: L("It is deleted from the Keychain, and from your other Macs at the next sync."),
+                        confirm: L("Remove"), destructive: true) { ok in
             guard ok else { return }
             let store = AppServices.shared.passwords
             switch secret {
@@ -320,15 +320,15 @@ struct SignedOutAccountCard: View {
 
     private var text: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Use TabbyMac on every Mac").font(ChromeFont.headline)
-            Text("Sign in to sync profiles, passwords, private keys and settings. Everything is encrypted on this Mac before it leaves it.")
+            Text(L("Use TabbyMac on every Mac")).font(ChromeFont.headline)
+            Text(L("Sign in to sync profiles, passwords, private keys and settings. Everything is encrypted on this Mac before it leaves it."))
                 .font(ChromeFont.callout).foregroundStyle(chrome.textMuted.color).fixedSize(horizontal: false, vertical: true)
         }
     }
 
     @ViewBuilder private var buttons: some View {
-        Button("Create account", action: createAccount).buttonStyle(ChromeButtonStyle(large: true)).fixedSize()
-        Button("Sign in…", action: signIn).buttonStyle(ChromeButtonStyle(kind: .primary, large: true)).fixedSize()
+        Button(L("Create account"), action: createAccount).buttonStyle(ChromeButtonStyle(large: true)).fixedSize()
+        Button(L("Sign in…"), action: signIn).buttonStyle(ChromeButtonStyle(kind: .primary, large: true)).fixedSize()
     }
 }
 #endif

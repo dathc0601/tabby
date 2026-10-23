@@ -1,4 +1,5 @@
 import Foundation
+// l10n-ignore-file: an in-memory test server, nothing here is shown to users
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif

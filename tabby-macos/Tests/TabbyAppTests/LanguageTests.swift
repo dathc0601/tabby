@@ -63,6 +63,20 @@ final class LanguageTests: XCTestCase {
         XCTAssertEqual(ProfileTypes.title("local"), "Lokales Terminal")
     }
 
+    /// 5.4c: the account texts, plurals included, come from the catalog (Tabby's catalogs
+    /// have none of them; Vietnamese does).
+    func testAccountTextsAndPluralsComeFromTheCatalog() {
+        defer { L10n.load(language: AppServices.shared.language) }
+        L10n.install(L10n.Catalog(layers: [[
+            "{n} profiles": "{n} hồ sơ",
+            "{profiles} on this Mac will upload next": "{profiles} trên máy Mac này sẽ được tải lên tiếp theo",
+            "Start syncing": "Bắt đầu đồng bộ",
+        ]]), language: "vi-VN")
+        let texts = RecoveryKeyTexts(purpose: .signUp, profiles: 3)
+        XCTAssertEqual(texts.footer, "3 hồ sơ trên máy Mac này sẽ được tải lên tiếp theo")
+        XCTAssertEqual(texts.confirm, "Bắt đầu đồng bộ")
+    }
+
     func testSettingsSectionsShowTranslatedTitlesAndStillMatchEnglish() {
         AppServices.shared.config.set("language", .string("de-DE"))
         XCTAssertEqual(SettingsSection.application.title, "Anwendung")

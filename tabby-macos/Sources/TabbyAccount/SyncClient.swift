@@ -3,6 +3,7 @@ import Foundation
 import FoundationNetworking
 #endif
 import TabbySyncProtocol
+import TabbyCore
 
 /// Sends a request and returns the body and response; `URLSessionTransport` in the app, an
 /// in-memory server in tests.
@@ -53,16 +54,16 @@ public enum SyncClientError: Error, Equatable, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .insecureURL(let url): return "\(url) is not an HTTPS address."
+        case .insecureURL(let url): return L("{url} is not an HTTPS address.", ["url": url])
         case let .server(status, code, message):
             switch code {
-            case ErrorDTO.Code.invalidCredentials: return "The email or password is not right."
-            case ErrorDTO.Code.emailTaken: return "There is already an account with this email."
-            case ErrorDTO.Code.rateLimited: return "Too many attempts. Wait a minute and try again."
-            case ErrorDTO.Code.unauthorized: return "This Mac was signed out of the account."
-            default: return message.isEmpty ? "The sync server answered \(status)." : message
+            case ErrorDTO.Code.invalidCredentials: return L("The email or password is not right.")
+            case ErrorDTO.Code.emailTaken: return L("There is already an account with this email.")
+            case ErrorDTO.Code.rateLimited: return L("Too many attempts. Wait a minute and try again.")
+            case ErrorDTO.Code.unauthorized: return L("This Mac was signed out of the account.")
+            default: return message.isEmpty ? L("The sync server answered {status}.", ["status": status]) : message
             }
-        case .invalidResponse: return "The sync server sent something unexpected."
+        case .invalidResponse: return L("The sync server sent something unexpected.")
         }
     }
 }
@@ -111,12 +112,12 @@ public final class SyncClient: @unchecked Sendable {
         var r = URLRequest(url: url(path, query: query))
         r.httpMethod = method
         r.timeoutInterval = 30
-        r.setValue("application/json", forHTTPHeaderField: "Accept")
+        r.setValue("application/json", forHTTPHeaderField: "Accept") // l10n-ignore: HTTP header
         if let body {
             r.httpBody = try SyncCoding.encoder.encode(body)
             r.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
-        if let token { r.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        if let token { r.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") } // l10n-ignore: HTTP header
         for (k, v) in headers { r.setValue(v, forHTTPHeaderField: k) }
         return try await transport.send(r)
     }
