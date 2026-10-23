@@ -33,5 +33,26 @@ final class QuitRecoveryTests: XCTestCase {
         }
         XCTAssertEqual(AppServices.shared.recovery.load().count, expected, "the tabs saved on quit survive the window closes")
     }
+
+    /// Found in the M8 walk: config.yaml edited by hand while the app ran was overwritten when
+    /// it quit, though nothing had changed in the app. Quitting writes only a change that is
+    /// still waiting to be saved.
+    func testQuittingKeepsAHandEditWhenNothingChanged() throws {
+        let services = AppServices.shared
+        services.flushSave()
+        let url = services.paths.configFile
+        let edited = try String(contentsOf: url, encoding: .utf8) + "# edited by hand\n"
+        try edited.write(to: url, atomically: true, encoding: .utf8)
+        services.flushPendingSave()
+        XCTAssertEqual(try String(contentsOf: url, encoding: .utf8), edited, "nothing waiting: the file is left alone")
+
+        services.config.set("terminal.bell", .string("visual"))
+        defer {
+            services.config.set("terminal.bell", nil)
+            services.flushSave()
+        }
+        services.flushPendingSave()
+        XCTAssertTrue(try String(contentsOf: url, encoding: .utf8).contains("bell: visual"), "a waiting change is written")
+    }
 }
 #endif

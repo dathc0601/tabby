@@ -1,0 +1,5 @@
+module CLibSSH [system] {
+    header "shim.h"
+    link "ssh"
+    export *
+}

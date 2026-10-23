@@ -29,6 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let services = AppServices.shared
         services.start()
         services.sshFactory.promptHandler = SSHPromptPresenter.shared
+        services.libSSHFactory.ui = LibSSHPromptPresenter.shared
 
         services.account.onSyncFinished = { report, error in
             MainActor.assumeIsolated { WindowManager.shared.syncFinished(report, error: error) }

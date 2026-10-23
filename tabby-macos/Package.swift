@@ -11,6 +11,7 @@
 //   TabbyApp       macOS: AppKit window, tab bar, split panes, SwiftUI settings and modals.
 //   TabbyIPC       Unix-socket messages shared by the app and the askpass helper.
 //   tabby-askpass  Tiny helper that OpenSSH runs as SSH_ASKPASS; forwards prompts to the app.
+//   TabbySSHLib    macOS: SSH sessions in-process over libssh (channels, SFTP, live forwards).
 //   TabbyAccount   Sign-in, snapshot of this Mac's profiles/secrets/keys, sync engine.
 //   TabbySyncProtocol  Account & sync wire format shared with ../tabby-sync-server: DTOs,
 //                  SyncSnapshot, SyncMerger, VaultCrypto. Foundation + swift-crypto only (no
@@ -68,10 +69,25 @@ let package = Package(
             name: "TabbyApp",
             dependencies: [
                 "TabbyCore", "TabbyTerminal", "TabbySSH",
+                .target(name: "TabbySSHLib", condition: .when(platforms: [.macOS])),
                 // The app layer is AppKit-only; on Linux it is empty, and keeping swift-crypto's
                 // C++ out of `TabbyMacDev` avoids the Swift 6.1 libswiftObservation link error
                 // described at TabbySyncProtocolTests.
                 .target(name: "TabbyAccount", condition: .when(platforms: [.macOS])),
+            ]
+        ),
+        // libssh, the in-process SSH client behind the library backend (phase 3). macOS only:
+        // `brew install libssh`; the Xcode build bundles it (scripts/bundle-libssh.sh).
+        .systemLibrary(
+            name: "CLibSSH",
+            pkgConfig: "libssh",
+            providers: [.brew(["libssh"])]
+        ),
+        .target(
+            name: "TabbySSHLib",
+            dependencies: [
+                "TabbyCore", "TabbyTerminal", "TabbySSH",
+                .target(name: "CLibSSH", condition: .when(platforms: [.macOS])),
             ]
         ),
         // Personal account and sync on this Mac: HTTP client, change tracking, snapshot of the
@@ -118,6 +134,10 @@ let package = Package(
         .testTarget(
             name: "TabbyAppTests",
             dependencies: ["TabbyApp"]
+        ),
+        .testTarget(
+            name: "TabbySSHLibTests",
+            dependencies: ["TabbySSHLib", "TabbyCore"]
         ),
         .testTarget(
             name: "TabbyCoreTests",

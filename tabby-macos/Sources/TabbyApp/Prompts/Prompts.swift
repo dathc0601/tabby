@@ -64,16 +64,27 @@ enum Prompts {
 /// keys of) another tab or window.
 @MainActor
 enum PromptPlacement {
+    /// For a question: the session's window, with its tab brought to the front.
     static func window(showing session: AnyObject) -> NSWindow? {
+        guard let (controller, paneID) = find(session) else { return NSApp.keyWindow ?? NSApp.mainWindow }
+        controller.model.focus(paneID: paneID)
+        return controller.window
+    }
+
+    /// For a notice (a toast): the session's window; the tabs stay as they are.
+    static func window(of session: AnyObject) -> NSWindow? {
+        find(session)?.controller.window ?? NSApp.keyWindow ?? NSApp.mainWindow
+    }
+
+    private static func find(_ session: AnyObject) -> (controller: MainWindowController, paneID: UUID)? {
         for controller in WindowManager.shared.controllers {
             for tab in controller.model.tabs {
                 if let pane = tab.panes.values.first(where: { $0.session === session }) {
-                    controller.model.focus(paneID: pane.id)
-                    return controller.window
+                    return (controller, pane.id)
                 }
             }
         }
-        return NSApp.keyWindow ?? NSApp.mainWindow
+        return nil
     }
 }
 

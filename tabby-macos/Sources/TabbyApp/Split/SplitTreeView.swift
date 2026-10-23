@@ -248,6 +248,13 @@ final class PaneContainerView: NSView {
     private let hover = PaneHover()
     private var appearanceLoop: ObservationLoop?
     private var chipLoop: ObservationLoop?
+    /// The keyboard-interactive panel while a login asks something (design `sshAuth`).
+    private var authHost: NSHostingView<KeyboardInteractivePanel>?
+    private var authLoop: ObservationLoop?
+    /// The SFTP panel over the lower 80% of the pane, and the strip above it that closes it.
+    private var sftpHost: NSHostingView<SFTPPanelView>?
+    private var sftpCatcher: SFTPDismissCatcher?
+    private var sftpLoop: ObservationLoop?
     var showsFocusRing = false { didSet { if oldValue != showsFocusRing { updateRing() } } }
     /// Unfocused panes of a split dim by 25% (the design).
     var isDimmed = false { didSet { if oldValue != isDimmed { updateRing() } } }
@@ -280,6 +287,15 @@ final class PaneContainerView: NSView {
                 _ = self?.hover.isHovering
             }, apply: { [weak self] in self?.needsLayout = true })
         }
+        let paneID = pane.id
+        authLoop = ObservationLoop(track: {
+            // The prompt index too: Continue and Back put a new field in the panel.
+            _ = KeyboardInteractivePanels.shared.models[paneID]?.index
+        }, apply: { [weak self] in self?.updateAuthPanel() })
+        sftpLoop = ObservationLoop(track: {
+            // Editing the path too: the field that replaces the breadcrumb needs the keys.
+            _ = SFTPPanels.shared.controllers[paneID]?.model.isEditingPath
+        }, apply: { [weak self] in self?.updateSFTPPanel() })
         appearanceLoop = ObservationLoop(track: { [weak self] in
             guard let self else { return }
             _ = AppServices.shared.theme.revision
@@ -303,6 +319,62 @@ final class PaneContainerView: NSView {
 
     override var isFlipped: Bool { true }
 
+    private func updateAuthPanel() {
+        let model = KeyboardInteractivePanels.shared.models[pane.id]
+        if let model {
+            if let authHost, authHost.rootView.model === model {
+                // Continue or Back: SwiftUI swaps in the field for the next prompt.
+                focusField(in: authHost, secure: model.isSecure)
+                return
+            }
+            authHost?.removeFromSuperview()
+            let host = NSHostingView(rootView: KeyboardInteractivePanel(model: model))
+            host.safeAreaRegions = []
+            addSubview(host)
+            authHost = host
+            focusField(in: host, secure: model.isSecure)
+        } else if let authHost {
+            authHost.removeFromSuperview()
+            self.authHost = nil
+            window?.makeFirstResponder(engine)
+        }
+        needsLayout = true
+    }
+
+    private func updateSFTPPanel() {
+        let paneID = pane.id
+        if let controller = SFTPPanels.shared.controllers[paneID] {
+            if let sftpHost, sftpHost.rootView.controller === controller {
+                if controller.model.isEditingPath { focusField(in: sftpHost, placeholder: "Path") }
+                return
+            }
+            sftpHost?.removeFromSuperview()
+            let host = NSHostingView(rootView: SFTPPanelView(controller: controller, close: { SFTPPanels.shared.close(paneID) }))
+            host.safeAreaRegions = []
+            let catcher = sftpCatcher ?? SFTPDismissCatcher { SFTPPanels.shared.close(paneID) }
+            addSubview(catcher)
+            addSubview(host)
+            sftpCatcher = catcher
+            sftpHost = host
+            needsLayout = true
+            layoutSubtreeIfNeeded()
+            // Slides up over 100 ms (Tabby).
+            let final = host.frame
+            host.frame = final.offsetBy(dx: 0, dy: final.height)
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.1
+                host.animator().frame = final
+            }
+        } else if let sftpHost {
+            sftpHost.removeFromSuperview()
+            sftpCatcher?.removeFromSuperview()
+            self.sftpHost = nil
+            sftpCatcher = nil
+            window?.makeFirstResponder(engine)
+        }
+        needsLayout = true
+    }
+
     /// The SSH status chip's frame: the design's top-right corner (8 pt from the top, 12 pt
     /// from the right), under the search bar while that is open. The chip view pads itself by
     /// 8 pt, so the frame sits 8 pt outside the visible capsule.
@@ -314,8 +386,18 @@ final class PaneContainerView: NSView {
 
     override func layout() {
         super.layout()
+        if let sftpHost {
+            let height = (bounds.height * 0.8).rounded()
+            sftpHost.frame = CGRect(x: 0, y: bounds.height - height, width: bounds.width, height: height)
+            sftpCatcher?.frame = CGRect(x: 0, y: 0, width: bounds.width, height: bounds.height - height)
+        }
+        // The keyboard-interactive panel pushes the terminal down (the PTY is resized); below
+        // it the terminal keeps Tabby's margin.
+        let authHeight = authHost.map { $0.fittingSize.height } ?? 0
+        authHost?.frame = CGRect(x: 0, y: 0, width: bounds.width, height: authHeight)
         let margin = CGFloat(AppServices.shared.theme.metrics.terminalMargin)
-        engine.frame = bounds.insetBy(dx: margin, dy: margin)
+        engine.frame = CGRect(x: 0, y: authHeight, width: bounds.width, height: max(0, bounds.height - authHeight))
+            .insetBy(dx: margin, dy: margin)
         dimView.frame = bounds
         if let searchHost {
             let size = searchHost.fittingSize
@@ -379,27 +461,35 @@ final class PaneContainerView: NSView {
             pane.isSearchVisible = true
             needsLayout = true
         }
-        focusSearchField()
+        if let searchHost { focusField(in: searchHost) }
     }
 
-    /// Puts the keys in the bar's text field. Making the hosting view first responder is not
-    /// enough (the keys stop at the host), and the field may need a turn or two to exist.
-    private func focusSearchField(attempts: Int = 5) {
-        DispatchQueue.main.async { [weak self] in
+    /// Puts the keys in the text field of a SwiftUI bar or panel. Making the hosting view first
+    /// responder is not enough (the keys stop at the host), and the field may need a turn or
+    /// two to exist. `secure` waits for that kind of field (a panel swapping a hidden field
+    /// for a plain one still shows the old one for a turn).
+    private func focusField(in host: NSView, secure: Bool? = nil, placeholder: String? = nil, attempts: Int = 5) {
+        DispatchQueue.main.async { [weak self, weak host] in
             MainActor.assumeIsolated {
-                guard let self, let host = self.searchHost else { return }
-                if let field = Self.editableTextField(in: host) {
+                guard let self, let host, host.superview === self else { return }
+                if let field = Self.editableTextField(in: host, secure: secure, placeholder: placeholder) {
                     self.window?.makeFirstResponder(field)
                 } else if attempts > 0 {
-                    self.focusSearchField(attempts: attempts - 1)
+                    self.focusField(in: host, secure: secure, placeholder: placeholder, attempts: attempts - 1)
                 }
             }
         }
     }
 
-    private static func editableTextField(in view: NSView) -> NSTextField? {
-        if let field = view as? NSTextField, field.isEditable { return field }
-        for sub in view.subviews { if let field = editableTextField(in: sub) { return field } }
+    private static func editableTextField(in view: NSView, secure: Bool? = nil, placeholder: String? = nil) -> NSTextField? {
+        if let field = view as? NSTextField, field.isEditable,
+           secure.map({ $0 == (field is NSSecureTextField) }) ?? true,
+           placeholder.map({ $0 == field.placeholderString }) ?? true {
+            return field
+        }
+        for sub in view.subviews {
+            if let field = editableTextField(in: sub, secure: secure, placeholder: placeholder) { return field }
+        }
         return nil
     }
 
@@ -415,5 +505,20 @@ final class PaneContainerView: NSView {
     func toggleSearch() {
         if isSearchVisible { hideSearch() } else { showSearch() }
     }
+}
+/// The terminal strip above an open SFTP panel: a click there closes the panel (Tabby).
+final class SFTPDismissCatcher: NSView {
+    private let onDismiss: () -> Void
+
+    init(onDismiss: @escaping () -> Void) {
+        self.onDismiss = onDismiss
+        super.init(frame: .zero)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    func dismiss() { onDismiss() }
+
+    override func mouseDown(with event: NSEvent) { dismiss() }
 }
 #endif

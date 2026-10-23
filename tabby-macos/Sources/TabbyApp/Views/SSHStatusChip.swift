@@ -2,6 +2,7 @@
 import SwiftUI
 import Observation
 import TabbyCore
+import TabbySSHLib
 import TabbyTerminal
 
 /// Whether the pointer is over a pane (the chip shows on hover).
@@ -33,9 +34,11 @@ private struct ChipContent: View {
     let pane: TerminalPane
     let hover: PaneHover
     @Environment(\.chrome) private var chrome
+    @State private var showsPorts = false
 
     var body: some View {
-        if let state = pane.connectionState, hover.isHovering || state != .connected {
+        // Stays while its popover is open: the pointer leaves the pane to use it.
+        if let state = pane.connectionState, hover.isHovering || state != .connected || showsPorts {
             let options = SSHOptions(pane.profile.options)
             HStack(spacing: 8) {
                 StatusDot(color: Self.color(state, chrome), size: 7)
@@ -48,6 +51,16 @@ private struct ChipContent: View {
                     .buttonStyle(.plain)
                     .foregroundStyle((state == .disconnected ? chrome.accent : chrome.textMuted).color)
                 }
+                if let session = pane.session as? LibSSHSession {
+                    Rectangle().fill(chrome.separator.color).frame(width: 1, height: 14)
+                    PortsButton(enabled: state == .connected, makeModel: { Self.portsModel(session) }, isOpen: $showsPorts)
+                    Button { SFTPPanels.shared.toggle(for: pane) } label: {
+                        Label("SFTP", systemImage: "folder").font(ChromeFont.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle((state == .connected ? chrome.textMuted : chrome.textFaint).color)
+                    .disabled(state != .connected)
+                }
             }
             .padding(.horizontal, 10)
             .frame(height: 28)
@@ -58,6 +71,14 @@ private struct ChipContent: View {
             .padding(8)
             .fixedSize()
         }
+    }
+
+    /// The Ports popover's model for the session's live connection.
+    private static func portsModel(_ session: LibSSHSession) -> PortForwardsModel? {
+        guard let connection = session.connection else { return nil }
+        return PortForwardsModel(list: { connection.forwards },
+                                 add: { try await connection.addForward($0) },
+                                 remove: { await connection.removeForward($0) })
     }
 
     /// A live session is restarted only after asking: whatever runs in it ends.
@@ -86,4 +107,30 @@ private struct ChipContent: View {
         }
     }
 }
+
+/// The chip's Ports button and its popover of live port forwards. Presented by item: with a
+/// flag and the model in separate state, the first popover was built before the model was
+/// set and opened empty (M8).
+struct PortsButton: View {
+    let enabled: Bool
+    /// The popover's model for the live connection (nil: none).
+    let makeModel: () -> PortForwardsModel?
+    /// True while the popover shows (the chip stays while it is open).
+    @Binding var isOpen: Bool
+    @State private var model: PortForwardsModel?
+    @Environment(\.chrome) private var chrome
+
+    var body: some View {
+        Button { model = makeModel() } label: {
+            Label("Ports", systemImage: "point.3.connected.trianglepath.dotted").font(ChromeFont.caption)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle((enabled ? chrome.textMuted : chrome.textFaint).color)
+        .disabled(!enabled)
+        .popover(item: $model, arrowEdge: .bottom) { PortsPopover(model: $0).chromeEnvironment() }
+        .onChange(of: model == nil) { _, closed in isOpen = !closed }
+    }
+}
+
+extension PortForwardsModel: Identifiable {}
 #endif

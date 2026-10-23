@@ -80,6 +80,24 @@ final class SelectorPanel: NSPanel {
     }
 }
 
+/// Whether the row under the pointer takes the selection: only once the pointer has moved.
+/// Rows that slide under a resting pointer while the list filters must not take it (found in
+/// the M8 walk: Return then opened Quick connect instead of the profile). Tabby's selector
+/// never selects on hover.
+struct HoverSelection {
+    private var last: CGPoint
+
+    init(pointer: CGPoint) {
+        last = pointer
+    }
+
+    mutating func shouldSelect(pointer: CGPoint) -> Bool {
+        guard pointer != last else { return false }
+        last = pointer
+        return true
+    }
+}
+
 struct SelectorView: View {
     let placeholder: String
     let items: [SelectorItem]
@@ -99,6 +117,7 @@ private struct SelectorContent: View {
     let finish: (SelectorItem?) -> Void
     @State private var query = ""
     @State private var selection = 0
+    @State private var hover = HoverSelection(pointer: NSEvent.mouseLocation)
     @FocusState private var focused: Bool
     @Environment(\.chrome) private var chrome
     @Environment(\.metrics) private var metrics
@@ -148,7 +167,7 @@ private struct SelectorContent: View {
                                 SelectorRow(item: item, isSelected: index == selection, showGroup: !grouped)
                                     .id(item.id)
                                     .onTapGesture { finish(item) }
-                                    .onHover { if $0 { selection = index } }
+                                    .onHover { if $0, hover.shouldSelect(pointer: NSEvent.mouseLocation) { selection = index } }
                             }
                         }
                         .padding(6)

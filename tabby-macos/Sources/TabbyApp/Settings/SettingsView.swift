@@ -546,6 +546,15 @@ struct SSHSettingsView: View {
                     RowPicker(selection: ConfigBinding.string("defaultQuickConnectProvider")) { Text("SSH").tag("ssh") }
                 }
             }
+            SettingsGroup("Agent and X11", footer: "Used by SSH connections on the built-in client (ssh.backend: library, the default).") {
+                SettingsRow("SSH agent", subtitle: "A socket path; empty uses the system agent (SSH_AUTH_SOCK)") {
+                    RowField(placeholder: "System (SSH_AUTH_SOCK)", text: ConfigBinding.optionalString("ssh.agentPath"), width: 260)
+                }
+                SettingsRow("X11 display", subtitle: "Where forwarded X11 connections go; empty uses $DISPLAY") {
+                    RowField(placeholder: ProcessInfo.processInfo.environment["DISPLAY"] ?? "localhost:0",
+                             text: ConfigBinding.optionalString("ssh.x11Display"), width: 260)
+                }
+            }
         }
     }
 }

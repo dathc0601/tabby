@@ -4,6 +4,7 @@ import Observation
 import TabbyCore
 import TabbyTerminal
 import TabbySSH
+import TabbySSHLib
 import TabbyAccount
 
 /// Process-wide services: configuration, profiles, sessions, theme. Replaces the Angular
@@ -25,6 +26,9 @@ public final class AppServices {
     @ObservationIgnored public let keyFiles: KeyFileStore
     @ObservationIgnored public private(set) var factories: [String: SessionFactory] = [:]
     @ObservationIgnored public let sshFactory: SSHSessionFactory
+    /// The library (libssh) backend; `ssh.backend: openssh` or a profile's `backend` picks
+    /// `sshFactory` instead.
+    @ObservationIgnored let libSSHFactory: LibSSHSessionFactory
     public let theme: ThemeManager
     let account: AccountService
 
@@ -85,8 +89,23 @@ public final class AppServices {
                                  // Tests point this at a scratch folder so no real ~/.ssh key is read.
                                  homeDirectory: ProcessInfo.processInfo.environment["TABBYMAC_SYNC_HOME"] ?? NSHomeDirectory()),
             paths: paths)
+        let config = config
+        libSSHFactory = LibSSHSessionFactory(environment: LibSSHSession.Environment(
+            knownHostsFile: paths.knownHostsFile.path,
+            verifyHostKeys: config.value("ssh.verifyHostKeys")?.boolValue ?? true,
+            agentSocket: {
+                let configured = MainActor.assumeIsolated { config.value("ssh.agentPath")?.stringValue }
+                if let configured, !configured.isEmpty { return (configured as NSString).expandingTildeInPath }
+                return ProcessInfo.processInfo.environment["SSH_AUTH_SOCK"]
+            },
+            syncedKeys: { keyFiles.syncedKeys() },
+            passwords: passwords))
+        libSSHFactory.environment.x11Display = {
+            MainActor.assumeIsolated { config.value("ssh.x11Display")?.stringValue }.flatMap { $0.isEmpty ? nil : $0 }
+        }
         factories["local"] = LocalSessionFactory()
-        factories["ssh"] = sshFactory
+        factories["ssh"] = SSHBackendFactory(openSSH: sshFactory, library: libSSHFactory,
+                                             configuredBackend: { MainActor.assumeIsolated { config.value("ssh.backend")?.stringValue } })
         loadError = error
 
         config.observe { [weak self] in
@@ -102,6 +121,7 @@ public final class AppServices {
         // Jump hosts are resolved through the registry (needs `self`, so wired after init).
         let registry = profiles
         sshFactory.resolveProfile = { id in registry.profile(withId: id).map { registry.resolved($0) } }
+        libSSHFactory.connector.resolveProfile = { id in registry.profile(withId: id).map { registry.resolved($0) } }
         do { try askpass.start() } catch { NSLog("TabbyMac: askpass server failed: \(error)") }
         // Like Tabby, make sure config.yaml exists after the first launch so users can find
         // and edit it, even before they change a setting.
@@ -110,7 +130,7 @@ public final class AppServices {
     }
 
     public func stop() {
-        flushSave()
+        flushPendingSave()
         askpass.stop()
     }
 
@@ -126,6 +146,7 @@ public final class AppServices {
         configRevision += 1
         theme.update(config: config)
         sshFactory.environment.verifyHostKeys = config.value("ssh.verifyHostKeys")?.boolValue ?? true
+        libSSHFactory.environment.verifyHostKeys = sshFactory.environment.verifyHostKeys
         scheduleSave()
         account.localDataChanged()
     }
@@ -137,6 +158,13 @@ public final class AppServices {
         }
         saveWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
+    }
+
+    /// Quitting: writes only a change still waiting to be saved, so a hand edit of config.yaml
+    /// made while the app ran is not overwritten (found in the M8 walk).
+    public func flushPendingSave() {
+        guard saveWork != nil else { return }
+        flushSave()
     }
 
     public func flushSave() {

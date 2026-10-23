@@ -1,6 +1,7 @@
 #if canImport(AppKit)
 import AppKit
 import SwiftUI
+import TabbySSHLib
 import TabbyCore
 
 /// Presents SwiftUI content as a sheet on a window (the design's cards), or as a modal panel
@@ -161,17 +162,70 @@ struct TextPromptCard: View {
 }
 
 /// Host key verification (Tabby's `HostKeyPromptModal`, the design's "Verify host key").
+/// For a changed key it shows Tabby's warning, both fingerprints, and makes Reject the
+/// default button. The library backend offers "Remember in known_hosts"; with OpenSSH,
+/// accepting always saves the key.
 struct HostKeyPromptCard: View {
+    struct Texts: Equatable {
+        var title: String
+        var message: String
+        var confirm: String
+        var rejectIsDefault: Bool
+
+        init(host: String, changed: Bool) {
+            if changed {
+                title = "Warning: remote host's key has suddenly changed!"
+                message = "You could be under a man-in-the-middle attack right now, or the host key of \(host) could have just been changed."
+                confirm = "Accept new key"
+                rejectIsDefault = true
+            } else {
+                title = "Verify host key"
+                message = "This is the first connection to \(host). Compare the fingerprint with the one your administrator gave you before accepting."
+                confirm = "Accept"
+                rejectIsDefault = false
+            }
+        }
+    }
+
+    static func decision(accept: Bool, remember: Bool) -> HostKeyDecision {
+        accept ? (remember ? .acceptAndRemember : .acceptOnce) : .reject
+    }
+
     let host: String
     let keyType: String?
     let fingerprint: String?
-    let finish: (_ accept: Bool) -> Void
+    let previousFingerprint: String?
+    let offersRemember: Bool
+    let decide: (HostKeyDecision) -> Void
+    @State private var remember = true
     @Environment(\.chrome) private var chrome
 
+    /// OpenSSH backend: ssh saves an accepted key itself.
+    init(host: String, keyType: String?, fingerprint: String?, finish: @escaping (_ accept: Bool) -> Void) {
+        self.host = host
+        self.keyType = keyType
+        self.fingerprint = fingerprint
+        previousFingerprint = nil
+        offersRemember = false
+        decide = { finish($0 != .reject) }
+    }
+
+    /// Library backend: accept once or remember, and the changed-key warning.
+    init(request: HostKeyRequest, host: String, decide: @escaping (HostKeyDecision) -> Void) {
+        self.host = host
+        keyType = request.keyType
+        fingerprint = request.fingerprint
+        previousFingerprint = request.previousFingerprint
+        offersRemember = true
+        self.decide = decide
+    }
+
     var body: some View {
+        let changed = previousFingerprint != nil
+        let texts = Texts(host: host, changed: changed)
         VStack(alignment: .leading, spacing: 14) {
-            CardHeader(symbol: "key", tint: chrome.warning, title: "Verify host key",
-                       message: "This is the first connection to \(host). Compare the fingerprint with the one your administrator gave you before accepting.")
+            CardHeader(symbol: changed ? "exclamationmark.triangle" : "key", tint: changed ? chrome.danger : chrome.warning,
+                       title: texts.title, message: texts.message)
             Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 8) {
                 GridRow {
                     Text("Host").foregroundStyle(chrome.textMuted.color)
@@ -181,8 +235,14 @@ struct HostKeyPromptCard: View {
                     Text("Key type").foregroundStyle(chrome.textMuted.color)
                     Text(keyType ?? "unknown").font(.custom("Menlo", size: 12))
                 }
+                if let previousFingerprint {
+                    GridRow(alignment: .top) {
+                        Text("Last known").foregroundStyle(chrome.textMuted.color)
+                        FingerprintField(text: previousFingerprint, color: chrome.textMuted).frame(width: 300)
+                    }
+                }
                 GridRow(alignment: .top) {
-                    Text("Fingerprint").foregroundStyle(chrome.textMuted.color)
+                    Text(changed ? "Current" : "Fingerprint").foregroundStyle(chrome.textMuted.color)
                     FingerprintField(text: fingerprint ?? "unknown", color: chrome.text).frame(width: 300)
                 }
             }
@@ -190,8 +250,25 @@ struct HostKeyPromptCard: View {
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(RoundedRectangle(cornerRadius: 8).fill(chrome.surface.color))
-            Text("Accepting saves the key in known_hosts.").font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
-            CardButtons(cancel: "Reject", confirm: "Accept", onCancel: { finish(false) }, onConfirm: { finish(true) })
+            if offersRemember {
+                Toggle("Remember in known_hosts", isOn: $remember).toggleStyle(.checkbox).font(ChromeFont.callout)
+            } else {
+                Text("Accepting saves the key in known_hosts.").font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
+            }
+            if texts.rejectIsDefault {
+                HStack {
+                    Spacer()
+                    Button { decide(Self.decision(accept: true, remember: remember)) } label: { Text(texts.confirm) }
+                        .buttonStyle(ChromeButtonStyle(kind: .destructive, large: true))
+                    Button { decide(.reject) } label: { Text("Reject") }
+                        .buttonStyle(ChromeButtonStyle(kind: .primary, large: true))
+                        .keyboardShortcut(.defaultAction)
+                }
+                .onExitCommand { decide(.reject) }
+            } else {
+                CardButtons(cancel: "Reject", confirm: texts.confirm, onCancel: { decide(.reject) },
+                            onConfirm: { decide(Self.decision(accept: true, remember: remember)) })
+            }
         }
         .padding(20)
         .frame(width: 480)

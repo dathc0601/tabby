@@ -315,7 +315,7 @@ public final class SSHSession: TerminalSession {
     }
 
     /// Tabby identifies key passphrases by a hash of the key file.
-    static func keyID(path: String) -> String? {
+    public static func keyID(path: String) -> String? {
         let expanded = (path as NSString).expandingTildeInPath
         guard let data = FileManager.default.contents(atPath: expanded) else { return nil }
         #if canImport(CryptoKit)

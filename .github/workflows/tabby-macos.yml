@@ -41,6 +41,8 @@ jobs:
       - uses: actions/checkout@v5
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.4.app || true; xcodebuild -version
+      - name: libssh (SSH library backend)
+        run: brew install libssh && pkg-config --modversion libssh
       - name: Swift package build (all targets, including the AppKit app layer)
         run: swift build
       - name: Unit tests

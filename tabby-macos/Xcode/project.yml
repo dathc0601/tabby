@@ -50,6 +50,12 @@ targets:
         INFOPLIST_FILE: ../App/Info.plist
         CODE_SIGN_ENTITLEMENTS: ../App/TabbyMac.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+    # libssh (the SSH library backend) and its libcrypto go into Contents/Frameworks.
+    postBuildScripts:
+      - name: Bundle libssh
+        script: "\"$SRCROOT/../scripts/bundle-libssh.sh\""
+        basedOnDependencyAnalysis: false
   # The SSH_ASKPASS helper, compiled from the package sources and copied to
   # TabbyMac.app/Contents/MacOS/tabby-askpass.
   tabby-askpass:

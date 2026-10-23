@@ -38,6 +38,28 @@ final class PromptTests: XCTestCase {
         XCTAssertTrue(first.model.activeTab === asking, "its tab comes to the front")
     }
 
+    /// Found in the M8 walk: a background tab's forward toast ("Failed to forward port")
+    /// brought that tab to the front; at restore it slid under another tab's password card.
+    /// A toast goes to the session's window and leaves the tabs alone.
+    func testASessionsToastLeavesTheTabsAlone() throws {
+        let first = WindowManager.shared.newWindow(openDefaultTab: false)
+        let second = WindowManager.shared.newWindow(openDefaultTab: false)
+        defer { TestApp.dispose(first); TestApp.dispose(second) }
+        let background = try XCTUnwrap(first.model.openTab(profile: TestApp.profile("forwards", "sleep 30")))
+        let inFront = try XCTUnwrap(first.model.openTab(profile: TestApp.profile("in front", "sleep 30")))
+        second.model.openTab(profile: TestApp.profile("other window", "sleep 30"))
+        let pane = try XCTUnwrap(background.focusedPane)
+        TestApp.pump(until: { pane.session != nil })
+        let session = try XCTUnwrap(pane.session)
+        XCTAssertTrue(first.model.activeTab === inFront)
+
+        LibSSHPromptPresenter.shared.showToast(title: "Failed to forward port", detail: "127.0.0.1:8080: address already in use",
+                                               isError: true, for: session)
+        XCTAssertTrue(first.model.activeTab === inFront, "the tab in front stays in front")
+        XCTAssertEqual(first.toasts.toasts.last?.title, "Failed to forward port", "in the session's window")
+        XCTAssertFalse(second.toasts.toasts.contains { $0.title == "Failed to forward port" })
+    }
+
     /// The fingerprint sits in its own monospaced, selectable field that wraps at any character
     /// and never hyphenates, so it reads exactly as `ssh-keygen -l` prints it. In an alert's
     /// informative text AppKit hyphenated it ("…Jbq1w-" / "p3V…").

@@ -12,6 +12,9 @@ format, so profiles, hotkeys and colour schemes carry over.
 - macOS 14 Sonoma or later
 - Xcode 16 or later (SwiftTerm 1.20 uses swift-tools 6.0)
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) for the app bundle (`brew install xcodegen`)
+- libssh for the SSH client (`brew install libssh`); the app bundle carries its own copy.
+  Homebrew builds it for the Mac it runs on, so the bundled app needs that macOS too (the
+  build raises `LSMinimumSystemVersion` and warns; e.g. 27.0 when built on macOS 27)
 
 ## Build and run
 
@@ -42,7 +45,7 @@ The first launch starts with defaults. To bring over your Electron Tabby setup, 
 **Settings → Application → Import Tabby's config.yaml**. Your Electron Tabby files are only
 read, never written.
 
-## What works (phases 1 and 2)
+## What works (phases 1 to 3)
 
 | Area | Status |
 |---|---|
@@ -52,13 +55,14 @@ read, never written.
 | Split panes | Split in four directions, drag dividers, keyboard navigation, maximize, resize, broadcast input, explode and combine tabs |
 | Hotkeys | All Tabby hotkey ids with macOS defaults, multi-key chords, editor with capture, menu shortcuts follow the config |
 | Profiles | Selector (⌘E) with recents, groups, built-ins, quick connect `user@host:port`; editor for local and SSH profiles; save layout as profile |
-| SSH | Password, key, agent and keyboard-interactive auth through the system OpenSSH client; native host-key and password prompts; passwords in the login keychain; jump-host chains; `~/.ssh/config` import; port forwards; connection reuse |
+| SSH | Built-in client (libssh): password, key, agent and keyboard-interactive auth (2FA panel in the pane); host keys in known_hosts with a changed-key warning; passwords in the login keychain; jump-host chains; SOCKS/HTTP proxies and proxy commands; agent and X11 forwarding; shared connections; `~/.ssh/config` import; Test connection. `ssh.backend: openssh` uses the system OpenSSH client instead |
+| SFTP and forwards | SFTP panel in the pane (browse, filter, upload by drop, download, folder download, Edit locally, delete); transfers popover; live local, remote and dynamic (SOCKS) port forwards from the connection chip |
 | Window | Integrated title bar, vibrancy, opacity, docked "Quake" mode with a global hotkey (Ctrl-Space) |
 | Persistence | `config.yaml` (diff-only, like Tabby), tab and split recovery with buffer snapshots |
 | Design | Phase 2 redesign: colour-scheme-derived tokens, tab bar with overflow menu and drag slot, Settings and a first-run Welcome page as tabs, card-style prompts, SSH status chip, toasts, split drop zones |
 | Account & sync | Personal account (email + password, recovery key) at `https://tabby-sync.dcstyle.info`; profiles, groups, settings, saved passwords and passphrases, approved private keys and known hosts sync end-to-end encrypted between Macs ([docs/SYNC-PROTOCOL.md](docs/SYNC-PROTOCOL.md)); Settings › Vault lists the saved passwords |
 
-Not yet: serial and telnet, SFTP panel, live port-forward editing, plugins, localization,
+Not yet: serial and telnet, plugins, localization,
 ligatures (SwiftTerm limitation). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#roadmap).
 
 ## Files

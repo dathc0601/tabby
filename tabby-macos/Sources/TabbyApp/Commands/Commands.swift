@@ -40,6 +40,10 @@ extension MainWindowController {
         case "pin-tab": if let t = model.activeTab { model.togglePinned(t.id) }
         case "restart-tab", "reconnect-tab", "restart-ssh-session": pane?.restart()
         case "disconnect-tab": pane?.disconnect()
+        case "open-sftp":
+            // Tabby's "Open SFTP panel" (library backend, connected).
+            guard let pane, SFTPPanels.canOpen(pane) else { return false }
+            SFTPPanels.shared.toggle(for: pane)
         case "toggle-last-tab": model.toggleLastTab()
         case "next-tab": model.selectRelative(1)
         case "previous-tab": model.selectRelative(-1)
@@ -273,6 +277,7 @@ extension MainWindowController {
         menu.addItem(.separator())
         item("Switch Profile…", "switch-profile")
         if pane.connectionState != nil {
+            if SFTPPanels.canOpen(pane) { item("Open SFTP Panel", "open-sftp") }
             item(pane.isRunning ? "Disconnect" : "Reconnect", pane.isRunning ? "disconnect-tab" : "reconnect-tab")
         } else {
             item("Restart", "restart-tab")
