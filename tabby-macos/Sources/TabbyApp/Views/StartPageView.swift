@@ -18,6 +18,7 @@ struct StartPageView: View {
     var body: some View {
         StartPageContent(newTab: newTab, showProfiles: showProfiles, showSettings: showSettings, openProfile: openProfile,
                          focusRequest: focusRequest)
+            .redrawnOnLanguageChange()
             .chromeEnvironment()
     }
 

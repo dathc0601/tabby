@@ -17,4 +17,16 @@ struct LanguagePicker: View {
         }
     }
 }
+extension View {
+    /// Rebuilds the view when the language changes. SwiftUI only redraws views that read
+    /// observed state, so a view whose text comes from `L()` alone (the settings sidebar, a
+    /// tab's title) kept the old language after a live switch (M10).
+    func redrawnOnLanguageChange() -> some View { modifier(LanguageIdentity()) }
+}
+
+private struct LanguageIdentity: ViewModifier {
+    func body(content: Content) -> some View {
+        content.id(AppServices.shared.language ?? "")
+    }
+}
 #endif

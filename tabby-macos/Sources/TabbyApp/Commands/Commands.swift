@@ -2,6 +2,7 @@
 import AppKit
 import TabbyCore
 import TabbyTerminal
+import TabbyCLIKit
 
 /// Hotkey / menu / palette command dispatch for a window. The ids are Tabby's hotkey ids
 /// (`tabby-core/src/hotkeys.ts`, `tabby-terminal/src/hotkeys.ts`), so `hotkeys:` in an
@@ -81,6 +82,18 @@ extension MainWindowController {
         case "pane-increase-horizontal": model.resizePane(.horizontal, grow: true)
         case "pane-decrease-horizontal": model.resizePane(.horizontal, grow: false)
         case "pane-focus-all": if let t = model.activeTab { t.broadcastInput.toggle() }
+        case "focus-all-tabs":
+            guard model.activePane != nil || model.broadcastAllTabs else { return false }
+            model.broadcastAllTabs.toggle()
+        case "rename-pane": if let pane { renamePaneAsking(pane) }
+        case "toggle-pane-label":
+            guard let pane, pane.customTitle?.isEmpty == false else { return false }
+            pane.customTitleVisible.toggle()
+            RecoveryCoordinator.shared.scheduleSave()
+        case "rearrange-panes":
+            // ★ From the palette or a key binding with a key: on until a drop or the same command.
+            guard let t = model.activeTab, t.content == nil else { return false }
+            t.isRearranging.toggle()
 
         // Terminal
         case "copy":
@@ -115,6 +128,13 @@ extension MainWindowController {
         case "scroll-down": pane?.engine?.scroll(.lineDown)
         case "scroll-page-down": pane?.engine?.scroll(.pageDown)
         case "scroll-to-bottom": pane?.engine?.scroll(.bottom)
+        case "export-buffer": exportBuffer()
+        case "new-terminal":
+            guard let pane else { return false }
+            openNewTerminal(from: pane)
+        case "save-as-profile":
+            guard let pane else { return false }
+            saveAsProfileAsking(pane)
         case "copy-current-path":
             guard let cwd = pane?.currentDirectory() else { return true }
             NSPasteboard.general.clearContents()
@@ -134,6 +154,11 @@ extension MainWindowController {
                 }
             } else if id.hasPrefix("pane-nav-"), let n = Int(id.dropFirst(9)) {
                 model.navigatePane(index: n - 1)
+            } else if id.hasPrefix(NewTabMenu.commandPrefix) {
+                let wanted = String(id.dropFirst(NewTabMenu.commandPrefix.count))
+                guard let pane, let profile = AppServices.shared.profiles.allProfiles(includeHidden: true).first(where: { $0.id == wanted })
+                else { return false }
+                openProfile(profile, from: pane)
             } else if id.hasPrefix("profile.") {
                 let wanted = String(id.dropFirst("profile.".count))
                 guard let p = AppServices.shared.profiles.allProfiles(includeHidden: true)
@@ -247,17 +272,168 @@ extension MainWindowController {
         }
     }
 
+    // MARK: Panes
+
+    func renamePaneAsking(_ pane: TerminalPane) {
+        Prompts.text(in: window, title: L("Rename pane"), value: pane.customTitle ?? pane.title, confirm: L("Rename")) { [weak self] value, _ in
+            guard let value else { return }
+            self?.renamePane(pane, to: value)
+        }
+    }
+
+    /// Tabby's `setCustomTitle`: an empty name clears it; a first name turns the label on.
+    func renamePane(_ pane: TerminalPane, to name: String) {
+        let had = pane.customTitle?.isEmpty == false
+        pane.customTitle = name.isEmpty ? nil : name
+        if !had && !name.isEmpty { pane.customTitleVisible = true }
+        RecoveryCoordinator.shared.scheduleSave()
+    }
+
+    /// A modifier-only hotkey pressed or released (`rearrange-panes` while ⌃⇧ are held).
+    func modifierHotkey(_ id: String, down: Bool) {
+        guard id == "rearrange-panes", let tab = model.activeTab, tab.content == nil else { return }
+        // A drag in progress keeps the labels until it drops.
+        if !down && PaneDragLabel.isDragging { return }
+        tab.isRearranging = down
+    }
+
+    // MARK: New terminal, new with profile, save as profile
+
+    /// Tabby's "New terminal": a tab with this pane's profile when it is a local shell, else
+    /// the default profile; it opens in this pane's folder unless the profile names one.
+    func openNewTerminal(from pane: TerminalPane) {
+        model.focus(paneID: pane.id)
+        model.openTab(profile: pane.profile.type == "local" ? pane.profile : AppServices.shared.defaultProfile())
+    }
+
+    /// Tabby's "New with profile": in the profile's folder, else this local pane's; a folder
+    /// that doesn't exist is dropped.
+    func openProfile(_ profile: Profile, from pane: TerminalPane) {
+        var cwd = LocalOptions(profile.options).cwd.flatMap { $0.isEmpty ? nil : $0 }
+            ?? (pane.profile.type == "local" ? pane.currentDirectory() : nil)
+        var isDirectory: ObjCBool = false
+        if let path = cwd, !(FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) && isDirectory.boolValue) { cwd = nil }
+        model.focus(paneID: pane.id)
+        model.openTab(profile: profile, cwd: cwd)
+    }
+
+    func saveAsProfileAsking(_ pane: TerminalPane) {
+        Prompts.text(in: window, title: L("Save as profile"), message: L("New profile name"), value: pane.profile.name,
+                     confirm: L("Save")) { [weak self] name, _ in
+            guard let name, !name.isEmpty else { return }
+            self?.saveAsProfile(pane, name: name)
+        }
+    }
+
+    /// Tabby's "Save as profile": the pane's profile with its current folder, as a new profile.
+    @discardableResult
+    func saveAsProfile(_ pane: TerminalPane, name: String) -> Profile? {
+        let source = pane.profile
+        var options = source.options
+        if let cwd = pane.currentDirectory() ?? LocalOptions(source.options).cwd { options["cwd"] = .string(cwd) }
+        let saved = AppServices.shared.profiles.save(Profile(
+            type: source.type, name: name, group: source.group, options: options, icon: source.icon, color: source.color,
+            disableDynamicTitle: source.disableDynamicTitle, behaviorOnSessionEnd: source.behaviorOnSessionEnd))
+        toasts.show(ToastCenter.Toast(symbol: "checkmark.circle", tint: .success, title: L("Saved"), detail: ""))
+        return saved
+    }
+
+    // MARK: Dropping files
+
+    /// Tabby's path drop: the pane takes focus and gets each path quoted, as if typed.
+    func dropFiles(_ urls: [URL], on pane: TerminalPane) {
+        model.focus(paneID: pane.id)
+        let bracketed = pane.settings.bracketedPaste && pane.engine?.isBracketedPasteMode == true
+        for chunk in PathDrop.text(for: urls.map(\.path), bracketed: bracketed) { pane.send(text: chunk) }
+    }
+
+    // MARK: Links
+
+    static let defaultOpenURL: (URL) -> Void = { NSWorkspace.shared.open($0) }
+    /// Hands a URL to its app (tests record it).
+    static var openURL: (URL) -> Void = defaultOpenURL
+    static let defaultRevealInFinder: (URL) -> Void = { NSWorkspace.shared.activateFileViewerSelecting([$0]) }
+    /// Shows a file in Finder (tests record it).
+    static var revealInFinder: (URL) -> Void = defaultRevealInFinder
+
+    /// ★ A click never runs anything: programs, scripts and app bundles are shown in Finder.
+    static func isProgram(_ path: String) -> Bool {
+        let url = URL(fileURLWithPath: path)
+        if ["app", "command", "tool", "sh", "pkg", "mpkg", "terminal", "workflow", "scpt", "applescript", "jar"] // l10n-ignore: file extensions
+            .contains(url.pathExtension.lowercased()) { return true }
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) else { return false }
+        if isDirectory.boolValue { return NSWorkspace.shared.isFilePackage(atPath: path) }
+        return FileManager.default.isExecutableFile(atPath: path)
+    }
+
+    /// A clicked link (Tabby's linkifier): web links and addresses go to their app, `ssh://`
+    /// and `telnet://` open a quick-connect tab, and a path that exists on this Mac (resolved
+    /// against a local pane's folder) opens in its default app.
+    func openLink(_ link: String, from pane: TerminalPane) {
+        let target = LinkTarget.resolve(link, cwd: pane.currentDirectory(), home: NSHomeDirectory(),
+                                        local: pane.profile.type == "local") { FileManager.default.fileExists(atPath: $0) }
+        switch target {
+        case .web(let string)?:
+            URL(string: string).map(Self.openURL)
+        case .file(let path)?:
+            if Self.isProgram(path) { Self.revealInFinder(URL(fileURLWithPath: path)) } else { Self.openURL(URL(fileURLWithPath: path)) }
+        case .quickConnect(let string)?:
+            guard let url = URL(string: string), case let .quickConnect(provider, query)? = TabbyURL.parse(url),
+                  let profile = AppServices.shared.profiles.quickConnect(query, providerId: provider) else { return }
+            model.openTab(profile: profile)
+        case nil:
+            break
+        }
+    }
+
+    // MARK: Export to file
+
+    typealias ExportChooser = (_ window: NSWindow?, _ suggestedName: String, _ directory: URL?, _ done: @escaping (URL?) -> Void) -> Void
+
+    static let defaultChooseExportURL: ExportChooser = { window, name, directory, done in
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = name
+        if let directory { panel.directoryURL = directory }
+        if let window {
+            panel.beginSheetModal(for: window) { done($0 == .OK ? panel.url : nil) }
+        } else {
+            done(panel.runModal() == .OK ? panel.url : nil)
+        }
+    }
+    /// Asks where to save (tests answer).
+    static var chooseExportURL: ExportChooser = defaultChooseExportURL
+
+    /// Tabby's "Export to file": the whole buffer, scrollback included, as text.
+    /// ★ The selection is left alone, and a failed write says so.
+    func exportBuffer() {
+        guard let pane = model.activeTab?.focusedPane, pane.engine != nil else { return }
+        let directory = pane.profile.type == "local" ? pane.currentDirectory().map { URL(fileURLWithPath: $0) } : nil
+        Self.chooseExportURL(window, "terminal.txt", directory) { [weak self, weak pane] url in // l10n-ignore: a file name
+            guard let self, let url, let engine = pane?.engine else { return }
+            do {
+                try Data(engine.bufferText().utf8).write(to: url)
+                toasts.show(ToastCenter.Toast(symbol: "checkmark.circle", tint: .success, title: L("Saved to {path}", ["path": url.path]), detail: ""))
+            } catch {
+                toasts.show(ToastCenter.Toast(symbol: "exclamationmark.triangle", tint: .warning, title: L("Could not save the file"),
+                                              detail: error.localizedDescription))
+            }
+        }
+    }
+
     // MARK: Context menus
 
     /// The pane's context menu in the design's order: clipboard, Split submenu, broadcast and
     /// clear, then the session. Items show the command's first hotkey.
     func terminalContextMenu(for pane: TerminalPane) -> NSMenu {
         let menu = NSMenu()
-        func item(_ title: String, _ id: String, in target: NSMenu? = nil, checked: Bool = false) {
+        menu.autoenablesItems = false
+        func item(_ title: String, _ id: String, in target: NSMenu? = nil, checked: Bool = false, enabled: Bool = true) {
             let i = NSMenuItem(title: title, action: #selector(contextCommand(_:)), keyEquivalent: "")
             i.target = self
             i.representedObject = id
             i.state = checked ? .on : .off
+            i.isEnabled = enabled
             if let stroke = HotkeyBinding.bindings(from: AppServices.shared.config.value("hotkeys.\(id)")).first,
                stroke.strokes.count == 1, let (key, mods) = KeyMapping.keyEquivalent(for: stroke.strokes[0]) {
                 i.keyEquivalent = key
@@ -269,8 +445,14 @@ extension MainWindowController {
         item(L("Copy"), "copy")
         item(L("Paste"), "paste")
         item(L("Copy Current Path"), "copy-current-path")
+        if let tab = model.tabs.first(where: { $0.panes[pane.id] != nil }), tab.panes.count > 1 {
+            let named = pane.customTitle?.isEmpty == false
+            item(L("Rename pane"), "rename-pane")
+            item(L("Show pane label"), "toggle-pane-label", checked: named && pane.customTitleVisible, enabled: named)
+        }
         menu.addItem(.separator())
         let split = NSMenu()
+        split.autoenablesItems = false
         item(L("Split Up"), "split-top", in: split)
         item(L("Split Right"), "split-right", in: split)
         item(L("Split Down"), "split-bottom", in: split)
@@ -279,19 +461,31 @@ extension MainWindowController {
         splitItem.submenu = split
         menu.addItem(splitItem)
         item(L("Broadcast Input to All Panes"), "pane-focus-all", checked: model.activeTab?.broadcastInput == true)
+        item(L("Broadcast Input to All Tabs"), "focus-all-tabs", checked: model.broadcastAllTabs)
         item(L("Select All"), "select-all")
         item(L("Clear"), "clear")
+        item(L("Export to file"), "export-buffer")
         let notify = NotifyMenu.items(for: pane)
         if !notify.isEmpty { menu.addItem(.separator()) }
         for entry in notify {
             if let command = entry.command {
                 item(entry.title, command, checked: entry.checked)
             } else {
-                menu.addItem(NSMenuItem(title: entry.title, action: nil, keyEquivalent: ""))
+                let line = NSMenuItem(title: entry.title, action: nil, keyEquivalent: "")
+                line.isEnabled = false
+                menu.addItem(line)
             }
         }
         menu.addItem(.separator())
+        item(L("Save as profile"), "save-as-profile")
         item(L("Switch Profile…"), "switch-profile")
+        item(L("New terminal"), "new-terminal")
+        let profiles = NSMenu()
+        profiles.autoenablesItems = false
+        for p in NewTabMenu.localProfiles() { item(p.name, NewTabMenu.commandPrefix + p.id, in: profiles) }
+        let profilesItem = NSMenuItem(title: L("New with profile"), action: nil, keyEquivalent: "")
+        profilesItem.submenu = profiles
+        menu.addItem(profilesItem)
         if pane.connectionState != nil {
             if SFTPPanels.canOpen(pane) { item(L("Open SFTP Panel"), "open-sftp") }
             item(pane.isRunning ? L("Disconnect") : L("Reconnect"), pane.isRunning ? "disconnect-tab" : "reconnect-tab")

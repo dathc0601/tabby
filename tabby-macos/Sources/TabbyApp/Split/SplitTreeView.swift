@@ -27,7 +27,7 @@ final class SplitTreeView: NSView {
         addSubview(dropOverlay)
         // Tab headers drag their id as text (SwiftUI `.draggable`); dropping one on a pane
         // splits it.
-        registerForDraggedTypes([.string])
+        registerForDraggedTypes([.string, .fileURL])
         loop = ObservationLoop(track: { [weak self] in
             guard let self else { return }
             // Read what the layout depends on so changes trigger a relayout.
@@ -36,6 +36,13 @@ final class SplitTreeView: NSView {
             _ = self.tab.maximizedPaneID
             _ = self.tab.focusedPaneID
             _ = self.tab.broadcastInput
+            _ = self.tab.isRearranging
+            _ = self.controller?.model.broadcastAllTabs
+            for pane in self.tab.orderedPanes {
+                _ = pane.customTitle
+                _ = pane.customTitleVisible
+                _ = pane.title
+            }
             _ = AppServices.shared.theme.revision
         }, apply: { [weak self] in
             self?.syncPaneViews()
@@ -67,10 +74,16 @@ final class SplitTreeView: NSView {
                 view.isHidden = false
                 view.frame = f
                 // Every pane looks focused while input goes to all of them, as in Tabby.
-                let focused = tab.broadcastInput || tab.focusedPaneID == id
+                let focused = tab.broadcastInput || controller?.model.broadcastAllTabs == true || tab.focusedPaneID == id
                 view.showsFocusRing = multiple && focused && tab.maximizedPaneID == nil
                 view.isDimmed = multiple && !focused && tab.maximizedPaneID == nil
                 view.labelIndex = multiple && tab.maximizedPaneID == nil ? tab.layout.panes.firstIndex(of: id).map { $0 + 1 } : nil
+                // Tabby: the custom title label, hidden while another pane is maximized and
+                // while the rearranging overlay shows.
+                let pane = view.pane
+                let named = pane.customTitle.flatMap { $0.isEmpty ? nil : $0 }
+                view.customLabel = pane.customTitleVisible && !tab.isRearranging && (tab.maximizedPaneID == nil || tab.maximizedPaneID == id) ? named : nil
+                view.rearrangeTitle = tab.isRearranging && tab.maximizedPaneID == nil ? pane.title : nil
             } else {
                 view.isHidden = true
             }
@@ -104,7 +117,40 @@ final class SplitTreeView: NSView {
         }
     }
 
-    // MARK: Dropping a tab on a pane
+    // MARK: Dropping a tab or a pane label on a pane
+
+    /// Where a dragged pane label would go: an outer edge of the whole layout (`relativeTo`
+    /// nil) or one side of another pane (Tabby's drop zones insert; nothing swaps).
+    struct PaneDropZone: Equatable {
+        let relativeTo: UUID?
+        let side: SplitDirection
+        let frame: CGRect
+    }
+
+    /// The width of the outer edge zones.
+    static let outerEdge: CGFloat = 24
+
+    static func paneDropZone(at p: CGPoint, bounds: CGRect, frames: [UUID: CGRect], dragged: UUID) -> PaneDropZone? {
+        guard bounds.contains(p) else { return nil }
+        if p.x < bounds.minX + outerEdge { return PaneDropZone(relativeTo: nil, side: .left, frame: bounds) }
+        if p.x > bounds.maxX - outerEdge { return PaneDropZone(relativeTo: nil, side: .right, frame: bounds) }
+        if p.y < bounds.minY + outerEdge { return PaneDropZone(relativeTo: nil, side: .top, frame: bounds) }
+        if p.y > bounds.maxY - outerEdge { return PaneDropZone(relativeTo: nil, side: .bottom, frame: bounds) }
+        guard let (id, f) = frames.first(where: { $0.value.contains(p) }), id != dragged else { return nil }
+        return PaneDropZone(relativeTo: id, side: SplitDirection.dropSide(at: p, in: f), frame: f)
+    }
+
+    private func draggedPane(_ info: NSDraggingInfo) -> UUID? {
+        guard let id = PaneDragLabel.paneID(from: info.draggingPasteboard.string(forType: .string)),
+              tab.panes[id] != nil, tab.panes.count > 1 else { return nil }
+        return id
+    }
+
+    private func paneZone(_ info: NSDraggingInfo) -> PaneDropZone? {
+        guard let id = draggedPane(info) else { return nil }
+        let frames = paneViews.filter { !$0.value.isHidden }.mapValues(\.frame)
+        return Self.paneDropZone(at: convert(info.draggingLocation, from: nil), bounds: bounds, frames: frames, dragged: id)
+    }
 
     private func draggedTab(_ info: NSDraggingInfo) -> UUID? {
         guard let text = info.draggingPasteboard.string(forType: .string), let id = UUID(uuidString: text),
@@ -120,7 +166,40 @@ final class SplitTreeView: NSView {
         return (id, view.frame, SplitDirection.dropSide(at: point, in: view.frame))
     }
 
+    /// Files from Finder: the pane under the pointer types their paths.
+    private func droppedFiles(_ info: NSDraggingInfo) -> [URL]? {
+        guard draggedPane(info) == nil, draggedTab(info) == nil,
+              let urls = info.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL],
+              !urls.isEmpty else { return nil }
+        return urls
+    }
+
+    private func pane(at info: NSDraggingInfo) -> (UUID, CGRect)? {
+        let point = convert(info.draggingLocation, from: nil)
+        return paneViews.first { !$0.value.isHidden && $0.value.frame.contains(point) }.map { ($0.key, $0.value.frame) }
+    }
+
     private func updateDrop(_ info: NSDraggingInfo) -> NSDragOperation {
+        if droppedFiles(info) != nil {
+            guard let (_, frame) = pane(at: info) else {
+                dropOverlay.isHidden = true
+                return []
+            }
+            dropOverlay.frame = frame
+            dropOverlay.side = nil
+            dropOverlay.isHidden = false
+            return .copy
+        }
+        if draggedPane(info) != nil {
+            guard let zone = paneZone(info) else {
+                dropOverlay.isHidden = true
+                return []
+            }
+            dropOverlay.frame = zone.frame
+            dropOverlay.side = zone.side
+            dropOverlay.isHidden = false
+            return .move
+        }
         guard let target = dropTarget(info) else {
             dropOverlay.isHidden = true
             return []
@@ -138,6 +217,15 @@ final class SplitTreeView: NSView {
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
         dropOverlay.isHidden = true
+        if let urls = droppedFiles(sender) {
+            guard let (id, _) = pane(at: sender), let pane = tab.panes[id] else { return false }
+            controller?.dropFiles(urls, on: pane)
+            return true
+        }
+        if let id = draggedPane(sender) {
+            guard let zone = paneZone(sender) else { return false }
+            return controller?.model.movePane(id, relativeTo: zone.relativeTo, side: zone.side) ?? false
+        }
         guard let id = draggedTab(sender), let target = dropTarget(sender) else { return false }
         return controller?.model.dropTab(id, onto: target.pane, side: target.side) ?? false
     }
@@ -275,6 +363,39 @@ final class PaneContainerView: NSView {
         set { if overlay.labelIndex != newValue { overlay.labelIndex = newValue } }
     }
     private let dimView = PassThroughView()
+    private let customLabelView = PaneTitleLabel()
+    private var rearrangeOverlay: RearrangeOverlayView?
+
+    /// The pane's custom title shown at its top (Tabby's pane label); nil hides it.
+    var customLabel: String? {
+        didSet {
+            guard oldValue != customLabel else { return }
+            customLabelView.text = customLabel ?? ""
+            customLabelView.isHidden = customLabel == nil
+            needsLayout = true
+        }
+    }
+    var customLabelFrame: CGRect? { customLabelView.isHidden ? nil : customLabelView.frame }
+
+    /// The title on the rearranging overlay; nil when not rearranging.
+    var rearrangeTitle: String? {
+        didSet {
+            guard oldValue != rearrangeTitle else { return }
+            rearrangeOverlay?.removeFromSuperview()
+            rearrangeOverlay = nil
+            if let rearrangeTitle {
+                let paneID = pane.id
+                let overlay = RearrangeOverlayView(paneID: paneID, title: rearrangeTitle) { [weak self] in
+                    // Tabby: a mouse-up ends the chord, and with it the labels.
+                    self?.controller?.model.tabs.first { $0.panes[paneID] != nil }?.isRearranging = false
+                }
+                addSubview(overlay, positioned: .above, relativeTo: nil)
+                rearrangeOverlay = overlay
+            }
+            needsLayout = true
+        }
+    }
+    var showsRearrangeOverlay: Bool { rearrangeOverlay != nil }
 
     init(pane: TerminalPane, controller: MainWindowController) {
         self.pane = pane
@@ -284,6 +405,8 @@ final class PaneContainerView: NSView {
         wantsLayer = true
         layer?.borderWidth = 0
         addSubview(engine)
+        customLabelView.isHidden = true
+        addSubview(customLabelView)
         let chip = CornerHostingView(rootView: ConnectionChip(pane: pane, overlay: overlay))
         chip.safeAreaRegions = []
         chip.passesClicks = { [weak self] in
@@ -425,6 +548,15 @@ final class PaneContainerView: NSView {
         engine.frame = CGRect(x: 0, y: authHeight, width: bounds.width, height: max(0, bounds.height - authHeight))
             .insetBy(dx: margin, dy: margin)
         dimView.frame = bounds
+        if !customLabelView.isHidden {
+            let size = customLabelView.size(maxWidth: max(40, bounds.width - 120))
+            customLabelView.frame = CGRect(x: ((bounds.width - size.width) / 2).rounded(), y: 6, width: size.width, height: size.height)
+            addSubview(customLabelView, positioned: .above, relativeTo: dimView.superview == nil ? engine : dimView)
+        }
+        if let rearrangeOverlay {
+            rearrangeOverlay.frame = bounds
+            addSubview(rearrangeOverlay, positioned: .above, relativeTo: nil)
+        }
         if let searchHost {
             let size = searchHost.fittingSize
             searchHost.frame = CGRect(x: bounds.width - size.width - 12, y: 8, width: size.width, height: size.height)
@@ -447,12 +579,26 @@ final class PaneContainerView: NSView {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
-        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect], owner: self))
+        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .mouseMoved, .activeInKeyWindow, .inVisibleRect], owner: self))
     }
 
     override func mouseEntered(with event: NSEvent) {
         overlay.isHovering = true
         needsLayout = true
+        pointerMoved()
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        super.mouseMoved(with: event)
+        pointerMoved()
+    }
+
+    /// Tabby's `terminal.focusFollowsMouse`: moving the pointer over a pane focuses it.
+    func pointerMoved() {
+        guard AppServices.shared.terminalSettings.focusFollowsMouse, !pane.isFocused,
+              let model = controller?.model, model.activeTab?.panes[pane.id] != nil,
+              model.activeTab?.focusedPaneID != pane.id else { return }
+        model.focus(paneID: pane.id)
     }
 
     override func mouseExited(with event: NSEvent) {

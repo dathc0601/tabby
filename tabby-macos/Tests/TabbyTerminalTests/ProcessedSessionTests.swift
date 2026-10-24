@@ -46,6 +46,22 @@ final class ProcessedSessionTests: XCTestCase {
         XCTAssertEqual(shown(), "a\r\nbx\r\n")
     }
 
+    /// Phase 6: ZMODEM sees the session's bytes before Tabby's stream processing and writes
+    /// past it (zmodem.ts sits closest to the session).
+    func testARawTapSeesTheSessionBeforeProcessing() throws {
+        let (session, raw, shown) = make(["outputNewlines": "crlf", "inputMode": "local-echo", "inputNewlines": "lf"])
+        var tapped = Data()
+        session.onRawOutput = { tapped.append($0) }
+        try session.start(cols: 80, rows: 24)
+        raw.onOutput?(Data("a\nb".utf8))
+        XCTAssertEqual(String(decoding: tapped, as: UTF8.self), "a\nb")
+        XCTAssertEqual(shown(), "", "nothing shown until the tap hands it back")
+        session.processRaw(Data("a\nb".utf8))
+        XCTAssertEqual(shown(), "a\r\nb")
+        session.writeRaw(Data("x\r".utf8))
+        XCTAssertEqual(String(decoding: raw.written, as: UTF8.self), "x\r", "untouched")
+    }
+
     func testServiceLinesAreNotProcessed() throws {
         let (session, raw, shown) = make(["outputMode": "hex"])
         try session.start(cols: 80, rows: 24)

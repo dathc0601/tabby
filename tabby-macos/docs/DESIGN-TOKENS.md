@@ -102,6 +102,10 @@ Spacing scale `sp-2 … sp-24` = 2, 4, 6, 8, 12, 16, 20, 24 pt × spaciness.
 | Menu checkbox item | tab and pane menus: a disabled "Current process: name" line, then "Notify when done" / "Notify on activity" with the system checkmark while armed (phase 5) |
 | Toast (notify) | "Process completed" (`checkmark.circle`, success) and "Tab activity" (`bell`, accent) with a Show action that focuses the pane (phase 5) |
 | Settings: Language | Application page, first group: a menu row, "Automatic" then each language in its own name (phase 5) |
+| Pane name label | a pane's custom title at its top centre, 6 pt from the top, white 12 pt on 70 % black, radius 4, one line (Tabby's `splitTabPaneLabel`; phase 6) |
+| Rearrange overlay | while ⌃⇧ are held: 50 % black over each pane, a centred label (`macwindow` + title) in `surfaceChrome` with a `border` outline, radius 6, 30 pt high, open-hand cursor (phase 6) |
+| Broadcast banner | "Focus all tabs": a 5 pt `danger` border around the window, a 300 × 28 pt `danger` banner 8 pt below the tab bar, white 12 pt semibold text (phase 6) |
+| ZMODEM lines | in the terminal: black text on ANSI blue (ZMODEM, Complete), yellow (Offered, NN%), green (Received, Sent) or red (Rejected, Canceled, Error) labels, as Tabby (phase 6) |
 | Settings: Links / Command-line tool | Application page: the current `ssh://` handler on the subtitle and a secondary push button; the helper's path in Menlo with a "Copy install command" button (phase 5) |
 
 ## Icons (SF Symbols)

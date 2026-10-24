@@ -29,6 +29,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
     var onClose: ((MainWindowController) -> Void)?
 
     private var services: AppServices { .shared }
+    /// What the tab bar (and its menus) can ask this window to do.
+    private(set) var tabBarActions: TabBarActions!
+    /// The red border and banner of "Focus all tabs".
+    let broadcastIndicator = BroadcastIndicatorView()
+    var isShowingBroadcastBanner: Bool { !broadcastIndicator.isHidden }
+    var broadcastBannerText: String { broadcastIndicator.text }
 
     init() {
         let window = TerminalWindow(
@@ -44,7 +50,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
         model.ui = self
         model.onRecoveryStateChanged = { RecoveryCoordinator.shared.scheduleSave() }
 
-        let actions = TabBarActions(
+        var actions = TabBarActions(
             select: { [weak self] in self?.model.select($0.id) },
             close: { [weak self] in self?.requestCloseTab($0) },
             newTab: { [weak self] in _ = self?.runCommand("new-tab") },
@@ -61,6 +67,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
                 RecoveryCoordinator.shared.scheduleSave()
             }
         )
+        actions.detachPane = { [weak self] id in _ = self?.model.detachPane(id) }
+        actions.isBroadcastingToAllTabs = { [weak self] in self?.model.broadcastAllTabs ?? false }
+        tabBarActions = actions
         tabBarHost = NSHostingView(rootView: TabBarView(model: model, actions: actions, placement: .top, leadingInset: 78))
         startPageHost = NSHostingView(rootView: StartPageView(
             newTab: { [weak self] in _ = self?.runCommand("new-tab") },
@@ -78,10 +87,22 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
         root.tabBar = tabBarHost
         root.startPage = startPageHost
         root.toasts = toastHost
+        root.broadcast = broadcastIndicator
         window.contentView = root
         root.addSubview(tabBarHost)
         root.addSubview(startPageHost)
         root.addSubview(toastHost)
+        broadcastIndicator.isHidden = true
+        root.addSubview(broadcastIndicator)
+        loops.append(ObservationLoop(track: { [weak self] in
+            _ = self?.model.broadcastAllTabs
+        }, apply: { [weak self] in
+            guard let self else { return }
+            self.broadcastIndicator.isHidden = !self.model.broadcastAllTabs
+            self.broadcastIndicator.apply(AppServices.shared.theme.chrome)
+            self.root.needsLayout = true
+            for case let split as SplitTreeView in self.root.tabViews.values { split.needsLayout = true }
+        }))
 
         loops.append(ObservationLoop(track: { [weak self] in
             guard let self else { return }
@@ -449,6 +470,7 @@ final class WindowRootView: NSView {
     weak var startPage: NSView?
     weak var effectView: NSVisualEffectView?
     weak var toasts: NSView?
+    weak var broadcast: BroadcastIndicatorView?
     var tabViews: [UUID: NSView] = [:]
     var activeTabID: UUID?
     var placement: TabBarPlacement = .top
@@ -491,6 +513,53 @@ final class WindowRootView: NSView {
             let size = toasts.fittingSize
             toasts.frame = CGRect(x: content.maxX - size.width, y: content.maxY - size.height, width: size.width, height: size.height)
         }
+        if let broadcast, !broadcast.isHidden {
+            broadcast.frame = bounds
+            broadcast.bannerTop = content.minY + 8
+            addSubview(broadcast, positioned: .above, relativeTo: nil)
+        }
     }
+}
+
+/// Tabby's broadcast warning: a 5 pt red border around the window's content and the banner
+/// "Broadcast mode. Click anywhere to cancel." at the top. Clicks go through.
+final class BroadcastIndicatorView: NSView {
+    private let banner = NSView()
+    private let field = NSTextField(labelWithString: "")
+    var bannerTop: CGFloat = 8 { didSet { needsLayout = true } }
+    var text: String { field.stringValue }
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        layer?.borderWidth = 5
+        banner.wantsLayer = true
+        banner.layer?.cornerRadius = 6
+        field.font = .systemFont(ofSize: 12, weight: .semibold)
+        field.textColor = .white
+        field.alignment = .center
+        banner.addSubview(field)
+        addSubview(banner)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override var isFlipped: Bool { true }
+
+    func apply(_ chrome: ChromeTheme) {
+        field.stringValue = L("Broadcast mode. Click anywhere to cancel.")
+        layer?.borderColor = chrome.danger.nsColor.cgColor
+        banner.layer?.backgroundColor = chrome.danger.nsColor.cgColor
+    }
+
+    override func layout() {
+        super.layout()
+        let width = min(300, bounds.width - 20)
+        banner.frame = CGRect(x: ((bounds.width - width) / 2).rounded(), y: bannerTop, width: width, height: 28)
+        let h = field.intrinsicContentSize.height
+        field.frame = CGRect(x: 8, y: (28 - h) / 2, width: width - 16, height: h)
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }
 #endif

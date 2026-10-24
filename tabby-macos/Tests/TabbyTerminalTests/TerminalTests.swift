@@ -21,6 +21,7 @@ final class FakeEngine: TerminalEngine {
     var cleared = 0
     func clearScreen() { cleared += 1; output = Data() }
     func snapshotText(maxLines: Int) -> String { text }
+    func bufferText() -> String { text }
     func scroll(_ action: TerminalScrollAction) {}
     func apply(settings: TerminalSettings, scheme: ColorScheme, fontSize: Double) {}
     func focus() {}

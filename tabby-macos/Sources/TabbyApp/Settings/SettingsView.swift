@@ -256,15 +256,16 @@ struct RowSlider: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Text(format(range.lowerBound)).font(.system(size: 11)).foregroundStyle(chrome.textFaint.color)
+            // The ends keep their width (the M11 walk found them squeezed to a letter a line).
+            Text(format(range.lowerBound)).font(.system(size: 11)).foregroundStyle(chrome.textFaint.color).fixedSize()
             Group {
                 if let step { Slider(value: value, in: range, step: step) } else { Slider(value: value, in: range) }
             }
             .controlSize(.small)
             .tint(chrome.accent.color)
             .frame(width: 180)
-            Text(format(range.upperBound)).font(.system(size: 11)).foregroundStyle(chrome.textFaint.color)
-            Text(format(value.wrappedValue)).font(.custom("Menlo", size: 11)).frame(width: 40, alignment: .trailing)
+            Text(format(range.upperBound)).font(.system(size: 11)).foregroundStyle(chrome.textFaint.color).fixedSize()
+            Text(format(value.wrappedValue)).font(.custom("Menlo", size: 11)).lineLimit(1).frame(width: 40, alignment: .trailing)
         }
     }
 }
@@ -490,6 +491,10 @@ struct WindowSettingsView: View {
                 SettingsRow(L("Cycle through tabs"), subtitle: L("Next tab on the last tab goes back to the first"),
                             isOn: ConfigBinding.bool("appearance.cycleTabs"))
                 SettingsRow(L("Closing the last tab closes the window"), isOn: ConfigBinding.bool("appearance.lastTabClosesWindow"))
+            }
+            SettingsGroup(L("Panes")) {
+                SettingsRow(L("Focus follows mouse"), subtitle: L("Moving the mouse over an inactive pane will cause it to activate"),
+                            isOn: ConfigBinding.bool("terminal.focusFollowsMouse"))
                 SettingsRow(L("Pane resize step")) {
                     RowSlider(value: ConfigBinding.double("terminal.paneResizeStep"), range: 0.05...0.25, format: percent)
                 }
@@ -541,12 +546,24 @@ struct TerminalSettingsView: View {
                 SettingsRow(L("Paste on middle click"), isOn: ConfigBinding.bool("terminal.pasteOnMiddleClick"))
                 SettingsRow(L("Option key acts as Meta"), isOn: ConfigBinding.bool("terminal.altIsMeta"))
                 SettingsRow(L("Scroll to bottom on input"), isOn: ConfigBinding.bool("terminal.scrollOnInput"))
+                SettingsRow(L("Require a key to click links"), subtitle: L("When enabled, links are only clickable while holding this key")) {
+                    RowPicker(selection: ConfigBinding.optionalString("clickableLinks.modifier")) {
+                        Text(L("No modifier")).tag("")
+                        Text(verbatim: "⌥").tag("altKey")
+                        Text(L("Shift")).tag("shiftKey")
+                        Text(verbatim: "⌘").tag("metaKey")
+                    }
+                }
+                SettingsRow(L("Word separators"), subtitle: L("Double-click selection will stop at these characters")) {
+                    RowField(placeholder: TerminalTextDefaults.wordSeparator, text: ConfigBinding.optionalString("terminal.wordSeparator"), width: 140)
+                }
             }
             SettingsGroup(L("Clipboard")) {
                 SettingsRow(L("Warn before pasting multiple lines"), isOn: ConfigBinding.bool("terminal.warnOnMultilinePaste"))
                 SettingsRow(L("Bracketed paste"), isOn: ConfigBinding.bool("terminal.bracketedPaste"))
                 SettingsRow(L("Trim whitespace when pasting"), isOn: ConfigBinding.bool("terminal.trimWhitespaceOnPaste"))
                 SettingsRow(L("Replace newlines with spaces"), isOn: ConfigBinding.bool("terminal.replaceNewlinesWithSpacesOnPaste"))
+                SettingsRow(L("Copy with formatting"), isOn: ConfigBinding.bool("terminal.copyAsHTML"))
             }
             SettingsGroup(L("Output")) {
                 SettingsRow(L("Bell")) {
@@ -565,6 +582,8 @@ struct TerminalSettingsView: View {
                 }
                 SettingsRow(L("Detect progress in output"), subtitle: L("Shows a percentage in the tab when a command prints one"),
                             isOn: ConfigBinding.bool("terminal.detectProgress"))
+                SettingsRow(L("Sixel graphics support (experimental)"), subtitle: L("Tells programs that the terminal can show Sixel images"),
+                            isOn: ConfigBinding.bool("terminal.sixel"))
             }
             SettingsGroup(L("New tabs")) {
                 SettingsRow(L("Default profile")) {

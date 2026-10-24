@@ -102,6 +102,18 @@ final class DesignSnapshotTests: XCTestCase {
         c.model.toggleMaximize()
         TestApp.pump(0.6)
         try save(try XCTUnwrap(c.window?.contentView), "split-maximized")
+        c.model.toggleMaximize()
+        // Phase 6: a pane label, then the rearranging overlay.
+        if let pane = c.model.activePane { c.renamePane(pane, to: "deploy logs") }
+        TestApp.pump(0.4)
+        try save(try XCTUnwrap(c.window?.contentView), "split-pane-label")
+        c.model.activeTab?.isRearranging = true
+        TestApp.pump(0.4)
+        try save(try XCTUnwrap(c.window?.contentView), "split-rearranging")
+        c.model.activeTab?.isRearranging = false
+        c.model.broadcastAllTabs = true
+        TestApp.pump(0.4)
+        try save(try XCTUnwrap(c.window?.contentView), "broadcast-all-tabs")
     }
 
     func testStartPage() throws {

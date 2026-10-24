@@ -32,6 +32,29 @@ final class TabManagementTests: XCTestCase {
 
     // MARK: Placement (`AppService.duplicateTab` / `reopenLastTab`)
 
+    /// M10: `tabby run` from ~/x ran in the active tab's folder. A new local tab inherits the
+    /// active pane's directory only when its profile names none (Tabby's
+    /// `LocalProfilesService.getNewTabParameters`).
+    func testALocalProfileWithItsOwnDirectoryKeepsIt() throws {
+        let c = WindowManager.shared.newWindow(openDefaultTab: false)
+        defer { TestApp.dispose(c) }
+        let first = try XCTUnwrap(c.model.openTab(profile: TestApp.profile("in usr", "cd /usr; sleep 30")))
+        let firstPane = try XCTUnwrap(first.focusedPane)
+        XCTAssertTrue(TestApp.pump(until: { firstPane.currentDirectory() == "/usr" }), "\(firstPane.currentDirectory() ?? "nil")")
+        let own = (NSTemporaryDirectory() as NSString).resolvingSymlinksInPath
+        var options = LocalOptions(command: "/bin/sh", args: ["-c", "sleep 30"])
+        options.cwd = own
+        let second = try XCTUnwrap(c.model.openTab(profile: Profile(id: "local:own", type: "local", name: "own", options: options.configValue)))
+        let pane = try XCTUnwrap(second.focusedPane)
+        TestApp.pump(until: { pane.currentDirectory() != nil })
+        XCTAssertEqual(pane.currentDirectory().map { ($0 as NSString).resolvingSymlinksInPath }, own)
+        let third = try XCTUnwrap(c.model.openTab(profile: TestApp.profile("no cwd", "sleep 30")))
+        let thirdPane = try XCTUnwrap(third.focusedPane)
+        TestApp.pump(until: { thirdPane.currentDirectory() != nil })
+        XCTAssertEqual(thirdPane.currentDirectory().map { ($0 as NSString).resolvingSymlinksInPath }, own,
+                       "a profile without a directory still opens where the active tab is")
+    }
+
     func testDuplicateOpensRightAfterTheOriginal() {
         let (model, tabs) = makeModel("a", "b", "c")
         model.duplicateTab(tabs[0].id)

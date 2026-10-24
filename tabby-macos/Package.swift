@@ -157,7 +157,8 @@ let package = Package(
         ),
         .testTarget(
             name: "TabbyTerminalTests",
-            dependencies: ["TabbyCore", "TabbyTerminal", "TabbySSH", "TabbyIPC"]
+            dependencies: ["TabbyCore", "TabbyTerminal", "TabbySSH", "TabbyIPC",
+                           .product(name: "SwiftTerm", package: "SwiftTerm", condition: .when(platforms: [.macOS]))]
         ),
         .testTarget(
             name: "TabbyAppTests",

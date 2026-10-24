@@ -23,6 +23,8 @@ public protocol TerminalEngine: AnyObject {
     func clearScreen()
     /// Plain-text snapshot of scrollback + screen, used for tab recovery.
     func snapshotText(maxLines: Int) -> String
+    /// The whole buffer, scrollback included, as text ("Export to file").
+    func bufferText() -> String
     func scroll(_ action: TerminalScrollAction)
     func apply(settings: TerminalSettings, scheme: ColorScheme, fontSize: Double)
     func focus()
@@ -30,6 +32,11 @@ public protocol TerminalEngine: AnyObject {
     func find(_ query: String, options: TerminalSearchOptions, backwards: Bool) -> Bool
     func searchSummary(_ query: String, options: TerminalSearchOptions) -> (index: Int, total: Int)
     func clearSearch()
+}
+
+public extension TerminalEngineDelegate {
+    func engineClicked(_ engine: TerminalEngine) {}
+    func engine(_ engine: TerminalEngine, openLink link: String) {}
 }
 
 public protocol TerminalEngineDelegate: AnyObject {
@@ -40,6 +47,10 @@ public protocol TerminalEngineDelegate: AnyObject {
     func engine(_ engine: TerminalEngine, directoryChanged directory: String?)
     func engineBell(_ engine: TerminalEngine)
     func engineDidFocus(_ engine: TerminalEngine)
+    /// A left click in the terminal (ends broadcasting to every tab, as in Tabby).
+    func engineClicked(_ engine: TerminalEngine)
+    /// The user clicked a link (a URL, an address or a path, as shown); the pane decides.
+    func engine(_ engine: TerminalEngine, openLink link: String)
     /// The user chose Paste (menu, ⌘V, middle click); the pane decides how to send it.
     func engine(_ engine: TerminalEngine, paste text: String)
     func engineSelectionChanged(_ engine: TerminalEngine)

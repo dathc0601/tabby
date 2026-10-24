@@ -11,11 +11,15 @@ public struct PaneRecovery: Hashable, Sendable {
     public var savedState: String?
     public var title: String?
     public var customTitle: String?
+    /// Tabby's `customTitleVisible`: the pane shows its custom title as a label.
+    public var customTitleVisible: Bool
     public var color: String?
     public var disableDynamicTitle: Bool
 
     public init(type: String, profile: Profile, cwd: String? = nil, savedState: String? = nil,
-                title: String? = nil, customTitle: String? = nil, color: String? = nil, disableDynamicTitle: Bool = false) {
+                title: String? = nil, customTitle: String? = nil, customTitleVisible: Bool = true, color: String? = nil,
+                disableDynamicTitle: Bool = false) {
+        self.customTitleVisible = customTitleVisible
         self.type = type
         self.profile = profile
         self.cwd = cwd
@@ -67,6 +71,7 @@ public indirect enum RecoveryToken: Hashable, Sendable {
                 savedState: v["savedState"]?.stringValue,
                 title: v["tabTitle"]?.stringValue,
                 customTitle: v["tabCustomTitle"]?.stringValue,
+                customTitleVisible: v["tabCustomTitleVisible"]?.boolValue ?? true,
                 color: v["tabColor"]?.stringValue,
                 disableDynamicTitle: v["disableDynamicTitle"]?.boolValue ?? false
             ))
@@ -95,6 +100,7 @@ public indirect enum RecoveryToken: Hashable, Sendable {
             if let s = p.savedState { o["savedState"] = .string(s) }
             if let t = p.title { o["tabTitle"] = .string(t) }
             if let t = p.customTitle { o["tabCustomTitle"] = .string(t) }
+            if !p.customTitleVisible { o["tabCustomTitleVisible"] = false }
             if let c = p.color { o["tabColor"] = .string(c) }
             if p.disableDynamicTitle { o["disableDynamicTitle"] = true }
             return .object(o)

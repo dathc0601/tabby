@@ -95,6 +95,7 @@ struct ContentTabView: View {
                 EmptyView()
             }
         }
+        .redrawnOnLanguageChange()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(chrome.surface.color)
     }

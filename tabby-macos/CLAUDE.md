@@ -54,8 +54,14 @@ Read `README.md` and `docs/ARCHITECTURE.md` before larger changes.
 - Every user-visible string goes through `L("English", ["name": value])`; never a raw literal
   (CatalogTests fails). New keys: run `scripts/l10n-extract.sh` and add Vietnamese to
   `tabbymac/vi-VN.po`. Mark data that only looks like words with `// l10n-ignore: why`.
-- Roadmap after phase 5: SwiftTerm 2.x (needs Xcode 26), TabbyMac's strings in Tabby's other
-  languages, plugins.
+- Phase 6 (started 2026-10-24, spec `docs/superpowers/specs/2026-10-24-phase-6-design.md`,
+  branch `claude/phase-6-terminal-parity`): terminal and tab parity (export, formatted copy,
+  word separators, pane labels and rearranging, focus follows mouse, broadcast to every tab,
+  OSC 1337, file drops, new terminal, save as profile, links, ZMODEM, sixel). On-screen checks
+  are M11. The tab menu is an AppKit menu built when it opens (`TabMenu`), not SwiftUI's
+  `.contextMenu`. ZMODEM interop tests need `scripts/lrzsz-image.sh` once (Docker).
+- Roadmap after phase 6: settings/profile editors, macOS integration, Tabby's vault, native
+  plugin features, TabbyMac's strings in Tabby's other languages, SwiftTerm 2.0 when released.
 - Screens can be checked without a display:
   `TABBYMAC_SNAPSHOT_DIR=/tmp/shots swift test --filter DesignSnapshotTests`.
 - Linux: run `docker run --rm -v "$PWD/..":/src -w /src/tabby-macos swift:6.1-noble swift test

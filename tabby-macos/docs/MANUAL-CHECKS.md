@@ -467,33 +467,93 @@ Run the app built by Xcode with its own config folder (as in M9), a busybox teln
 with `open -a <the built TabbyMac.app> <link>`, so the Mac's default ssh:// and telnet://
 apps stay as they are.
 
-- [ ] Settings › Application › Language: Deutsch changes the menu bar ("Einstellungen…"),
+- [x] Settings › Application › Language: Deutsch changes the menu bar ("Einstellungen…"),
       the settings sidebar and pages, and the start page at once; Tiếng Việt translates every
       screen; Automatic goes back to the system language. No label is cut off.
-- [ ] Notify when done: run `sleep 8` in a tab; the tab's menu and the pane's menu show
+- [x] Notify when done: run `sleep 8` in a tab; the tab's menu and the pane's menu show
       "Current process: sleep" and "Notify when done"; tick it, switch to another tab; when
       `sleep` ends a "Process completed" toast names it, and Show focuses the pane. A banner
       also appears where macOS allows this build to post them.
-- [ ] Notify on activity: tick it on an idle tab, then `sleep 3; echo done` there: a "Tab
+- [x] Notify on activity: tick it on an idle tab, then `sleep 3; echo done` there: a "Tab
       activity" toast appears once.
-- [ ] Bell: Settings › Terminal › Flash the Dock icon on; `sleep 3; printf '\a'` in a tab,
+- [x] Bell: Settings › Terminal › Flash the Dock icon on; `sleep 3; printf '\a'` in a tab,
       switch to another app: the Dock icon bounces once. A bell in a background tab marks it.
-- [ ] Links: `open -a TabbyMac.app "telnet://127.0.0.1:2323"` opens a telnet tab that
+- [x] Links: `open -a TabbyMac.app "telnet://127.0.0.1:2323"` opens a telnet tab that
       connects; `"ssh://me@127.0.0.1:2222"` opens an SSH tab for me@127.0.0.1:2222;
       `"tabbymac://open?directory=/tmp"` opens a shell in /tmp. Settings › Application ›
       Links names the app that opens ssh:// links now.
 - [ ] The default-handler button: "Use TabbyMac" makes macOS ask, and afterwards ssh://
       links open in TabbyMac. *Left to the owner: it changes a system-wide default.*
-- [ ] Command line: `tabby open <dir>`, `tabby run ls -la` (after the "Run …?" alert),
+- [x] Command line: `tabby open <dir>`, `tabby run ls -la` (after the "Run …?" alert),
       `tabby profile "<name>"`, `echo hi | tabby paste` (after "Paste …?"),
       `tabby quickConnect telnet 127.0.0.1:2323` and `tabby <dir>/script.sh` each open the
       tab in the running app and bring it to the front; `tabby --help` prints the commands;
       `tabby recent x` exits with status 2. Settings › Application › Command-line tool
       copies the install command.
 
-M10 is not walked yet: the Mac stayed locked through the 2026-10-24 session. The unit and
-process tests cover the logic (catalogs, menus, notifications, router, helper); the walk
-covers what only shows on screen.
+Walked on 2026-10-24 with computer use (fixes in the Findings table). The banner itself
+stays unchecked: macOS refuses banners to this ad-hoc build, so the toast was checked. The
+default-handler item is the owner's. A telnet quick connect uses the line editor (Tabby's
+`inputMode: readline`), so against busybox, which echoes too, each line shows twice after a
+"> " prompt, as in Tabby.
+
+## M11 Terminal and tab parity (phase 6)
+
+Run the app built by Xcode with its own config folder (as in M10), the busybox telnetd on
+127.0.0.1:2323, and lrzsz in Docker (`scripts/lrzsz-image.sh`, then
+`docker run --rm -it tabbymac-lrzsz:1 bash` in a local tab). Links that would open a browser
+or another app are left to the owner.
+
+- [x] Export to file (pane menu and tab menu): the save panel suggests terminal.txt; the
+      file holds the whole buffer with its scrollback; a toast says "Saved to <path>".
+      *Walked 2026-10-25: 3004 lines (`seq 1 3000` included), the pane's folder, the toast;
+      the tab menu's file is identical.*
+- [x] Copy with formatting: `printf '\e[31mred\e[0m plain'`, select it, ⌘C: the clipboard
+      holds HTML as well as text; turned off in Settings › Terminal, text only. *Walked: the
+      HTML had "red" in a red span; with the switch off, text only. The owner's clipboard was
+      saved and put back.*
+- [x] Word separators: a double-click on `/usr/local/bin:x` selects all of it; with " /" in
+      Settings › Terminal › Word separators it selects `usr`. *Walked; the change applied at
+      once.*
+- [x] In a split: the pane menu offers "Rename pane"; a name shows as a label at the pane's
+      top; "Show pane label" hides it. A single pane has no "Rename pane". *Walked.*
+- [x] Holding ⌃⇧ shows a label on every pane; letting go hides them. Dragging a label onto
+      another pane's side, an outer edge or the tab bar moves the pane. *Walked: ⌃⇧ posted to
+      the app alone; the drags were posted mouse events (a pane onto the other's bottom half
+      stacked them; a pane onto the tab bar became a tab after its own).*
+- [x] Focus follows mouse (Settings › Window › Panes): moving the pointer over another pane
+      focuses it. *Walked both ways.*
+- [x] ⌘⌥⇧I (or the menus' "Broadcast Input to All Tabs"): a red border and the banner
+      "Broadcast mode. Click anywhere to cancel."; what is typed reaches every tab; a click in
+      a terminal ends it. *Walked with the keys; ⌘⌥⇧I again ended it. The click is covered by
+      PaneFocusTests.*
+- [x] Dropping files from Finder on a pane types their quoted paths. *Walked with posted
+      mouse events: `drop me's.txt` arrived as `'…/drop me'\''s.txt' ` in bracketed paste; the
+      file stayed where it was.*
+- [x] OSC 1337: in a telnet tab, `printf '\033]1337;CurrentDir=/tmp\a'`, then "Save as
+      profile": the new profile in config.yaml has `cwd: /tmp`. *Walked.*
+- [x] New terminal / New with profile ▸ (pane menu and tab menu): from a shell in a folder,
+      the new tab opens in that folder; the submenu lists the local profiles. *Walked: New
+      terminal and New with profile › /bin/bash both opened in `work/sub`.*
+- [x] Save as profile: asks for a name; the new profile keeps the pane's folder; "Saved".
+      *Walked.*
+- [x] Links: a plain click on an `ssh://` link opens a tab; with "Require a key to click
+      links" set to ⌘, a plain click doesn't and a ⌘-click does. *Walked, and a `telnet://`
+      link after the fix below. Web, address and file links open other apps: left to the
+      owner (unit tests cover what they resolve to).*
+- [x] ZMODEM: `sz` in the container asks "Accept a ZMODEM session?"; Accept, a save panel,
+      the status lines (ZMODEM, Offered, %, Received, Complete) and a transfers row; the file
+      matches. `rz` asks again, an open panel, "Sent"; the container has the file. Reject
+      tells sz no. Ctrl-C during a big `sz` cancels the file. *Walked: 229 KB and 80 MB
+      received with matching SHA-256, upload matched, Reject. Ctrl-C cancelled on screen
+      (row "Cancelled", half file removed); after the follow-up fix (Ctrl-C not passed to sz,
+      15 s silence) it was re-checked on 2026-10-25: "Canceled", "Complete", `sz` exited 0 and
+      the shell took the next command whole.*
+- [x] Settings › Terminal shows "Sixel graphics support (experimental)" (on by default).
+      *Checked in the snapshots (en, de, vi).*
+
+M11 was walked in part on 2026-10-24 (the owner was using the Mac) and finished on
+2026-10-25 with the Mac to ourselves; two findings were fixed (Findings table).
 
 ## Findings
 
@@ -560,5 +620,13 @@ covers what only shows on screen.
 | 2026-10-23 | M9b | The selector panel was 32 pt taller than its content, an empty band above the search field (the title bar's height, added by the hosting view). | `0008aee6` |
 | 2026-10-23 | M9b | Closing a split tab with two panes on one host, or quitting, listed "Disconnect from 127.0.0.1?" twice. | `af98c0f9` |
 | 2026-10-23 | M9b | The New menu on Settings › Profiles showed no type icons (design C7). | `847c06fb` |
+| 2026-10-24 | M10 | After a live language switch, the settings sidebar, the path rows and the Settings tab's title kept the old language until clicked (views that read no observed state are not redrawn). | `fe0b0989` |
+| 2026-10-24 | M10 | With the pointer resting on a tab, the tab menu lacked "Notify when done" for a process started since: SwiftUI built the menu at the header's last redraw. It is now built when it opens; its "…" form drops below the button. | `fe0b0989`, `20c007ac` |
+| 2026-10-24 | M10 | `tabby run` ran in the active tab's folder instead of the caller's; so did every local profile with its own directory. | `fe0b0989` |
+| 2026-10-24 | M11 | After "Reject", sz's repeated header and the shell's prompt came in one chunk and the prompt was dropped. | `d016fbfd` |
+| 2026-10-24 | M11 | Ctrl-C (a hotkey) didn't cancel a transfer; passed on to sz it interrupted it mid-session, and the bridge kept swallowing the shell's output. Ctrl-C now stays in the app during a session, and a session silent for 15 s ends. | `d016fbfd` |
+| 2026-10-24 | M11 | The ZMODEM save panel opened wherever the last panel had been; it now opens in a local pane's folder, as Export to file. | `d016fbfd` |
+| 2026-10-25 | M11 | A plain click on `telnet://127.0.0.1:2323` did nothing: SwiftTerm has no `telnet:` scheme and reported the path `//127.0.0.1:2323`. A `telnet://`/`ssh://` link under the click now wins. | `b3ca041d` |
+| 2026-10-25 | M11 | Settings sliders (Spaciness, opacity, pane resize step, dock sizes) squeezed their end labels to one character a line. | `b3ca041d` |
 
 Open: the M5 notification item, blocked by macOS on the test Mac (see the item).

@@ -16,6 +16,8 @@ public protocol WindowModelUI: AnyObject {
     func notifyActivity(_ pane: TerminalPane)
     /// The terminal bell rang in `pane` (phase 5: the Dock bounce).
     func paneRang(_ pane: TerminalPane)
+    /// The user clicked a link in `pane` (phase 6).
+    func openLink(_ link: String, from pane: TerminalPane)
     func modelDidBecomeEmpty()
     /// Asks which port and baud rate a serial profile without them should use (Tabby asks
     /// the rate in `getNewTabParameters`); the completion gets the profile with the answers.
@@ -28,6 +30,7 @@ public extension WindowModelUI {
     func notifyProcessCompleted(_ pane: TerminalPane, processName: String) {}
     func notifyActivity(_ pane: TerminalPane) {}
     func paneRang(_ pane: TerminalPane) {}
+    func openLink(_ link: String, from pane: TerminalPane) {}
 }
 
 /// Tabs of one window (Tabby's `AppService` for a window).
@@ -73,6 +76,18 @@ public final class WindowModel {
         return pane
     }
 
+    /// Tabby's "Focus all tabs" (`focus-all-tabs`): what is typed or pasted in the active
+    /// pane goes to every pane of every tab of this window, until a click in a terminal, a
+    /// tab switch, another pane taking focus, or the command again.
+    public var broadcastAllTabs = false
+
+    /// The panes that also get what `source` was given.
+    func broadcastTargets(from source: TerminalPane) -> [TerminalPane] {
+        if broadcastAllTabs { return tabs.flatMap(\.orderedPanes).filter { $0 !== source } }
+        guard let tab = tabs.first(where: { $0.panes[source.id] != nil }), tab.broadcastInput else { return [] }
+        return tab.orderedPanes.filter { $0 !== source }
+    }
+
     private func wire(_ pane: TerminalPane) {
         pane.onRequestClose = { [weak self] p in
             MainActor.assumeIsolated { self?.closePane(p.id, force: true) }
@@ -101,15 +116,20 @@ public final class WindowModel {
         }
         pane.onUserInput = { [weak self] p, data in
             MainActor.assumeIsolated {
-                guard let tab = self?.tabs.first(where: { $0.panes[p.id] != nil }), tab.broadcastInput else { return }
-                for other in tab.orderedPanes where other !== p { other.send(data) }
+                for other in self?.broadcastTargets(from: p) ?? [] { other.send(data) }
             }
         }
         pane.onPaste = { [weak self] p, text in
             MainActor.assumeIsolated {
-                guard let tab = self?.tabs.first(where: { $0.panes[p.id] != nil }), tab.broadcastInput else { return }
-                for other in tab.orderedPanes where other !== p { other.sendPaste(text) }
+                for other in self?.broadcastTargets(from: p) ?? [] { other.sendPaste(text) }
             }
+        }
+        pane.zmodemHost = ui as? ZModemHost
+        pane.onOpenLink = { [weak self] p, link in
+            MainActor.assumeIsolated { self?.ui?.openLink(link, from: p) }
+        }
+        pane.onClick = { [weak self] _ in
+            MainActor.assumeIsolated { self?.broadcastAllTabs = false }
         }
         pane.onRecoveryStateChanged = { [weak self] in
             MainActor.assumeIsolated { self?.onRecoveryStateChanged?() }
@@ -142,7 +162,13 @@ public final class WindowModel {
     public func openTab(profile: Profile? = nil, cwd: String? = nil) -> TabModel? {
         let p = profile ?? services.defaultProfile()
         if askForMissingParameters(p, then: { [weak self] done in self?.openTab(profile: done, cwd: cwd) }) { return nil }
-        let inherited = cwd ?? (p.type == "local" ? activePane?.currentDirectory() : nil)
+        // A local tab opens where the active pane is, unless its profile names a directory
+        // (Tabby's `LocalProfilesService.getNewTabParameters`).
+        let ownDirectory = LocalOptions(p.options).cwd.map { !$0.isEmpty } ?? false
+        // ★ Only a local pane's directory is one on this Mac (Tabby: `activeTab instanceof
+        // TerminalTabComponent`).
+        let source = activePane?.profile.type == "local" ? activePane : nil
+        let inherited = cwd ?? (p.type == "local" && !ownDirectory ? source?.currentDirectory() : nil)
         guard let pane = makePane(profile: p, cwd: inherited) else { return nil }
         let tab = TabModel(pane: pane)
         insertTab(tab)
@@ -179,7 +205,10 @@ public final class WindowModel {
 
     public func select(_ id: UUID) {
         guard tabs.contains(where: { $0.id == id }) else { return }
-        if activeTabID != id { previousTabID = activeTabID }
+        if activeTabID != id {
+            previousTabID = activeTabID
+            broadcastAllTabs = false
+        }
         activeTabID = id
         mru.removeAll { $0 == id }
         mru.insert(id, at: 0)
@@ -318,6 +347,8 @@ public final class WindowModel {
 
     public func focus(paneID: UUID) {
         guard let tab = tabs.first(where: { $0.panes[paneID] != nil }) else { return }
+        // Tabby: the focused terminal losing focus ends "Focus all tabs".
+        if tab.focusedPaneID != paneID || activeTabID != tab.id { broadcastAllTabs = false }
         tab.focusedPaneID = paneID
         if tab.maximizedPaneID != nil && tab.maximizedPaneID != paneID { tab.maximizedPaneID = nil }
         if activeTabID != tab.id {
@@ -378,6 +409,29 @@ public final class WindowModel {
 
     /// Turns every pane of the active tab but the first into its own tab, added at the end
     /// (`explode-tab`).
+    /// A rearranging drop inside a split (Tabby's `onTabDropped`): the pane moves next to
+    /// `relativeTo`, or to an outer edge when it is nil. Ends rearranging.
+    @discardableResult
+    public func movePane(_ paneID: UUID, relativeTo: UUID?, side: SplitDirection) -> Bool {
+        guard let tab = tabs.first(where: { $0.panes[paneID] != nil }) else { return false }
+        tab.isRearranging = false
+        guard tab.move(paneID, relativeTo: relativeTo, side: side) else { return false }
+        focus(paneID: paneID)
+        onRecoveryStateChanged?()
+        return true
+    }
+
+    /// A pane label dropped on the tab bar: the pane becomes a tab of its own, after its tab.
+    @discardableResult
+    public func detachPane(_ paneID: UUID) -> Bool {
+        guard let index = tabs.firstIndex(where: { $0.panes[paneID] != nil }), tabs[index].panes.count > 1 else { return false }
+        let source = tabs[index]
+        source.isRearranging = false
+        guard let pane = source.remove(paneID) else { return false }
+        insertTab(TabModel(pane: pane), at: index + 1)
+        return true
+    }
+
     public func explodeActiveTab() {
         if let tab = activeTab { explode(tab) }
     }

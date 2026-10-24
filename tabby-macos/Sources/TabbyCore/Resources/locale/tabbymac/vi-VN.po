@@ -41,6 +41,9 @@ msgstr "Giới thiệu TabbyMac"
 msgid "Accept"
 msgstr "Chấp nhận"
 
+msgid "Accept a ZMODEM session?"
+msgstr "Chấp nhận phiên ZMODEM?"
+
 msgid "Accept new key"
 msgstr "Chấp nhận khoá mới"
 
@@ -137,6 +140,9 @@ msgstr "Hỏi trước khi kết nối tới máy chủ có khoá lạ hoặc đ
 msgid "Ask every time"
 msgstr "Hỏi mỗi lần"
 
+msgid "Asked by the tab “{title}”."
+msgstr "Tab “{title}” hỏi."
+
 msgid "Asked for when connecting"
 msgstr "Được hỏi khi kết nối"
 
@@ -218,6 +224,12 @@ msgstr "Đưa tất cả ra trước"
 msgid "Broadcast Input to All Panes"
 msgstr "Gửi dữ liệu nhập tới mọi khung"
 
+msgid "Broadcast Input to All Tabs"
+msgstr "Gửi dữ liệu nhập tới mọi tab"
+
+msgid "Broadcast mode. Click anywhere to cancel."
+msgstr "Chế độ phát. Nhấp vào bất kỳ đâu để hủy."
+
 msgid "Built in"
 msgstr "Có sẵn"
 
@@ -226,6 +238,9 @@ msgstr "Có sẵn"
 
 msgid "Cancel"
 msgstr "Huỷ"
+
+msgid "Canceled"
+msgstr "Đã hủy"
 
 msgid "Cancelled"
 msgstr "Đã huỷ"
@@ -389,6 +404,9 @@ msgstr "Không tìm thấy lệnh: {executable}"
 msgid "Command-line tool"
 msgstr "Công cụ dòng lệnh"
 
+msgid "Complete"
+msgstr "Hoàn tất"
+
 msgid "Compression"
 msgstr "Nén"
 
@@ -464,6 +482,9 @@ msgstr "Sao chép khi chọn"
 msgid "Copy to clipboard"
 msgstr "Sao chép vào bảng nhớ tạm"
 
+msgid "Copy with formatting"
+msgstr "Sao chép kèm định dạng"
+
 msgid "Copy, or paste when nothing is selected"
 msgstr "Sao chép, hoặc dán khi không có gì được chọn"
 
@@ -484,6 +505,9 @@ msgstr "Không thể nạp khoá riêng {path}: không có tệp này"
 
 msgid "Could not open a channel to {host}:{port}: {message}"
 msgstr "Không thể mở kênh tới {host}:{port}: {message}"
+
+msgid "Could not save the file"
+msgstr "Không lưu được tệp"
 
 msgid "Could not save the host key: {reason}"
 msgstr "Không thể lưu khoá máy chủ: {reason}"
@@ -662,6 +686,9 @@ msgstr "Không tải lên"
 msgid "Done"
 msgstr "Xong"
 
+msgid "Double-click selection will stop at these characters"
+msgstr "Nhấp đúp để chọn sẽ dừng ở các ký tự này"
+
 msgid "Download"
 msgstr "Tải xuống"
 
@@ -725,6 +752,9 @@ msgstr "Nhập địa chỉ cần chuyển tiếp tới."
 msgid "Enter the recovery key you saved when you created the account, then choose a new password."
 msgstr "Nhập khoá khôi phục bạn đã lưu khi tạo tài khoản, rồi chọn mật khẩu mới."
 
+msgid "Error"
+msgstr "Lỗi"
+
 msgid "Even"
 msgstr "Chẵn"
 
@@ -739,6 +769,9 @@ msgstr "Chờ"
 
 msgid "Expected a private key, but {path} appears to be a public key. Skipping it for private key authentication."
 msgstr "Cần một khoá riêng, nhưng {path} có vẻ là khoá công khai. Bỏ qua nó khi xác thực bằng khoá riêng."
+
+msgid "Export to file"
+msgstr "Xuất ra tệp"
 
 msgid "Failed to authenticate using agent"
 msgstr "Không xác thực được bằng agent"
@@ -793,6 +826,9 @@ msgstr "Chọn tất cả khung cùng lúc (phát chung)"
 
 msgid "Focus all tabs at once"
 msgstr "Chọn tất cả tab cùng lúc"
+
+msgid "Focus follows mouse"
+msgstr "Tiêu điểm theo chuột"
 
 msgid "Focus next pane"
 msgstr "Chuyển tới khung kế tiếp"
@@ -922,6 +958,9 @@ msgstr "Biểu tượng & màu"
 
 msgid "If you forget your password, this key is the only way to decrypt your synced profiles and private keys. TabbyMac can't reset it for you."
 msgstr "Nếu bạn quên mật khẩu, khoá này là cách duy nhất để giải mã hồ sơ và khoá riêng đã đồng bộ. TabbyMac không thể đặt lại nó cho bạn."
+
+msgid "If you have not requested it, it could be a sign of malicious activity."
+msgstr "Nếu bạn không yêu cầu, đây có thể là dấu hiệu của hoạt động độc hại."
 
 msgid "Ignore titles set by programs"
 msgstr "Bỏ qua tiêu đề do chương trình đặt"
@@ -1148,6 +1187,9 @@ msgstr "Chuyển tab sang trái"
 msgid "Move tab to the right"
 msgstr "Chuyển tab sang phải"
 
+msgid "Moving the mouse over an inactive pane will cause it to activate"
+msgstr "Di chuột qua một khung không hoạt động sẽ kích hoạt khung đó"
+
 msgid "Name"
 msgstr "Tên"
 
@@ -1178,6 +1220,9 @@ msgstr "Mật khẩu mới"
 msgid "New profile"
 msgstr "Hồ sơ mới"
 
+msgid "New profile name"
+msgstr "Tên hồ sơ mới"
+
 msgid "New tab"
 msgstr "Tab mới"
 
@@ -1192,6 +1237,9 @@ msgstr "Mới dùng TabbyMac? Tạo tài khoản"
 
 msgid "New window"
 msgstr "Cửa sổ mới"
+
+msgid "New with profile"
+msgstr "Mở mới với hồ sơ"
 
 msgid "Next Pane"
 msgstr "Khung kế tiếp"
@@ -1243,6 +1291,9 @@ msgstr "Không có kịch bản đăng nhập"
 
 msgid "No matches for “{query}”"
 msgstr "Không có kết quả cho “{query}”"
+
+msgid "No modifier"
+msgstr "Không cần phím"
 
 msgid "No ports found"
 msgstr "Không tìm thấy cổng nào"
@@ -1330,6 +1381,9 @@ msgstr "Lẻ"
 
 msgid "Off"
 msgstr "Tắt"
+
+msgid "Offered"
+msgstr "Được đề nghị"
 
 msgid "On the active tab and on hover"
 msgstr "Trên tab đang mở và khi rê chuột"
@@ -1550,6 +1604,9 @@ msgstr "Kết nối socket thô"
 msgid "Ready timeout"
 msgstr "Thời gian chờ sẵn sàng"
 
+msgid "Received"
+msgstr "Đã nhận"
+
 msgid "Recent"
 msgstr "Gần đây"
 
@@ -1585,6 +1642,9 @@ msgstr "Biểu thức chính quy"
 
 msgid "Reject"
 msgstr "Từ chối"
+
+msgid "Rejected"
+msgstr "Đã từ chối"
 
 msgid "Rejected incoming forwarded connection for unrecognized port {destinationAddress}:{destinationPort}"
 msgstr "Đã từ chối kết nối chuyển tiếp tới cho cổng lạ {destinationAddress}:{destinationPort}"
@@ -1634,6 +1694,9 @@ msgstr "Đổi tên"
 msgid "Rename Tab…"
 msgstr "Đổi tên tab…"
 
+msgid "Rename pane"
+msgstr "Đổi tên khung"
+
 msgid "Rename tab"
 msgstr "Đổi tên tab"
 
@@ -1654,6 +1717,9 @@ msgstr "Thay các cài đặt này bằng {path}"
 
 msgid "Report a problem"
 msgstr "Báo lỗi"
+
+msgid "Require a key to click links"
+msgstr "Cần giữ phím khi nhấp liên kết"
 
 msgid "Reset"
 msgstr "Đặt lại"
@@ -1742,6 +1808,9 @@ msgstr "Lưu bố cục thành hồ sơ…"
 msgid "Save as file…"
 msgstr "Lưu thành tệp…"
 
+msgid "Save as profile"
+msgstr "Lưu thành hồ sơ"
+
 msgid "Save as…"
 msgstr "Lưu thành…"
 
@@ -1754,6 +1823,9 @@ msgstr "Lưu bố cục thành hồ sơ"
 msgid "Save your recovery key"
 msgstr "Lưu khoá khôi phục của bạn"
 
+msgid "Saved"
+msgstr "Đã lưu"
+
 msgid "Saved in Keychain"
 msgstr "Đã lưu trong Keychain"
 
@@ -1765,6 +1837,9 @@ msgstr "Đã lưu trong keychain đăng nhập."
 
 msgid "Saved profiles"
 msgstr "Hồ sơ đã lưu"
+
+msgid "Saved to {path}"
+msgstr "Đã lưu vào {path}"
 
 msgid "Scales paddings and the tab bar height (38 pt at 1.0)"
 msgstr "Co giãn khoảng đệm và chiều cao thanh tab (38 pt ở mức 1.0)"
@@ -1829,6 +1904,9 @@ msgstr "Gửi byte bằng cách gõ giá trị hex"
 msgid "Sends data one byte at a time"
 msgstr "Gửi dữ liệu từng byte một"
 
+msgid "Sent"
+msgstr "Đã gửi"
+
 msgid "Serial"
 msgstr "Serial"
 
@@ -1850,6 +1928,12 @@ msgstr "Phiên đã đóng. Nhấn phím bất kỳ để kết nối lại."
 msgid "Session ended"
 msgstr "Phiên đã kết thúc"
 
+msgid "Session failed: {reason}"
+msgstr "Phiên thất bại: {reason}"
+
+msgid "Session started"
+msgstr "Phiên đã bắt đầu"
+
 msgid "Settings"
 msgstr "Cài đặt"
 
@@ -1867,6 +1951,9 @@ msgstr "Hình dạng"
 
 msgid "Shell"
 msgstr "Shell"
+
+msgid "Shift"
+msgstr "Shift"
 
 msgid "Show"
 msgstr "Hiện"
@@ -1897,6 +1984,9 @@ msgstr "Hiện mục ẩn"
 
 msgid "Show in Finder"
 msgstr "Hiện trong Finder"
+
+msgid "Show pane label"
+msgstr "Hiện nhãn khung"
 
 msgid "Show pane labels (for rearranging)"
 msgstr "Hiện nhãn khung (để sắp xếp lại)"
@@ -1951,6 +2041,9 @@ msgstr "Đăng xuất…"
 
 msgid "Signed out"
 msgstr "Đã đăng xuất"
+
+msgid "Sixel graphics support (experimental)"
+msgstr "Hỗ trợ đồ họa Sixel (thử nghiệm)"
 
 msgid "Size"
 msgstr "Cỡ chữ"
@@ -2101,6 +2194,9 @@ msgstr "Các tab khuất khỏi tầm nhìn"
 
 msgid "Tabs stretch to fill the tab bar instead of using a fixed width"
 msgstr "Tab giãn ra lấp đầy thanh tab thay vì dùng độ rộng cố định"
+
+msgid "Tells programs that the terminal can show Sixel images"
+msgstr "Báo cho chương trình biết terminal hiển thị được ảnh Sixel"
 
 msgid "Telnet"
 msgstr "Telnet"
@@ -2405,6 +2501,9 @@ msgstr "Chào mừng đến với TabbyMac"
 msgid "What to sync"
 msgstr "Đồng bộ những gì"
 
+msgid "When enabled, links are only clickable while holding this key"
+msgstr "Khi bật, chỉ nhấp được liên kết khi đang giữ phím này"
+
 msgid "When the bell rings while TabbyMac is in the background"
 msgstr "Khi chuông reo lúc TabbyMac đang chạy nền"
 
@@ -2440,6 +2539,9 @@ msgstr "Cùng với email, nó mở khoá dữ liệu đồng bộ nếu bạn q
 
 msgid "Without a device or a baud rate, Tabby asks each time the profile opens."
 msgstr "Khi không có thiết bị hoặc tốc độ baud, Tabby sẽ hỏi mỗi lần mở hồ sơ."
+
+msgid "Word separators"
+msgstr "Ký tự ngăn cách từ"
 
 msgid "Working directory"
 msgstr "Thư mục làm việc"
@@ -2497,6 +2599,9 @@ msgstr "Khoá khôi phục của bạn"
 
 msgid "Your setup is restored from your account. Passwords and keys went into this Mac's Keychain, so your saved servers connect without asking again."
 msgstr "Thiết lập của bạn được khôi phục từ tài khoản. Mật khẩu và khoá đã được đưa vào Keychain của máy Mac này, nên các máy chủ đã lưu sẽ kết nối mà không hỏi lại."
+
+msgid "ZMODEM session"
+msgstr "phiên ZMODEM"
 
 msgid "Zoom"
 msgstr "Thu phóng"
@@ -2578,6 +2683,9 @@ msgstr "không tới được mạng"
 
 msgid "no answer from the proxy"
 msgstr "proxy không trả lời"
+
+msgid "no answer from the remote"
+msgstr "phía bên kia không trả lời"
 
 msgid "no answer from the server"
 msgstr "máy chủ không trả lời"

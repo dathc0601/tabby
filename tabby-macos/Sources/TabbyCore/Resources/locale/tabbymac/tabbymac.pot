@@ -37,6 +37,9 @@ msgstr ""
 msgid "Accept"
 msgstr ""
 
+msgid "Accept a ZMODEM session?"
+msgstr ""
+
 msgid "Accept new key"
 msgstr ""
 
@@ -109,6 +112,9 @@ msgstr ""
 msgid "Ask every time"
 msgstr ""
 
+msgid "Asked by the tab “{title}”."
+msgstr ""
+
 msgid "Asked for when connecting"
 msgstr ""
 
@@ -169,7 +175,13 @@ msgstr ""
 msgid "Broadcast Input to All Panes"
 msgstr ""
 
+msgid "Broadcast Input to All Tabs"
+msgstr ""
+
 msgid "Built in"
+msgstr ""
+
+msgid "Canceled"
 msgstr ""
 
 msgid "Cancelled"
@@ -289,6 +301,9 @@ msgstr ""
 msgid "Command-line tool"
 msgstr ""
 
+msgid "Complete"
+msgstr ""
+
 msgid "Compression"
 msgstr ""
 
@@ -356,6 +371,9 @@ msgid "Could not load private key {path}: no such file"
 msgstr ""
 
 msgid "Could not open a channel to {host}:{port}: {message}"
+msgstr ""
+
+msgid "Could not save the file"
 msgstr ""
 
 msgid "Could not save the host key: {reason}"
@@ -523,6 +541,9 @@ msgstr ""
 msgid "Enter the recovery key you saved when you created the account, then choose a new password."
 msgstr ""
 
+msgid "Error"
+msgstr ""
+
 msgid "Even"
 msgstr ""
 
@@ -536,6 +557,9 @@ msgid "Expect"
 msgstr ""
 
 msgid "Expected a private key, but {path} appears to be a public key. Skipping it for private key authentication."
+msgstr ""
+
+msgid "Export to file"
 msgstr ""
 
 msgid "Failed to authenticate using agent"
@@ -638,6 +662,9 @@ msgid "Icon & colour"
 msgstr ""
 
 msgid "If you forget your password, this key is the only way to decrypt your synced profiles and private keys. TabbyMac can't reset it for you."
+msgstr ""
+
+msgid "If you have not requested it, it could be a sign of malicious activity."
 msgstr ""
 
 msgid "Ignore titles set by programs"
@@ -919,6 +946,9 @@ msgstr ""
 msgid "Odd"
 msgstr ""
 
+msgid "Offered"
+msgstr ""
+
 msgid "On the active tab and on hover"
 msgstr ""
 
@@ -1054,6 +1084,9 @@ msgstr ""
 msgid "Ready timeout"
 msgstr ""
 
+msgid "Received"
+msgstr ""
+
 msgid "Reconnect tab"
 msgstr ""
 
@@ -1076,6 +1109,9 @@ msgid "Regular expression"
 msgstr ""
 
 msgid "Reject"
+msgstr ""
+
+msgid "Rejected"
 msgstr ""
 
 msgid "Rejected incoming forwarded connection for unrecognized port {destinationAddress}:{destinationPort}"
@@ -1115,6 +1151,9 @@ msgid "Removes the connection messages once connected"
 msgstr ""
 
 msgid "Removing a Mac signs it out; it stops receiving updates."
+msgstr ""
+
+msgid "Rename pane"
 msgstr ""
 
 msgid "Reopen Closed Tab"
@@ -1207,6 +1246,9 @@ msgstr ""
 msgid "Saved profiles"
 msgstr ""
 
+msgid "Saved to {path}"
+msgstr ""
+
 msgid "Scales paddings and the tab bar height (38 pt at 1.0)"
 msgstr ""
 
@@ -1252,6 +1294,9 @@ msgstr ""
 msgid "Send"
 msgstr ""
 
+msgid "Sent"
+msgstr ""
+
 msgid "Serial port or a device path"
 msgstr ""
 
@@ -1264,6 +1309,12 @@ msgstr ""
 msgid "Session ended"
 msgstr ""
 
+msgid "Session failed: {reason}"
+msgstr ""
+
+msgid "Session started"
+msgstr ""
+
 msgid "Settings, hotkeys & colour schemes"
 msgstr ""
 
@@ -1271,6 +1322,9 @@ msgid "Set…"
 msgstr ""
 
 msgid "Shape"
+msgstr ""
+
+msgid "Shift"
 msgstr ""
 
 msgid "Show / hide (global)"
@@ -1289,6 +1343,9 @@ msgid "Show hidden"
 msgstr ""
 
 msgid "Show in Finder"
+msgstr ""
+
+msgid "Show pane label"
 msgstr ""
 
 msgid "Show profile icon"
@@ -1439,6 +1496,9 @@ msgid "Tabs out of view"
 msgstr ""
 
 msgid "Tabs stretch to fill the tab bar instead of using a fixed width"
+msgstr ""
+
+msgid "Tells programs that the terminal can show Sixel images"
 msgstr ""
 
 msgid "Telnet"
@@ -1777,6 +1837,9 @@ msgstr ""
 msgid "Your setup is restored from your account. Passwords and keys went into this Mac's Keychain, so your saved servers connect without asking again."
 msgstr ""
 
+msgid "ZMODEM session"
+msgstr ""
+
 msgid "Zoom"
 msgstr ""
 
@@ -1841,6 +1904,9 @@ msgid "network unreachable"
 msgstr ""
 
 msgid "no answer from the proxy"
+msgstr ""
+
+msgid "no answer from the remote"
 msgstr ""
 
 msgid "no answer from the server"

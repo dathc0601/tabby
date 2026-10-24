@@ -131,6 +131,17 @@ public struct SplitLayout: Hashable, Sendable {
         c.children.insert(node, at: idx)
     }
 
+    /// Moves a pane next to another one, or to an outer edge when `relative` is nil (Tabby's
+    /// pane drop: `removeTab` then `add`). False when the move makes no sense.
+    @discardableResult
+    public mutating func move(_ pane: UUID, relativeTo relative: UUID?, side: SplitDirection) -> Bool {
+        let all = panes
+        guard all.count > 1, all.contains(pane), relative != pane, relative.map(all.contains) ?? true else { return false }
+        remove(pane)
+        insert(pane, relativeTo: relative, side: side)
+        return true
+    }
+
     /// Removes a pane (Tabby's `removeTab`). Returns the pane that should receive focus.
     @discardableResult
     public mutating func remove(_ pane: UUID) -> UUID? {

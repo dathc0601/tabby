@@ -7,7 +7,8 @@ import TabbyCore
 /// four 36 pt targets at the edges with the one under the pointer in the accent colour.
 @MainActor
 final class DropZoneOverlay: NSView {
-    var side: SplitDirection = .right { didSet { needsDisplay = true } }
+    /// The half that would be split off; nil highlights the whole pane (dropped files).
+    var side: SplitDirection? = .right { didSet { needsDisplay = true } }
 
     override var isFlipped: Bool { true }
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
@@ -15,7 +16,7 @@ final class DropZoneOverlay: NSView {
     override func draw(_ dirtyRect: NSRect) {
         let chrome = AppServices.shared.theme.chrome
         chrome.accentFill.nsColor.setFill()
-        let preview = side.previewFrame(in: bounds).insetBy(dx: 3, dy: 3)
+        let preview = (side?.previewFrame(in: bounds) ?? bounds).insetBy(dx: 3, dy: 3)
         NSBezierPath(roundedRect: preview, xRadius: 8, yRadius: 8).fill()
         chrome.accent.nsColor.setStroke()
         let outline = NSBezierPath(roundedRect: preview, xRadius: 8, yRadius: 8)

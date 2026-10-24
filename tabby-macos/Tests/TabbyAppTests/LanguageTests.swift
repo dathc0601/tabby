@@ -99,6 +99,39 @@ final class LanguageTests: XCTestCase {
         XCTAssertTrue(SettingsSection.application.matches("application"), "English still finds the page")
     }
 
+    /// M10: after a live switch the settings sidebar, the page's path row and the tab title
+    /// kept the old language until clicked (views that read no observed state are not
+    /// re-rendered). A switched window must look like one opened in the new language.
+    func testALiveSwitchRedrawsEveryTextOfTheSettingsTab() throws {
+        func shot(_ c: MainWindowController) throws -> Data {
+            let view = try XCTUnwrap(c.window?.contentView)
+            view.layoutSubtreeIfNeeded()
+            let rep = try XCTUnwrap(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+            view.cacheDisplay(in: view.bounds, to: rep)
+            return try XCTUnwrap(rep.tiffRepresentation)
+        }
+        func settingsWindow() -> MainWindowController {
+            let c = WindowManager.shared.newWindow(openDefaultTab: false)
+            c.window?.setContentSize(NSSize(width: 1100, height: 700))
+            c.model.openSettings(section: .application)
+            TestApp.pump(0.6)
+            return c
+        }
+        let switched = settingsWindow()
+        defer { TestApp.dispose(switched) }
+        AppServices.shared.config.set("language", .string("de-DE"))
+        TestApp.pump(0.6)
+        let live = try shot(switched)
+        let fresh = settingsWindow()
+        defer { TestApp.dispose(fresh) }
+        let expected = try shot(fresh)
+        if live != expected, let dir = ProcessInfo.processInfo.environment["TABBYMAC_SNAPSHOT_DIR"] {
+            try? live.write(to: URL(fileURLWithPath: dir).appendingPathComponent("language-live.tiff"))
+            try? expected.write(to: URL(fileURLWithPath: dir).appendingPathComponent("language-fresh.tiff"))
+        }
+        XCTAssertTrue(live == expected, "the switched window still shows text in the old language")
+    }
+
     func testThePickerOffersAutomaticThenEveryLanguage() {
         let options = LanguagePicker.options
         XCTAssertEqual(options.first?.tag, "")

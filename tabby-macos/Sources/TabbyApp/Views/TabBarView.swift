@@ -15,6 +15,10 @@ struct TabBarActions {
     var command: (String, TabModel?) -> Void
     var move: (UUID, Int) -> Void
     var setColor: (TabModel, String?) -> Void
+    /// A pane label dropped on the tab bar (rearranging): the pane becomes a tab.
+    var detachPane: (UUID) -> Void = { _ in }
+    /// "Focus all tabs" is on (the tab menu's check mark).
+    var isBroadcastingToAllTabs: () -> Bool = { false }
 }
 
 enum TabBarPlacement {
@@ -263,6 +267,10 @@ private struct TabDragModifier: ViewModifier {
             }
             .dropDestination(for: String.self) { items, _ in
                 dropTarget = nil
+                if let pane = PaneDragLabel.paneID(from: items.first) {
+                    actions.detachPane(pane)
+                    return true
+                }
                 guard let first = items.first, let id = UUID(uuidString: first) else { return false }
                 actions.move(id, index)
                 return true
@@ -276,7 +284,9 @@ private struct TabDragModifier: ViewModifier {
                         .offset(x: vertical ? 0 : -2, y: vertical ? -2 : 0)
                 }
             }
-            .contextMenu { TabContextMenu(tab: tab, actions: actions) }
+            // Built when it opens: SwiftUI's .contextMenu keeps the menu of the header's last
+            // redraw, so a process started since then had no "Notify when done" (M10).
+            .overlay { ContextMenuArea(tabID: tab.id) { TabMenu.build(for: tab, actions: actions) } }
     }
 }
 
@@ -294,6 +304,7 @@ struct TabHeaderView: View {
 
     var body: some View {
         let services = AppServices.shared
+        let _ = services.language // the title of a Settings or Welcome tab is translated
         let hideIndex = services.config.bool("terminal.hideTabIndex")
         let hideClose = services.config.bool("terminal.hideCloseButton")
         let showIcon = services.config.bool("terminal.showTabProfileIcon")
@@ -328,15 +339,10 @@ struct TabHeaderView: View {
                     .help(L("Pinned"))
             } else {
                 if hovering && !compact {
-                    Menu {
-                        TabContextMenu(tab: tab, actions: actions)
-                    } label: {
-                        Image(systemName: "ellipsis").font(.system(size: 11, weight: .semibold))
-                    }
-                    .menuStyle(.borderlessButton)
-                    .menuIndicator(.hidden)
-                    .frame(width: 18, height: 18)
-                    .help(L("Tab options"))
+                    Image(systemName: "ellipsis").font(.system(size: 11, weight: .semibold))
+                        .frame(width: 18, height: 18)
+                        .overlay { MenuButtonArea { TabMenu.build(for: tab, actions: actions) } }
+                        .help(L("Tab options"))
                 }
                 if !hideClose {
                     Button { actions.close(tab) } label: {
@@ -387,57 +393,6 @@ extension TabHeaderView {
         case .connecting?, .reconnecting?: return chrome.warning
         case .disconnected?: return chrome.danger
         default: return nil
-        }
-    }
-}
-
-struct TabContextMenu: View {
-    let tab: TabModel
-    let actions: TabBarActions
-
-    var body: some View {
-        Button(L("Close Tab")) { actions.close(tab) }
-        Button(L("Close Other Tabs")) { actions.command("close-other-tabs", tab) }
-        Button(L("Close Tabs to the Left")) { actions.command("close-tabs-left", tab) }
-        Button(L("Close Tabs to the Right")) { actions.command("close-tabs-right", tab) }
-        Divider()
-        if tab.content == nil {
-            Button(L("Rename Tab…")) { actions.command("rename-tab", tab) }
-            Button(L("Duplicate Tab")) { actions.command("duplicate-tab", tab) }
-            let notify = NotifyMenu.items(for: tab.focusedPane)
-            if !notify.isEmpty {
-                Divider()
-                ForEach(notify) { entry in
-                    if let command = entry.command {
-                        Toggle(entry.title, isOn: Binding(get: { entry.checked }, set: { _ in actions.command(command, tab) }))
-                    } else {
-                        Text(entry.title)
-                    }
-                }
-            }
-        }
-        Button(tab.isPinned ? L("Unpin Tab") : L("Pin Tab")) { actions.command("pin-tab", tab) }
-        Menu(L("Colour")) {
-            Button { actions.setColor(tab, nil) } label: {
-                if tab.color == nil { Label(L("None"), systemImage: "checkmark") } else { Text(L("None")) }
-            }
-            Divider()
-            ForEach(TabColors.current()) { c in
-                Button { actions.setColor(tab, c.hex) } label: {
-                    Label { Text(c.name) } icon: { Image(nsImage: TabColors.swatch(c.hex, checked: tab.color?.lowercased() == c.hex)) }
-                }
-            }
-        }
-        if tab.content == nil {
-            Divider()
-            Menu(L("Split")) {
-                Button(L("Split Up")) { actions.command("split-top", tab) }
-                Button(L("Split Right")) { actions.command("split-right", tab) }
-                Button(L("Split Down")) { actions.command("split-bottom", tab) }
-                Button(L("Split Left")) { actions.command("split-left", tab) }
-            }
-            Button(L("Save Layout as Profile…")) { actions.command("save-layout-as-profile", tab) }
-            Button(L("Switch Profile…")) { actions.command("switch-profile", tab) }
         }
     }
 }
