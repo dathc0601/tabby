@@ -516,9 +516,10 @@ or another app are left to the owner.
       another pane's side, an outer edge or the tab bar is a mouse drag: left to the owner.*
 - [ ] Focus follows mouse (Settings › Window › Panes): moving the pointer over another pane
       focuses it.
-- [ ] ⌘⌥⇧I (or the menus' "Broadcast Input to All Tabs"): a red border and the banner
+- [x] ⌘⌥⇧I (or the menus' "Broadcast Input to All Tabs"): a red border and the banner
       "Broadcast mode. Click anywhere to cancel."; what is typed reaches every tab; a click in
-      a terminal ends it.
+      a terminal ends it. *Walked with the keys; ⌘⌥⇧I again ended it. The click is covered by
+      PaneFocusTests.*
 - [ ] *Dropping files from Finder on a pane types their quoted paths: a mouse drag, left to
       the owner.*
 - [ ] OSC 1337: in a telnet tab, `printf '\033]1337;CurrentDir=/tmp\a'`, then "Save as
@@ -529,11 +530,19 @@ or another app are left to the owner.
 - [ ] Links: a plain click on an `ssh://` link opens a tab; with "Require a key to click
       links" set to ⌘, a plain click doesn't and a ⌘-click does. *Web, address and file links
       open other apps: left to the owner (unit tests cover what they resolve to).*
-- [ ] ZMODEM: `sz` in the container asks "Accept a ZMODEM session?"; Accept, a save panel,
+- [x] ZMODEM: `sz` in the container asks "Accept a ZMODEM session?"; Accept, a save panel,
       the status lines (ZMODEM, Offered, %, Received, Complete) and a transfers row; the file
       matches. `rz` asks again, an open panel, "Sent"; the container has the file. Reject
-      tells sz no. Ctrl-C during a big `sz` cancels the file.
-- [ ] Settings › Terminal shows "Sixel graphics support (experimental)" (on by default).
+      tells sz no. Ctrl-C during a big `sz` cancels the file. *Walked: 229 KB and 80 MB
+      received with matching SHA-256, upload matched, Reject. Ctrl-C cancelled on screen
+      (row "Cancelled", half file removed); the follow-up fix (Ctrl-C not passed to sz, 15 s
+      silence) is covered by tests, its on-screen re-check is still to do.*
+- [x] Settings › Terminal shows "Sixel graphics support (experimental)" (on by default).
+      *Checked in the snapshots (en, de, vi).*
+
+M11 was walked in part on 2026-10-24: the owner was using the Mac, so only checks that work
+with keys sent to the app (and buttons pressed through Accessibility) were done. The items
+still open need clicks, the pointer or the clipboard.
 
 ## Findings
 
@@ -603,5 +612,8 @@ or another app are left to the owner.
 | 2026-10-24 | M10 | After a live language switch, the settings sidebar, the path rows and the Settings tab's title kept the old language until clicked (views that read no observed state are not redrawn). | `fe0b0989` |
 | 2026-10-24 | M10 | With the pointer resting on a tab, the tab menu lacked "Notify when done" for a process started since: SwiftUI built the menu at the header's last redraw. It is now built when it opens; its "…" form drops below the button. | `fe0b0989`, `20c007ac` |
 | 2026-10-24 | M10 | `tabby run` ran in the active tab's folder instead of the caller's; so did every local profile with its own directory. | `fe0b0989` |
+| 2026-10-24 | M11 | After "Reject", sz's repeated header and the shell's prompt came in one chunk and the prompt was dropped. | `d016fbfd` |
+| 2026-10-24 | M11 | Ctrl-C (a hotkey) didn't cancel a transfer; passed on to sz it interrupted it mid-session, and the bridge kept swallowing the shell's output. Ctrl-C now stays in the app during a session, and a session silent for 15 s ends. | `d016fbfd` |
+| 2026-10-24 | M11 | The ZMODEM save panel opened wherever the last panel had been; it now opens in a local pane's folder, as Export to file. | `d016fbfd` |
 
 Open: the M5 notification item, blocked by macOS on the test Mac (see the item).
