@@ -1414,6 +1414,9 @@ msgstr ""
 msgid "Show profile icon"
 msgstr ""
 
+msgid "Show profile selector for group {name}"
+msgstr ""
+
 msgid "Show profile sidebar"
 msgstr ""
 

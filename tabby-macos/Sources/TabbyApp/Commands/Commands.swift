@@ -159,6 +159,13 @@ extension MainWindowController {
                 guard let pane, let profile = AppServices.shared.profiles.allProfiles(includeHidden: true).first(where: { $0.id == wanted })
                 else { return false }
                 openProfile(profile, from: pane)
+            } else if id.hasPrefix("profile-selectors.") {
+                showProfileSelector(type: String(id.dropFirst("profile-selectors.".count)))
+            } else if id.hasPrefix("group-selectors.") {
+                showProfileSelector(groupId: String(id.dropFirst("group-selectors.".count)))
+            } else if id.hasPrefix("settings-tab.") {
+                guard let section = SettingsSection(tabbyId: String(id.dropFirst("settings-tab.".count))) else { return false }
+                model.openSettings(section: section)
             } else if id.hasPrefix("profile.") {
                 let wanted = String(id.dropFirst("profile.".count))
                 guard let p = AppServices.shared.profiles.allProfiles(includeHidden: true)
@@ -183,11 +190,27 @@ extension MainWindowController {
 
     // MARK: Selectors
 
-    func showProfileSelector(switchActivePane: Bool = false) {
-        let services = AppServices.shared
-        let registry = services.profiles
+    /// The profile selector; `type` or `groupId` narrow it (Tabby's `profile-selectors.<type>`
+    /// and `group-selectors.<id>` hotkeys).
+    func showProfileSelector(switchActivePane: Bool = false, type: String? = nil, groupId: String? = nil) {
+        let registry = AppServices.shared.profiles
+        let items = profileSelectorItems(type: type, groupId: groupId, switchActivePane: switchActivePane)
+        SelectorPanel.present(over: window, placeholder: switchActivePane ? L("Switch profile") : L("Search profiles or user@host:port"),
+                              items: items) { [weak self] query in
+            registry.selectorEntries(query: query, type: type, groupId: groupId).compactMap { entry -> SelectorItem? in
+                guard case let .quickConnect(providerId, q) = entry.kind,
+                      let profile = registry.quickConnect(q, providerId: providerId) else { return nil }
+                return ProfileSelectorRows.quickConnect(providerId: providerId, query: q) {
+                    self?.open(profile, switchActivePane: switchActivePane)
+                }
+            }
+        }
+    }
+
+    func profileSelectorItems(type: String? = nil, groupId: String? = nil, switchActivePane: Bool = false) -> [SelectorItem] {
+        let registry = AppServices.shared.profiles
         var items: [SelectorItem] = []
-        for (i, entry) in registry.selectorEntries().enumerated() {
+        for (i, entry) in registry.selectorEntries(type: type, groupId: groupId).enumerated() {
             switch entry.kind {
             case .profile(let p):
                 items.append(SelectorItem(id: "p\(i)", title: entry.title, group: entry.group, subtitle: entry.description,
@@ -207,16 +230,7 @@ extension MainWindowController {
                 break
             }
         }
-        SelectorPanel.present(over: window, placeholder: switchActivePane ? L("Switch profile") : L("Search profiles or user@host:port"),
-                              items: items) { [weak self] query in
-            registry.selectorEntries(query: query).compactMap { entry -> SelectorItem? in
-                guard case let .quickConnect(providerId, q) = entry.kind,
-                      let profile = registry.quickConnect(q, providerId: providerId) else { return nil }
-                return ProfileSelectorRows.quickConnect(providerId: providerId, query: q) {
-                    self?.open(profile, switchActivePane: switchActivePane)
-                }
-            }
-        }
+        return items
     }
 
     func open(_ profile: Profile, switchActivePane: Bool) {

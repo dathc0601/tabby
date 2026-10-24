@@ -19,6 +19,29 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// The id of Tabby's settings tab for this page (`settings-tab.<id>` hotkeys); TabbyMac's
+    /// own pages use their own ids.
+    var tabbyId: String {
+        switch self {
+        case .application: return "application"
+        case .appearance: return "terminal-appearance"
+        case .colorScheme: return "terminal-color-scheme"
+        case .terminal: return "terminal"
+        case .window: return "window"
+        case .profiles: return "profiles"
+        case .ssh: return "ssh"
+        case .hotkeys: return "hotkeys"
+        case .vault: return "vault"
+        case .account: return "config-sync"
+        case .configFile: return "config-file"
+        }
+    }
+
+    init?(tabbyId: String) {
+        guard let section = Self.allCases.first(where: { $0.tabbyId == tabbyId }) else { return nil }
+        self = section
+    }
+
     /// The sidebar and page title in the current language.
     var title: String {
         switch self {

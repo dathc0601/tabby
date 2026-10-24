@@ -22,7 +22,7 @@ struct HotkeysSettingsView: View {
         let services = AppServices.shared
         let _ = services.configRevision
         let config = services.config
-        let entries = HotkeyCatalog.entries.filter { entry in
+        let entries = Self.allEntries().filter { entry in
             guard !onlyChanged || config.user.value(at: "hotkeys.\(entry.id)") != nil else { return false }
             let q = filter.trimmingCharacters(in: .whitespaces).lowercased()
             guard !q.isEmpty else { return true }
@@ -30,7 +30,7 @@ struct HotkeysSettingsView: View {
             return "\(entry.group) \(entry.name) \(entry.id) \(entry.groupTitle) \(entry.title)".lowercased().contains(q) || keys.contains { $0.contains(q) }
         }
         let groups = Dictionary(grouping: entries, by: \.group)
-        let order = HotkeyCatalog.entries.map(\.group).reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
+        let order = Self.allEntries().map(\.group).reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
         SettingsPage(L("Hotkeys")) {
             HStack(spacing: 10) {
                 HStack(spacing: 6) {
@@ -46,7 +46,7 @@ struct HotkeysSettingsView: View {
                 }
                 Spacer()
                 Button(L("Restore defaults")) {
-                    for entry in HotkeyCatalog.entries where config.user.value(at: "hotkeys.\(entry.id)") != nil {
+                    for entry in Self.allEntries() where config.user.value(at: "hotkeys.\(entry.id)") != nil {
                         config.set("hotkeys.\(entry.id)", config.defaultValue("hotkeys.\(entry.id)"))
                     }
                 }
@@ -71,6 +71,17 @@ struct HotkeysSettingsView: View {
             }
             .chromeEnvironment()
         }
+    }
+
+    /// The static commands, then Tabby's provided ones: a "New tab" per profile, a selector per
+    /// type and per group, and each settings page.
+    static func allEntries() -> [HotkeyCatalog.Entry] {
+        let registry = AppServices.shared.profiles
+        return HotkeyCatalog.entries + HotkeyCatalog.dynamicEntries(
+            profiles: registry.allProfiles(includeHidden: true).filter { !$0.isTemplate },
+            types: registry.providers.map { (id: $0.id, name: ProfileTypes.title($0.id)) },
+            groups: registry.groups,
+            settingsPages: SettingsSection.allCases.map { (id: $0.tabbyId, title: $0.title) })
     }
 
     private func row(_ entry: HotkeyCatalog.Entry) -> some View {

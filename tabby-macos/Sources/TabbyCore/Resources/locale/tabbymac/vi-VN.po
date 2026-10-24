@@ -1340,6 +1340,9 @@ msgstr "Tên hồ sơ mới"
 msgid "New tab"
 msgstr "Tab mới"
 
+msgid "New tab: {profile}"
+msgstr "Tab mới: {profile}"
+
 msgid "New tabs"
 msgstr "Tab mới"
 
@@ -1529,6 +1532,9 @@ msgstr "Mở trong tab mới"
 msgid "Open profiles"
 msgstr "Mở hồ sơ"
 
+msgid "Open settings tab: {tab}"
+msgstr "Mở trang cài đặt: {tab}"
+
 msgid "Open ssh:// and telnet:// links"
 msgstr "Mở liên kết ssh:// và telnet://"
 
@@ -1690,6 +1696,9 @@ msgstr "Tiến trình đã thoát với mã {code}. Nhấn phím bất kỳ đ�
 
 msgid "Process terminated. Press any key to restart."
 msgstr "Tiến trình đã bị dừng. Nhấn phím bất kỳ để khởi động lại."
+
+msgid "Profiles"
+msgstr "Hồ sơ"
 
 msgid "Profiles & Connections…"
 msgstr "Hồ sơ & kết nối…"
@@ -2162,6 +2171,9 @@ msgstr "Hiện biểu tượng hồ sơ"
 msgid "Show profile selector"
 msgstr "Hiện bộ chọn hồ sơ"
 
+msgid "Show profile selector for group {name}"
+msgstr "Hiện bộ chọn hồ sơ của nhóm {name}"
+
 msgid "Show profile sidebar"
 msgstr "Hiện thanh bên hồ sơ"
 
@@ -2182,6 +2194,9 @@ msgstr "Hiện tab Chào mừng"
 
 msgid "Show the recovery key"
 msgstr "Hiện khoá khôi phục"
+
+msgid "Show {type} profile selector"
+msgstr "Hiện bộ chọn hồ sơ {type}"
 
 msgid "Show/hide window (global)"
 msgstr "Hiện/ẩn cửa sổ (toàn cục)"
