@@ -467,33 +467,35 @@ Run the app built by Xcode with its own config folder (as in M9), a busybox teln
 with `open -a <the built TabbyMac.app> <link>`, so the Mac's default ssh:// and telnet://
 apps stay as they are.
 
-- [ ] Settings › Application › Language: Deutsch changes the menu bar ("Einstellungen…"),
+- [x] Settings › Application › Language: Deutsch changes the menu bar ("Einstellungen…"),
       the settings sidebar and pages, and the start page at once; Tiếng Việt translates every
       screen; Automatic goes back to the system language. No label is cut off.
-- [ ] Notify when done: run `sleep 8` in a tab; the tab's menu and the pane's menu show
+- [x] Notify when done: run `sleep 8` in a tab; the tab's menu and the pane's menu show
       "Current process: sleep" and "Notify when done"; tick it, switch to another tab; when
       `sleep` ends a "Process completed" toast names it, and Show focuses the pane. A banner
       also appears where macOS allows this build to post them.
-- [ ] Notify on activity: tick it on an idle tab, then `sleep 3; echo done` there: a "Tab
+- [x] Notify on activity: tick it on an idle tab, then `sleep 3; echo done` there: a "Tab
       activity" toast appears once.
-- [ ] Bell: Settings › Terminal › Flash the Dock icon on; `sleep 3; printf '\a'` in a tab,
+- [x] Bell: Settings › Terminal › Flash the Dock icon on; `sleep 3; printf '\a'` in a tab,
       switch to another app: the Dock icon bounces once. A bell in a background tab marks it.
-- [ ] Links: `open -a TabbyMac.app "telnet://127.0.0.1:2323"` opens a telnet tab that
+- [x] Links: `open -a TabbyMac.app "telnet://127.0.0.1:2323"` opens a telnet tab that
       connects; `"ssh://me@127.0.0.1:2222"` opens an SSH tab for me@127.0.0.1:2222;
       `"tabbymac://open?directory=/tmp"` opens a shell in /tmp. Settings › Application ›
       Links names the app that opens ssh:// links now.
 - [ ] The default-handler button: "Use TabbyMac" makes macOS ask, and afterwards ssh://
       links open in TabbyMac. *Left to the owner: it changes a system-wide default.*
-- [ ] Command line: `tabby open <dir>`, `tabby run ls -la` (after the "Run …?" alert),
+- [x] Command line: `tabby open <dir>`, `tabby run ls -la` (after the "Run …?" alert),
       `tabby profile "<name>"`, `echo hi | tabby paste` (after "Paste …?"),
       `tabby quickConnect telnet 127.0.0.1:2323` and `tabby <dir>/script.sh` each open the
       tab in the running app and bring it to the front; `tabby --help` prints the commands;
       `tabby recent x` exits with status 2. Settings › Application › Command-line tool
       copies the install command.
 
-M10 is not walked yet: the Mac stayed locked through the 2026-10-24 session. The unit and
-process tests cover the logic (catalogs, menus, notifications, router, helper); the walk
-covers what only shows on screen.
+Walked on 2026-10-24 with computer use (fixes in the Findings table). The banner itself
+stays unchecked: macOS refuses banners to this ad-hoc build, so the toast was checked. The
+default-handler item is the owner's. A telnet quick connect uses the line editor (Tabby's
+`inputMode: readline`), so against busybox, which echoes too, each line shows twice after a
+"> " prompt, as in Tabby.
 
 ## Findings
 
@@ -560,5 +562,8 @@ covers what only shows on screen.
 | 2026-10-23 | M9b | The selector panel was 32 pt taller than its content, an empty band above the search field (the title bar's height, added by the hosting view). | `0008aee6` |
 | 2026-10-23 | M9b | Closing a split tab with two panes on one host, or quitting, listed "Disconnect from 127.0.0.1?" twice. | `af98c0f9` |
 | 2026-10-23 | M9b | The New menu on Settings › Profiles showed no type icons (design C7). | `847c06fb` |
+| 2026-10-24 | M10 | After a live language switch, the settings sidebar, the path rows and the Settings tab's title kept the old language until clicked (views that read no observed state are not redrawn). | `fe0b0989` |
+| 2026-10-24 | M10 | With the pointer resting on a tab, the tab menu lacked "Notify when done" for a process started since: SwiftUI built the menu at the header's last redraw. It is now built when it opens; its "…" form drops below the button. | `fe0b0989`, `20c007ac` |
+| 2026-10-24 | M10 | `tabby run` ran in the active tab's folder instead of the caller's; so did every local profile with its own directory. | `fe0b0989` |
 
 Open: the M5 notification item, blocked by macOS on the test Mac (see the item).
