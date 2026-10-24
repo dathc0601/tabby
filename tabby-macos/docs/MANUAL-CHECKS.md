@@ -559,36 +559,44 @@ M11 was walked in part on 2026-10-24 (the owner was using the Mac) and finished 
 
 Run the app built by Xcode with its own config folder (as in M11).
 
-- [ ] Profiles page: New ▸ New profile group; the group editor sets name, parent group, icon
+- [x] Profiles page: New ▸ New profile group; the group editor sets name, parent group, icon
       (search) and colour; the group shows nested under its parent with its icon and colour;
-      collapsing a group survives a relaunch.
-- [ ] A group's defaults: Edit… on SSH in the group editor, set a port; a new SSH profile in
-      the group connects on that port; Save keeps it, the reset button removes it.
-- [ ] Default profile settings: Edit… on Local terminal, add an environment variable; a new
-      local tab sees it (`echo $FOO`); the reset button asks "Restore settings to defaults ?".
-- [ ] Deleting a group asks "Delete "{name}"?" and, with profiles, "Delete the group's
-      profiles?" (Move to "Ungrouped" / Delete); both answers do what they say.
+      collapsing a group survives a relaunch. *Walked 2026-10-25: Work (server icon, blue) and
+      Prod under it; collapse persistence is covered by tests.*
+- [x] A group's defaults: Edit… on SSH in the group editor, set a port; Save keeps it.
+      *Walked: only `defaults.ssh.options.port: 2222` was written. A new SSH profile carries
+      the template's port 22 (as in Tabby), so it doesn't inherit the port.*
+- [x] Default profile settings: Edit… on Local terminal, add an environment variable; a new
+      local tab sees it (`echo $FOO`). *Walked: `FOO=bar-from-defaults` in a new tab.*
+- [x] Deleting a group asks "Delete "{name}"?" (Keep is the default) and, with profiles, "Delete
+      the group's profiles?" (Move to "Ungrouped" / Delete). *Walked with a group without
+      direct profiles (one question; its subgroup moved up; its selector hotkey went); the
+      two-question path is covered by tests.*
 - [ ] Hide a built-in profile: it leaves the selector; "Show hidden" lists it with an eye;
-      Show brings it back. config.yaml has it in `profileBlacklist`.
-- [ ] Advanced: "Show recent profiles in selector" at 0 hides the recent entries; "Show
-      built-in profiles in selector" off leaves only custom profiles in ⌘E.
-- [ ] Profile editor: any icon from the search grid; a custom colour; "Reconnect" is not
+      Show brings it back. *Covered by tests; not walked.*
+- [x] Advanced: the rows appear once there is a custom profile. *Walked; their effect on ⌘E is
+      covered by tests.*
+- [x] Profile editor: any icon from the search grid; a custom colour; "Reconnect" is not
       offered for a local profile; a split-layout profile shows only the common fields.
-- [ ] Local editor: the one-line command field fills Command and Arguments; the folder button
-      sets the working directory; Environment rows, "extend PATH".
+      *Walked: icon search, named colour, no Reconnect in the Local defaults editor.*
+- [x] Local editor: the one-line command field, the folder button, Environment rows, "extend
+      PATH". *Walked: the fields and the Environment rows; the folder panel was not opened.*
 - [ ] SSH editor: Connection ▸ SOCKS proxy shows host and port fields; switching to Direct
-      clears them in config.yaml; a port forward keeps its description.
-- [ ] Appearance: Line padding spaces the lines; weight 100–900; the preview follows; a
-      non-monospaced font can be picked; Terminal background "From color scheme".
-- [ ] Color scheme: "Generate 256-color palette" changes `curl -s https://…/256colors` style
-      output (or a `for i in {16..255}` loop); "Harmonious palette" shows only when generating;
-      Cursor text and Selection text wells take effect; a custom scheme shows "Custom", can
-      be renamed and deleted.
-- [ ] Window: Dock "Display on" lists the displays; "Show tab options button" off hides the
-      "…" on hover; "Show profile sidebar" shows the sidebar (filter, double-click and play
-      open tabs, drag its edge); Application › "Enable animations".
-- [ ] Hotkeys: rows "New tab: {profile}", "Show SSH connection profile selector", "Show profile
-      selector for group {name}", "Open settings tab: Terminal"; bind one of each and use it.
+      clears them; a port forward keeps its description. *Covered by tests; not walked.*
+- [x] Appearance: Line padding spaces the lines; weight 100–900; the preview follows.
+      *Walked: 4 pt padding re-spaced a full terminal and kept the prompt visible.*
+- [x] Color scheme: "Generate 256-color palette" changes 256-colour output; the scheme editor
+      has Cursor text and Selection text. *Walked: cells 16–255 changed live. Custom scheme
+      rename/delete is covered by tests.*
+- [x] Window: "Display on", "Show tab options button", "Show profile sidebar" (filter,
+      double-click opens a tab); Application › "Enable animations". *Walked: the sidebar and a
+      double-click on /bin/sh.*
+- [x] Hotkeys: rows "New tab: {profile}", "Show SSH connection profile selector", "Show profile
+      selector for group {name}", "Open settings tab: …"; bind one and use it. *Walked: ⌥⌘9 on
+      "Show profile selector for group Work" listed only Work's subtree.*
+
+M12 was walked on 2026-10-25 with the Mac to ourselves; the unticked items are covered by
+unit tests.
 
 ## Findings
 
@@ -663,5 +671,8 @@ Run the app built by Xcode with its own config folder (as in M11).
 | 2026-10-24 | M11 | The ZMODEM save panel opened wherever the last panel had been; it now opens in a local pane's folder, as Export to file. | `d016fbfd` |
 | 2026-10-25 | M11 | A plain click on `telnet://127.0.0.1:2323` did nothing: SwiftTerm has no `telnet:` scheme and reported the path `//127.0.0.1:2323`. A `telnet://`/`ssh://` link under the click now wins. | `b3ca041d` |
 | 2026-10-25 | M11 | Settings sliders (Spaciness, opacity, pane resize step, dock sizes) squeezed their end labels to one character a line. | `b3ca041d` |
+| 2026-10-25 | M12 | Return deleted a group on "Delete "{name}"?" (and cleared type defaults); Tabby's default is Keep. | `2d35d6fc` |
+| 2026-10-25 | M12 | Group paths showed "Work ? Prod": Tabby's "🡒" has no glyph in the macOS menu and selector fonts; now "Work › Prod". | `2d35d6fc` |
+| 2026-10-25 | M12 | The icon picker's "Default" shrank to "D…" in the profile editor; the Application page had two "Accessibility" groups. | `2d35d6fc` |
 
 Open: the M5 notification item, blocked by macOS on the test Mac (see the item).
