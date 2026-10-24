@@ -29,6 +29,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
     var onClose: ((MainWindowController) -> Void)?
 
     private var services: AppServices { .shared }
+    /// What the tab bar (and its menus) can ask this window to do.
+    private(set) var tabBarActions: TabBarActions!
 
     init() {
         let window = TerminalWindow(
@@ -61,6 +63,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
                 RecoveryCoordinator.shared.scheduleSave()
             }
         )
+        tabBarActions = actions
         tabBarHost = NSHostingView(rootView: TabBarView(model: model, actions: actions, placement: .top, leadingInset: 78))
         startPageHost = NSHostingView(rootView: StartPageView(
             newTab: { [weak self] in _ = self?.runCommand("new-tab") },

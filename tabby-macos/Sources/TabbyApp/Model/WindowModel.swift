@@ -142,7 +142,10 @@ public final class WindowModel {
     public func openTab(profile: Profile? = nil, cwd: String? = nil) -> TabModel? {
         let p = profile ?? services.defaultProfile()
         if askForMissingParameters(p, then: { [weak self] done in self?.openTab(profile: done, cwd: cwd) }) { return nil }
-        let inherited = cwd ?? (p.type == "local" ? activePane?.currentDirectory() : nil)
+        // A local tab opens where the active pane is, unless its profile names a directory
+        // (Tabby's `LocalProfilesService.getNewTabParameters`).
+        let ownDirectory = LocalOptions(p.options).cwd.map { !$0.isEmpty } ?? false
+        let inherited = cwd ?? (p.type == "local" && !ownDirectory ? activePane?.currentDirectory() : nil)
         guard let pane = makePane(profile: p, cwd: inherited) else { return nil }
         let tab = TabModel(pane: pane)
         insertTab(tab)
