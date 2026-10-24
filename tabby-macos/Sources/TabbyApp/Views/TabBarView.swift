@@ -15,6 +15,8 @@ struct TabBarActions {
     var command: (String, TabModel?) -> Void
     var move: (UUID, Int) -> Void
     var setColor: (TabModel, String?) -> Void
+    /// A pane label dropped on the tab bar (rearranging): the pane becomes a tab.
+    var detachPane: (UUID) -> Void = { _ in }
 }
 
 enum TabBarPlacement {
@@ -263,6 +265,10 @@ private struct TabDragModifier: ViewModifier {
             }
             .dropDestination(for: String.self) { items, _ in
                 dropTarget = nil
+                if let pane = PaneDragLabel.paneID(from: items.first) {
+                    actions.detachPane(pane)
+                    return true
+                }
                 guard let first = items.first, let id = UUID(uuidString: first) else { return false }
                 actions.move(id, index)
                 return true

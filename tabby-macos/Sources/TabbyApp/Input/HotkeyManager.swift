@@ -9,7 +9,14 @@ import TabbyCore
 @MainActor
 final class HotkeyManager {
     private var monitor: Any?
+    private var flagsMonitor: Any?
     private let matcher = HotkeyMatcher()
+    /// Commands bound to modifiers held on their own, active while held (Tabby's
+    /// `hotkey$` / `hotkeyOff$`).
+    static let modifierOnlyCommands: Set<String> = ["rearrange-panes"]
+    /// A modifier-only command started (true) or ended (false).
+    var onModifierHotkey: ((String, Bool) -> Void)?
+    private var heldModifierHotkey: String?
     private let run: (String) -> Bool
     /// Pauses matching (while the hotkey capture sheet is open).
     var isSuspended = false
@@ -31,15 +38,43 @@ final class HotkeyManager {
             guard let self else { return event }
             return self.handle(event)
         }
+        flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged]) { [weak self] event in
+            if let self, !self.isSuspended, event.window is TerminalWindow { self.modifiersChanged(event.modifierFlags) }
+            return event
+        }
     }
 
     func stop() {
         if let monitor { NSEvent.removeMonitor(monitor) }
+        if let flagsMonitor { NSEvent.removeMonitor(flagsMonitor) }
         monitor = nil
+        flagsMonitor = nil
+    }
+
+    /// Modifiers pressed or released: starts or ends a modifier-only command.
+    func modifiersChanged(_ flags: NSEvent.ModifierFlags) {
+        var mods: Keystroke.Modifiers = []
+        if flags.contains(.control) { mods.insert(.control) }
+        if flags.contains(.command) { mods.insert(.command) }
+        if flags.contains(.option) { mods.insert(.option) }
+        if flags.contains(.shift) { mods.insert(.shift) }
+        let id = matcher.modifierOnlyMatch(mods, among: Self.modifierOnlyCommands)
+        guard id != heldModifierHotkey else { return }
+        if let held = heldModifierHotkey { onModifierHotkey?(held, false) }
+        heldModifierHotkey = id
+        if let id { onModifierHotkey?(id, true) }
+    }
+
+    /// Another key while a modifier-only command is held ends it (the chord no longer matches).
+    func otherKeyPressed() {
+        guard let held = heldModifierHotkey else { return }
+        heldModifierHotkey = nil
+        onModifierHotkey?(held, false)
     }
 
     private func handle(_ event: NSEvent) -> NSEvent? {
         if isSuspended { return event }
+        otherKeyPressed()
         // Terminal commands only apply to terminal windows (and their selector panel).
         guard event.window is TerminalWindow else { return event }
         // Text fields (settings, selector, prompts) keep their own shortcuts.

@@ -40,6 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let controller = WindowManager.shared.activeController else { return false }
             return controller.runCommand(id)
         }
+        manager.onModifierHotkey = { id, down in WindowManager.shared.activeController?.modifierHotkey(id, down: down) }
         manager.reload(from: services.config)
         manager.start()
         hotkeys = manager

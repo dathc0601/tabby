@@ -381,6 +381,29 @@ public final class WindowModel {
 
     /// Turns every pane of the active tab but the first into its own tab, added at the end
     /// (`explode-tab`).
+    /// A rearranging drop inside a split (Tabby's `onTabDropped`): the pane moves next to
+    /// `relativeTo`, or to an outer edge when it is nil. Ends rearranging.
+    @discardableResult
+    public func movePane(_ paneID: UUID, relativeTo: UUID?, side: SplitDirection) -> Bool {
+        guard let tab = tabs.first(where: { $0.panes[paneID] != nil }) else { return false }
+        tab.isRearranging = false
+        guard tab.move(paneID, relativeTo: relativeTo, side: side) else { return false }
+        focus(paneID: paneID)
+        onRecoveryStateChanged?()
+        return true
+    }
+
+    /// A pane label dropped on the tab bar: the pane becomes a tab of its own, after its tab.
+    @discardableResult
+    public func detachPane(_ paneID: UUID) -> Bool {
+        guard let index = tabs.firstIndex(where: { $0.panes[paneID] != nil }), tabs[index].panes.count > 1 else { return false }
+        let source = tabs[index]
+        source.isRearranging = false
+        guard let pane = source.remove(paneID) else { return false }
+        insertTab(TabModel(pane: pane), at: index + 1)
+        return true
+    }
+
     public func explodeActiveTab() {
         if let tab = activeTab { explode(tab) }
     }

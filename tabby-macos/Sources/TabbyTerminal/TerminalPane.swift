@@ -25,6 +25,8 @@ public final class TerminalPane: TerminalEngineDelegate {
     public private(set) var dynamicTitle: String?
     /// Title set by the user (Rename tab/pane).
     public var customTitle: String?
+    /// Tabby's `customTitleVisible`: a pane in a split shows its custom title as a label.
+    public var customTitleVisible = true
     public private(set) var workingDirectory: String?
     public private(set) var progress: Double?
     public private(set) var hasActivity = false
@@ -131,6 +133,7 @@ public final class TerminalPane: TerminalEngineDelegate {
         self.fontSize = settings.fontSize
         if let restore {
             customTitle = restore.customTitle
+            customTitleVisible = restore.customTitleVisible
             dynamicTitle = restore.title
             restoreState = restore.savedState
             workingDirectory = restore.cwd
@@ -497,6 +500,7 @@ public final class TerminalPane: TerminalEngineDelegate {
             savedState: snapshot(fresh: includeBuffer),
             title: dynamicTitle,
             customTitle: customTitle,
+            customTitleVisible: customTitleVisible,
             disableDynamicTitle: profile.disableDynamicTitle
         )
     }

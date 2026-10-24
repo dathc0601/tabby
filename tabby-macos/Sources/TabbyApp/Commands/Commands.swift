@@ -81,6 +81,15 @@ extension MainWindowController {
         case "pane-increase-horizontal": model.resizePane(.horizontal, grow: true)
         case "pane-decrease-horizontal": model.resizePane(.horizontal, grow: false)
         case "pane-focus-all": if let t = model.activeTab { t.broadcastInput.toggle() }
+        case "rename-pane": if let pane { renamePaneAsking(pane) }
+        case "toggle-pane-label":
+            guard let pane, pane.customTitle?.isEmpty == false else { return false }
+            pane.customTitleVisible.toggle()
+            RecoveryCoordinator.shared.scheduleSave()
+        case "rearrange-panes":
+            // ★ From the palette or a key binding with a key: on until a drop or the same command.
+            guard let t = model.activeTab, t.content == nil else { return false }
+            t.isRearranging.toggle()
 
         // Terminal
         case "copy":
@@ -248,6 +257,31 @@ extension MainWindowController {
         }
     }
 
+    // MARK: Panes
+
+    func renamePaneAsking(_ pane: TerminalPane) {
+        Prompts.text(in: window, title: L("Rename pane"), value: pane.customTitle ?? pane.title, confirm: L("Rename")) { [weak self] value, _ in
+            guard let value else { return }
+            self?.renamePane(pane, to: value)
+        }
+    }
+
+    /// Tabby's `setCustomTitle`: an empty name clears it; a first name turns the label on.
+    func renamePane(_ pane: TerminalPane, to name: String) {
+        let had = pane.customTitle?.isEmpty == false
+        pane.customTitle = name.isEmpty ? nil : name
+        if !had && !name.isEmpty { pane.customTitleVisible = true }
+        RecoveryCoordinator.shared.scheduleSave()
+    }
+
+    /// A modifier-only hotkey pressed or released (`rearrange-panes` while ⌃⇧ are held).
+    func modifierHotkey(_ id: String, down: Bool) {
+        guard id == "rearrange-panes", let tab = model.activeTab, tab.content == nil else { return }
+        // A drag in progress keeps the labels until it drops.
+        if !down && PaneDragLabel.isDragging { return }
+        tab.isRearranging = down
+    }
+
     // MARK: Export to file
 
     typealias ExportChooser = (_ window: NSWindow?, _ suggestedName: String, _ directory: URL?, _ done: @escaping (URL?) -> Void) -> Void
@@ -288,11 +322,13 @@ extension MainWindowController {
     /// clear, then the session. Items show the command's first hotkey.
     func terminalContextMenu(for pane: TerminalPane) -> NSMenu {
         let menu = NSMenu()
-        func item(_ title: String, _ id: String, in target: NSMenu? = nil, checked: Bool = false) {
+        menu.autoenablesItems = false
+        func item(_ title: String, _ id: String, in target: NSMenu? = nil, checked: Bool = false, enabled: Bool = true) {
             let i = NSMenuItem(title: title, action: #selector(contextCommand(_:)), keyEquivalent: "")
             i.target = self
             i.representedObject = id
             i.state = checked ? .on : .off
+            i.isEnabled = enabled
             if let stroke = HotkeyBinding.bindings(from: AppServices.shared.config.value("hotkeys.\(id)")).first,
                stroke.strokes.count == 1, let (key, mods) = KeyMapping.keyEquivalent(for: stroke.strokes[0]) {
                 i.keyEquivalent = key
@@ -304,8 +340,14 @@ extension MainWindowController {
         item(L("Copy"), "copy")
         item(L("Paste"), "paste")
         item(L("Copy Current Path"), "copy-current-path")
+        if let tab = model.tabs.first(where: { $0.panes[pane.id] != nil }), tab.panes.count > 1 {
+            let named = pane.customTitle?.isEmpty == false
+            item(L("Rename pane"), "rename-pane")
+            item(L("Show pane label"), "toggle-pane-label", checked: named && pane.customTitleVisible, enabled: named)
+        }
         menu.addItem(.separator())
         let split = NSMenu()
+        split.autoenablesItems = false
         item(L("Split Up"), "split-top", in: split)
         item(L("Split Right"), "split-right", in: split)
         item(L("Split Down"), "split-bottom", in: split)
@@ -323,7 +365,9 @@ extension MainWindowController {
             if let command = entry.command {
                 item(entry.title, command, checked: entry.checked)
             } else {
-                menu.addItem(NSMenuItem(title: entry.title, action: nil, keyEquivalent: ""))
+                let line = NSMenuItem(title: entry.title, action: nil, keyEquivalent: "")
+                line.isEnabled = false
+                menu.addItem(line)
             }
         }
         menu.addItem(.separator())

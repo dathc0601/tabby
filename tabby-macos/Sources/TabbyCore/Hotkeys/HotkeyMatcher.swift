@@ -48,6 +48,19 @@ public final class HotkeyMatcher {
         return result
     }
 
+    /// The binding among `ids` that is exactly these modifiers held on their own (Tabby's
+    /// `rearrange-panes`: `Ctrl-Shift`). Other ids never match a modifier-only stroke.
+    public func modifierOnlyMatch(_ modifiers: Keystroke.Modifiers, among ids: Set<String>) -> String? {
+        guard !modifiers.isEmpty else { return nil }
+        for id in ids.sorted() {
+            for binding in bindings[id] ?? [] where binding.strokes.count == 1 {
+                let stroke = binding.strokes[0]
+                if stroke.isModifierOnly && stroke.modifiers == modifiers { return id }
+            }
+        }
+        return nil
+    }
+
     public func reset() {
         history.removeAll()
     }

@@ -1123,6 +1123,9 @@ msgstr ""
 msgid "Removing a Mac signs it out; it stops receiving updates."
 msgstr ""
 
+msgid "Rename pane"
+msgstr ""
+
 msgid "Reopen Closed Tab"
 msgstr ""
 
@@ -1298,6 +1301,9 @@ msgid "Show hidden"
 msgstr ""
 
 msgid "Show in Finder"
+msgstr ""
+
+msgid "Show pane label"
 msgstr ""
 
 msgid "Show profile icon"

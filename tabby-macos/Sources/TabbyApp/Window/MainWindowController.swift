@@ -46,7 +46,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
         model.ui = self
         model.onRecoveryStateChanged = { RecoveryCoordinator.shared.scheduleSave() }
 
-        let actions = TabBarActions(
+        var actions = TabBarActions(
             select: { [weak self] in self?.model.select($0.id) },
             close: { [weak self] in self?.requestCloseTab($0) },
             newTab: { [weak self] in _ = self?.runCommand("new-tab") },
@@ -63,6 +63,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
                 RecoveryCoordinator.shared.scheduleSave()
             }
         )
+        actions.detachPane = { [weak self] id in _ = self?.model.detachPane(id) }
         tabBarActions = actions
         tabBarHost = NSHostingView(rootView: TabBarView(model: model, actions: actions, placement: .top, leadingInset: 78))
         startPageHost = NSHostingView(rootView: StartPageView(

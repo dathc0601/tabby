@@ -44,6 +44,8 @@ public final class TabModel: Identifiable {
     public var isPinned = false
     /// Broadcast input to every pane (`pane-focus-all`).
     public var broadcastInput = false
+    /// Pane labels shown for dragging (`rearrange-panes`, held down).
+    public var isRearranging = false
 
     public init(pane: TerminalPane) {
         content = nil
@@ -113,6 +115,15 @@ public final class TabModel: Identifiable {
         layout.insert(subtree, relativeTo: relativeTo, side: side)
         maximizedPaneID = nil
         focusedPaneID = other.focusedPaneID.flatMap { panes[$0] != nil ? $0 : nil } ?? moved[0].0
+    }
+
+    /// Moves a pane within this tab (a rearranging drop). False when the move makes no sense.
+    @discardableResult
+    public func move(_ paneID: UUID, relativeTo: UUID?, side: SplitDirection) -> Bool {
+        guard layout.move(paneID, relativeTo: relativeTo, side: side) else { return false }
+        maximizedPaneID = nil
+        focusedPaneID = paneID
+        return true
     }
 
     /// Removes a pane and returns it. The tab is empty afterwards when it was the last one.

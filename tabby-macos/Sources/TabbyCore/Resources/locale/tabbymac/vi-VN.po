@@ -1646,6 +1646,9 @@ msgstr "Đổi tên"
 msgid "Rename Tab…"
 msgstr "Đổi tên tab…"
 
+msgid "Rename pane"
+msgstr "Đổi tên khung"
+
 msgid "Rename tab"
 msgstr "Đổi tên tab"
 
@@ -1912,6 +1915,9 @@ msgstr "Hiện mục ẩn"
 
 msgid "Show in Finder"
 msgstr "Hiện trong Finder"
+
+msgid "Show pane label"
+msgstr "Hiện nhãn khung"
 
 msgid "Show pane labels (for rearranging)"
 msgstr "Hiện nhãn khung (để sắp xếp lại)"
