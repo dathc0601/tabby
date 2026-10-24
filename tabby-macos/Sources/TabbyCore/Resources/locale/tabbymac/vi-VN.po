@@ -62,6 +62,9 @@ msgstr "Cài đặt tài khoản & đồng bộ…"
 msgid "Actual Size"
 msgstr "Kích thước thực"
 
+msgid "Add"
+msgstr "Thêm"
+
 msgid "Add a port forward"
 msgstr "Thêm chuyển tiếp cổng"
 
@@ -305,6 +308,9 @@ msgstr "Các thay đổi từ những máy Mac khác của bạn đã có ở đ
 msgid "Change…"
 msgstr "Thay đổi…"
 
+msgid "Choose a folder"
+msgstr "Chọn thư mục"
+
 msgid "Ciphers"
 msgstr "Thuật toán mã hoá"
 
@@ -401,8 +407,14 @@ msgstr "Lệnh"
 msgid "Command Palette…"
 msgstr "Bảng lệnh…"
 
+msgid "Command line"
+msgstr "Dòng lệnh"
+
 msgid "Command not found: {executable}"
 msgstr "Không tìm thấy lệnh: {executable}"
+
+msgid "Command's stdin/stdout is used instead of a network connection"
+msgstr "Dùng stdin/stdout của lệnh thay cho kết nối mạng"
 
 msgid "Command-line tool"
 msgstr "Công cụ dòng lệnh"
@@ -428,6 +440,12 @@ msgstr "Xác nhận mật khẩu"
 msgid "Connect a device, or type its path"
 msgstr "Kết nối một thiết bị, hoặc nhập đường dẫn của nó"
 
+msgid "Connect through a proxy server"
+msgstr "Kết nối qua máy chủ proxy"
+
+msgid "Connect to a different host first and use it as a proxy"
+msgstr "Kết nối tới một máy khác trước rồi dùng nó làm proxy"
+
 msgid "Connected"
 msgstr "Đã kết nối"
 
@@ -442,6 +460,9 @@ msgstr "Đang kết nối tới {name}"
 
 msgid "Connecting…"
 msgstr "Đang kết nối…"
+
+msgid "Connection"
+msgstr "Kết nối"
 
 msgid "Connection closed"
 msgstr "Đã đóng kết nối"
@@ -668,6 +689,9 @@ msgstr "Tên thiết bị"
 msgid "Devices"
 msgstr "Thiết bị"
 
+msgid "Direct"
+msgstr "Trực tiếp"
+
 msgid "Disconnect"
 msgstr "Ngắt kết nối"
 
@@ -764,6 +788,9 @@ msgstr "Sửa…"
 msgid "Email"
 msgstr "Email"
 
+msgid "Empty: your Mac user name ({name})"
+msgstr "Để trống: tên người dùng trên Mac ({name})"
+
 msgid "End of the line"
 msgstr "Cuối dòng"
 
@@ -779,6 +806,9 @@ msgstr "Nhập địa chỉ cần chuyển tiếp tới."
 msgid "Enter the recovery key you saved when you created the account, then choose a new password."
 msgstr "Nhập khoá khôi phục bạn đã lưu khi tạo tài khoản, rồi chọn mật khẩu mới."
 
+msgid "Environment"
+msgstr "Biến môi trường"
+
 msgid "Error"
 msgstr "Lỗi"
 
@@ -790,6 +820,9 @@ msgstr "Mọi máy Mac đều bị đăng xuất và dữ liệu đồng bộ b�
 
 msgid "Everything in it is deleted too."
 msgstr "Mọi thứ bên trong cũng bị xoá."
+
+msgid "Example:"
+msgstr "Ví dụ:"
 
 msgid "Expect"
 msgstr "Chờ"
@@ -937,6 +970,12 @@ msgstr "Xanh lá"
 
 msgid "Group"
 msgstr "Nhóm"
+
+msgid "HTTP proxy"
+msgstr "Proxy HTTP"
+
+msgid "HTTP proxy host"
+msgstr "Máy proxy HTTP"
 
 msgid "Have an account? Sign in"
 msgstr "Đã có tài khoản? Đăng nhập"
@@ -1850,6 +1889,9 @@ msgstr "SFTP"
 msgid "SOCKS proxy"
 msgstr "Proxy SOCKS"
 
+msgid "SOCKS proxy host"
+msgstr "Máy proxy SOCKS"
+
 msgid "SSH"
 msgstr "SSH"
 
@@ -2189,6 +2231,9 @@ msgstr "Lược bỏ"
 msgid "Strong"
 msgstr "Mạnh"
 
+msgid "Substitutions allowed."
+msgstr "Có thể dùng biến thay thế."
+
 msgid "Switch Profile…"
 msgstr "Đổi hồ sơ…"
 
@@ -2341,6 +2386,9 @@ msgstr "Cổng phải là số từ 1 đến 65535."
 
 msgid "The profile is removed here and, when profiles sync, on your other Macs. A password saved for it stays in the Keychain (Settings › Vault)."
 msgstr "Hồ sơ bị xoá ở đây và, khi hồ sơ được đồng bộ, trên các máy Mac khác của bạn. Mật khẩu đã lưu cho nó vẫn còn trong Keychain (Cài đặt › Kho bảo mật)."
+
+msgid "The program and its arguments, quoted as in a shell"
+msgstr "Chương trình và các tham số, đặt trong ngoặc như trong shell"
 
 msgid "The recovery key is not on this Mac yet."
 msgstr "Khoá khôi phục chưa có trên máy Mac này."
@@ -2522,11 +2570,20 @@ msgstr "Tên người dùng"
 msgid "Username for {host}"
 msgstr "Tên người dùng cho {host}"
 
+msgid "Using CONNECT method"
+msgstr "Dùng phương thức CONNECT"
+
 msgid "Using saved password"
 msgstr "Đang dùng mật khẩu đã lưu"
 
 msgid "Valid YAML"
 msgstr "YAML hợp lệ"
+
+msgid "Value"
+msgstr "Giá trị"
+
+msgid "Variable name"
+msgstr "Tên biến"
 
 msgid "Vault"
 msgstr "Kho bảo mật"
@@ -2725,6 +2782,9 @@ msgstr "lỗi {code}"
 
 msgid "esc close"
 msgstr "esc đóng"
+
+msgid "extend PATH"
+msgstr "mở rộng PATH"
 
 msgid "for the dark appearance"
 msgstr "cho giao diện tối"

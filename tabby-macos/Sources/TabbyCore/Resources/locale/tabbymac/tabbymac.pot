@@ -247,6 +247,9 @@ msgstr ""
 msgid "Change…"
 msgstr ""
 
+msgid "Choose a folder"
+msgstr ""
+
 msgid "Clear Buffer"
 msgstr ""
 
@@ -536,6 +539,9 @@ msgid "Edit “{name}”"
 msgstr ""
 
 msgid "Email"
+msgstr ""
+
+msgid "Empty: your Mac user name ({name})"
 msgstr ""
 
 msgid "End-to-end encrypted"
@@ -1585,6 +1591,9 @@ msgstr ""
 msgid "The profile is removed here and, when profiles sync, on your other Macs. A password saved for it stays in the Keychain (Settings › Vault)."
 msgstr ""
 
+msgid "The program and its arguments, quoted as in a shell"
+msgstr ""
+
 msgid "The recovery key is not on this Mac yet."
 msgstr ""
 
@@ -1738,6 +1747,12 @@ msgstr ""
 msgid "Valid YAML"
 msgstr ""
 
+msgid "Value"
+msgstr ""
+
+msgid "Variable name"
+msgstr ""
+
 msgid "Verify host key"
 msgstr ""
 
@@ -1883,6 +1898,9 @@ msgid "error {code}"
 msgstr ""
 
 msgid "esc close"
+msgstr ""
+
+msgid "extend PATH"
 msgstr ""
 
 msgid "for the dark appearance"

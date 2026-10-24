@@ -459,6 +459,8 @@ struct ProfileEditorSheet: View {
     @State private var passwordSaved = false
     @State private var testOutcome: SSHConnectionTest.Outcome?
     @State private var testing = false
+    /// The connection mode picked in this editor (Direct has no option of its own to read back).
+    @State private var pickedMode: SSHConnectionMode?
     @Environment(\.chrome) private var chrome
 
     init(item: EditableProfile, initialPage: Page = .general, done: @escaping (Profile?) -> Void) {
@@ -883,14 +885,54 @@ struct ProfileEditorSheet: View {
     }
 
     private var localGeneral: some View {
-        SettingsGroup {
-            SettingsRow(L("Command")) { RowField(placeholder: "/bin/zsh", text: option("command"), width: 300) } // l10n-ignore: sample input
-            SettingsRow(L("Arguments"), subtitle: L("One per line")) {
-                TextEditor(text: listOption("args")).font(.custom("Menlo", size: 12)).frame(width: 300, height: 54)
-                    .scrollContentBackground(.hidden).background(RoundedRectangle(cornerRadius: 5).fill(chrome.surface.color))
+        VStack(alignment: .leading, spacing: 18) {
+            SettingsGroup {
+                SettingsRow(L("Command line"), subtitle: L("The program and its arguments, quoted as in a shell")) {
+                    RowField(placeholder: "/bin/zsh --login", text: commandLine, width: 300) // l10n-ignore: sample input
+                }
+                SettingsRow(L("Command")) { RowField(placeholder: "/bin/zsh", text: option("command"), width: 300) } // l10n-ignore: sample input
+                SettingsRow(L("Arguments"), subtitle: L("One per line")) {
+                    TextEditor(text: listOption("args")).font(.custom("Menlo", size: 12)).frame(width: 300, height: 54)
+                        .scrollContentBackground(.hidden).background(RoundedRectangle(cornerRadius: 5).fill(chrome.surface.color))
+                }
+                SettingsRow(L("Working directory")) {
+                    HStack(spacing: 6) {
+                        RowField(placeholder: L("Inherit"), text: option("cwd"), width: 270)
+                        IconButton(symbol: "folder", help: L("Choose a folder"), size: 24) { chooseFolder() }
+                    }
+                }
             }
-            SettingsRow(L("Working directory")) { RowField(placeholder: L("Inherit"), text: option("cwd"), width: 300) }
+            SettingsGroup(L("Environment")) {
+                EnvironmentEditor(env: Binding(get: { profile.options["env"] }, set: { profile.options["env"] = $0 }))
+            }
         }
+    }
+
+    /// The command and arguments as one shell line.
+    private var commandLine: Binding<String> {
+        Binding(get: {
+            CommandLineField.join(command: profile.options["command"]?.stringValue ?? "",
+                                  args: profile.options["args"]?.arrayValue?.compactMap(\.stringValue) ?? [])
+        }, set: { line in
+            let split = CommandLineField.split(line)
+            profile.options["command"] = split.command.isEmpty ? .null : .string(split.command)
+            profile.options["args"] = .array(split.args.map(ConfigValue.string))
+        })
+    }
+
+    private func chooseFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        if let cwd = profile.options["cwd"]?.stringValue, !cwd.isEmpty {
+            panel.directoryURL = URL(fileURLWithPath: (cwd as NSString).expandingTildeInPath)
+        }
+        let window = NSApp.keyWindow
+        let finish: (NSApplication.ModalResponse) -> Void = { response in
+            if response == .OK, let url = panel.url { profile.options["cwd"] = .string(url.path) }
+        }
+        if let window { panel.beginSheetModal(for: window, completionHandler: finish) } else { finish(panel.runModal()) }
     }
 
     private var localAdvanced: some View {
@@ -904,6 +946,32 @@ struct ProfileEditorSheet: View {
         let registry = AppServices.shared.profiles
         return VStack(alignment: .leading, spacing: 18) {
             SettingsGroup {
+                SettingsRow(L("Connection"), subtitle: Self.connectionDescription(connectionMode.wrappedValue)) {
+                    RowPicker(selection: connectionMode) {
+                        ForEach(SSHConnectionMode.allCases, id: \.self) { Text(Self.connectionTitle($0)).tag($0) }
+                    }
+                }
+                switch connectionMode.wrappedValue {
+                case .proxyCommand:
+                    SettingsRow(L("Proxy command")) { RowField(placeholder: "nc %h %p", text: option("proxyCommand"), width: 300) } // l10n-ignore: sample input
+                case .jumpHost:
+                    SettingsRow(L("Jump host")) {
+                        RowPicker(selection: option("jumpHost")) {
+                            Text(L("Select")).tag("")
+                            ForEach(registry.allProfiles(includeHidden: true).filter { $0.type == "ssh" && !$0.isTemplate && $0.id != profile.id }, id: \.id) { p in
+                                Text(p.name).tag(p.id)
+                            }
+                        }
+                    }
+                case .socksProxy:
+                    SettingsRow(L("SOCKS proxy host")) { proxyFields("socksProxy", defaultPort: 1080) }
+                case .httpProxy:
+                    SettingsRow(L("HTTP proxy host")) { proxyFields("httpProxy", defaultPort: 3128) }
+                case .direct:
+                    EmptyView()
+                }
+            }
+            SettingsGroup {
                 SettingsRow(L("Host")) {
                     HStack(spacing: 8) {
                         RowField(placeholder: "example.com", text: option("host"), width: 220) // l10n-ignore: sample input
@@ -912,7 +980,9 @@ struct ProfileEditorSheet: View {
                             .textFieldStyle(.roundedBorder).font(.custom("Menlo", size: 12)).frame(width: 60)
                     }
                 }
-                SettingsRow(L("Username")) { RowField(placeholder: NSUserName(), text: option("user")) }
+                SettingsRow(L("Username"), subtitle: L("Empty: your Mac user name ({name})", ["name": NSUserName()])) {
+                    RowField(placeholder: NSUserName(), text: option("user"))
+                }
                 SettingsRow(L("Authentication")) {
                     RowPicker(selection: option("auth")) {
                         Text(L("Automatic")).tag("")
@@ -936,17 +1006,6 @@ struct ProfileEditorSheet: View {
                 PrivateKeysEditor(options: $profile.options)
             }
             SettingsGroup {
-                SettingsRow(L("Jump host")) {
-                    RowPicker(selection: option("jumpHost")) {
-                        Text(L("None")).tag("")
-                        ForEach(registry.allProfiles(includeHidden: true).filter { $0.type == "ssh" && !$0.isTemplate && $0.id != profile.id }, id: \.id) { p in
-                            Text(p.name).tag(p.id)
-                        }
-                    }
-                }
-                SettingsRow(L("Proxy command")) { RowField(placeholder: L("None"), text: option("proxyCommand"), width: 300) }
-            }
-            SettingsGroup {
                 SettingsRow(L("Test connection"), subtitle: testSubtitle) {
                     HStack(spacing: 8) {
                         if testing { ProgressView().controlSize(.small) }
@@ -956,6 +1015,45 @@ struct ProfileEditorSheet: View {
                     }
                 }
             }
+        }
+    }
+
+    /// The SSH connection mode; choosing one clears the other modes' options (Tabby clears
+    /// them on save).
+    private var connectionMode: Binding<SSHConnectionMode> {
+        Binding(get: { pickedMode ?? SSHConnectionMode(options: profile.options) }, set: { mode in
+            pickedMode = mode
+            mode.apply(to: &profile.options)
+        })
+    }
+
+    static func connectionTitle(_ mode: SSHConnectionMode) -> String {
+        switch mode {
+        case .direct: return L("Direct")
+        case .proxyCommand: return L("Proxy command")
+        case .jumpHost: return L("Jump host")
+        case .socksProxy: return L("SOCKS proxy")
+        case .httpProxy: return L("HTTP proxy")
+        }
+    }
+
+    static func connectionDescription(_ mode: SSHConnectionMode) -> String? {
+        switch mode {
+        case .direct: return nil
+        case .proxyCommand: return L("Command's stdin/stdout is used instead of a network connection")
+        case .jumpHost: return L("Connect to a different host first and use it as a proxy")
+        case .socksProxy: return L("Connect through a proxy server")
+        case .httpProxy: return L("Using CONNECT method")
+        }
+    }
+
+    /// Host and port of a SOCKS or HTTP proxy (`<prefix>Host`, `<prefix>Port`).
+    private func proxyFields(_ prefix: String, defaultPort: Int) -> some View {
+        HStack(spacing: 8) {
+            RowField(placeholder: "127.0.0.1", text: option(prefix + "Host"), width: 200) // l10n-ignore: sample input
+            Text(L("Port")).foregroundStyle(chrome.textMuted.color).fixedSize()
+            TextField(String(defaultPort), text: optionalIntOption(prefix + "Port")) // l10n-ignore: config key
+                .textFieldStyle(.roundedBorder).font(.custom("Menlo", size: 12)).frame(width: 70)
         }
     }
 
@@ -1137,7 +1235,8 @@ struct PortForwardsEditor: View {
                     TextField("localhost", text: binding(forwards, index, \.targetAddress)).frame(width: 110) // l10n-ignore: sample input
                     TextField("80", value: binding(forwards, index, \.targetPort), format: .number.grouping(.never)).frame(width: 56)
                 }
-                Spacer()
+                TextField(L("Description"), text: binding(forwards, index, \.description)).font(.system(size: 12))
+                Spacer(minLength: 0)
                 IconButton(symbol: "minus", help: L("Remove"), size: 22) {
                     var list = forwards
                     list.remove(at: index)
@@ -1162,6 +1261,16 @@ struct PortForwardsEditor: View {
             }
             .fixedSize()
         }
+    }
+
+    /// `options` with one field of forward `index` changed.
+    static func updated<T>(_ options: ConfigValue, _ index: Int, _ path: WritableKeyPath<ForwardedPort, T>, _ value: T) -> ConfigValue {
+        var list = (options["forwardedPorts"]?.arrayValue ?? []).compactMap(ForwardedPort.init)
+        guard list.indices.contains(index) else { return options }
+        list[index][keyPath: path] = value
+        var o = options
+        o["forwardedPorts"] = .array(list.map(\.configValue))
+        return o
     }
 
     private func binding<T>(_ forwards: [ForwardedPort], _ index: Int, _ path: WritableKeyPath<ForwardedPort, T>) -> Binding<T> {
