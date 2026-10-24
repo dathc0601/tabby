@@ -386,15 +386,13 @@ struct ApplicationSettingsView: View {
                     .buttonStyle(ChromeButtonStyle())
                 }
             }
-            SettingsGroup(L("Accessibility")) {
-                SettingsRow(L("Enable animations"), isOn: ConfigBinding.bool("accessibility.animations"))
-            }
             SettingsGroup(L("Startup")) {
                 SettingsRow(L("Restore tabs on startup"), isOn: ConfigBinding.bool("recoverTabs"))
                 SettingsRow(L("Open a new tab when the app starts"), isOn: ConfigBinding.bool("terminal.autoOpen"))
                 SettingsRow(L("Show the Welcome tab"), isOn: ConfigBinding.bool("enableWelcomeTab"))
             }
             SettingsGroup(L("Accessibility")) {
+                SettingsRow(L("Enable animations"), isOn: ConfigBinding.bool("accessibility.animations"))
                 SettingsRow(L("Minimum contrast ratio"), subtitle: L("Text that is harder to read than this is brightened or darkened")) {
                     RowStepper(value: ConfigBinding.double("terminal.minimumContrastRatio"), range: 1...21, step: 0.5) { String(format: "%.1f", $0) }
                 }

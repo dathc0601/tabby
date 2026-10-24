@@ -115,7 +115,7 @@ struct ProfileIconPicker: View {
         Button { open = true } label: {
             HStack(spacing: 6) {
                 Image(systemName: ProfileIcons.symbol(for: icon ?? placeholder)).frame(width: 18)
-                Text(label).lineLimit(1)
+                Text(label).lineLimit(1).fixedSize() // M12 walk: "Default" was cut to "D…"
                 Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold)).foregroundStyle(chrome.textFaint.color)
             }
             .padding(.horizontal, 8)

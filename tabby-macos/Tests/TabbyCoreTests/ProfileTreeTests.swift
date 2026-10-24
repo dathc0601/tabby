@@ -57,6 +57,12 @@ final class ProfileTreeTests: XCTestCase {
         XCTAssertEqual(builtin.group?.editable, false)
     }
 
+    /// M12 walk: Tabby's "🡒" has no glyph in macOS's menu and selector fonts (a "?" box).
+    func testGroupPathUsesASeparatorMacFontsHave() throws {
+        let r = try registry(["groups": [group("A", "Work"), group("B", "Prod", parent: "A")]])
+        XCTAssertEqual(r.groupPath("B"), "Work › Prod")
+    }
+
     func testValidParentsExcludeSelfAndDescendants() throws {
         let r = try registry(["groups": [group("A", "A"), group("B", "B", parent: "A"), group("C", "C", parent: "B"), group("D", "D")]])
         XCTAssertEqual(r.validParents(for: "A").map(\.id), ["D"])

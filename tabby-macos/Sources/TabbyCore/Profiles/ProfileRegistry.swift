@@ -70,7 +70,8 @@ public final class ProfileRegistry {
         allProfiles(includeHidden: true).first { $0.id == id }
     }
 
-    /// Group path such as `Work 🡒 Servers`, as shown in Tabby's selector.
+    /// Group path such as `Work › Servers` (Tabby joins with "🡒", which macOS's menu and
+    /// selector fonts can't draw).
     public func groupPath(_ groupId: String?) -> String {
         guard let groupId, !groupId.isEmpty else { return "" }
         var names: [String] = []
@@ -86,7 +87,7 @@ public final class ProfileRegistry {
             names.insert(g.name, at: 0)
             current = g.parentGroupId
         }
-        return names.joined(separator: " 🡒 ")
+        return names.joined(separator: " › ")
     }
 
     // MARK: Effective settings

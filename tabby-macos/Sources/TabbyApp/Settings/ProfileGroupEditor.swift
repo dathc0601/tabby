@@ -76,14 +76,20 @@ struct ProfileGroupEditorSheet: View {
 /// Deleting a group the way Tabby asks (`deleteProfileGroup`).
 @MainActor
 enum ProfileGroupActions {
-    /// Shows `message` with `buttons` and answers the index of the one clicked.
-    typealias Ask = (_ message: String, _ buttons: [String], _ answer: @escaping (Int) -> Void) -> Void
+    /// Shows `message` with `buttons` and answers the index of the one clicked; Return presses
+    /// button `defaultIndex` (Tabby's `defaultId`).
+    typealias Ask = (_ message: String, _ buttons: [String], _ defaultIndex: Int, _ answer: @escaping (Int) -> Void) -> Void
 
-    static let defaultAsk: Ask = { message, buttons, answer in
+    static let defaultAsk: Ask = { message, buttons, defaultIndex, answer in
         let alert = NSAlert()
         alert.alertStyle = .warning
         alert.messageText = message
-        for title in buttons { alert.addButton(withTitle: title) }
+        for (index, title) in buttons.enumerated() {
+            let button = alert.addButton(withTitle: title)
+            button.keyEquivalent = index == defaultIndex ? "\r" : ""
+        }
+        // When the safe answer is the default, the first button is the destructive one.
+        if defaultIndex != 0, let first = alert.buttons.first { first.hasDestructiveAction = true }
         if let window = NSApp.keyWindow {
             alert.beginSheetModal(for: window) { answer($0.rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue) }
         } else {
@@ -96,13 +102,13 @@ enum ProfileGroupActions {
     /// "Delete "{name}"?" (Delete / Keep); when the group has profiles, "Delete the group's
     /// profiles?" (Move to "Ungrouped" / Delete).
     static func delete(_ group: ProfileGroup, registry: ProfileRegistry, done: @escaping () -> Void = {}) {
-        ask(L("Delete \"{name}\"?", ["name": group.name]), [L("Delete"), L("Keep")]) { first in
+        ask(L("Delete \"{name}\"?", ["name": group.name]), [L("Delete"), L("Keep")], 1) { first in
             guard first == 0 else { return done() }
             guard registry.userProfiles.contains(where: { $0.group == group.id }) else {
                 registry.delete(groupId: group.id)
                 return done()
             }
-            ask(L("Delete the group's profiles?"), [L("Move to \"Ungrouped\""), L("Delete")]) { second in
+            ask(L("Delete the group's profiles?"), [L("Move to \"Ungrouped\""), L("Delete")], 0) { second in
                 registry.delete(groupId: group.id, deleteProfiles: second == 1)
                 done()
             }
@@ -111,7 +117,7 @@ enum ProfileGroupActions {
 
     /// "Restore settings to defaults ?" (Delete / Keep) before clearing a type's defaults.
     static func resetTypeDefaults(_ type: String, registry: ProfileRegistry) {
-        ask(L("Restore settings to defaults ?"), [L("Delete"), L("Keep")]) { answer in
+        ask(L("Restore settings to defaults ?"), [L("Delete"), L("Keep")], 1) { answer in
             if answer == 0 { registry.setTypeDefaults(type, nil) }
         }
     }

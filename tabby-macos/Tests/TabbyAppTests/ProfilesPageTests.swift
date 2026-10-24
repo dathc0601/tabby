@@ -29,11 +29,26 @@ final class ProfilesPageTests: XCTestCase {
     func answer(_ answers: [Int]) -> () -> [(String, [String])] {
         var asked: [(String, [String])] = []
         var queue = answers
-        ProfileGroupActions.ask = { message, buttons, reply in
+        ProfileGroupActions.ask = { message, buttons, _, reply in
             asked.append((message, buttons))
             reply(queue.isEmpty ? 1 : queue.removeFirst())
         }
         return { asked }
+    }
+
+    /// M12 walk: Return deleted the group; Tabby's default is Keep (defaultId 1), and for the
+    /// second question "Move to "Ungrouped"" (defaultId 0).
+    func testDestructiveQuestionsDefaultToKeep() throws {
+        var defaults: [Int] = []
+        var queue = [0, 0]
+        ProfileGroupActions.ask = { _, _, defaultIndex, reply in
+            defaults.append(defaultIndex)
+            reply(queue.isEmpty ? 1 : queue.removeFirst())
+        }
+        let r = try work()
+        ProfileGroupActions.delete(try XCTUnwrap(r.groups.first), registry: r)
+        ProfileGroupActions.resetTypeDefaults("ssh", registry: r)
+        XCTAssertEqual(defaults, [1, 0, 1])
     }
 
     func testGroupDeletionAsksTwiceWithTabbysWords() throws {
