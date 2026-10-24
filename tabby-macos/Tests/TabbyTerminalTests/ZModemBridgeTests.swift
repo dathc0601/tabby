@@ -238,4 +238,53 @@ final class ZModemBridgeTests: XCTestCase {
         h.bridge.fromRemote(header)
         XCTAssertEqual(h.asked.count, 3)
     }
+
+    /// M11: after "Reject", sz's repeated header and the shell's prompt came in one chunk; the
+    /// whole chunk was dropped, so the prompt never showed.
+    func testAfterARefusalTheTextAfterARepeatedHeaderStillShows() {
+        let h = Harness()
+        h.answer = false
+        let header = ZModemEncoder().hexHeader(ZModemHeader(type: .rqinit))
+        h.bridge.fromRemote(header)
+        h.terminal = []
+        h.bridge.fromRemote(header + bytes("root@box:/tmp# "))
+        XCTAssertEqual(h.asked.count, 1, "the repeat is ignored")
+        XCTAssertEqual(String(decoding: h.terminal, as: UTF8.self), "root@box:/tmp# ")
+    }
+
+    /// M11: a remote that dies mid-session (sz killed) left the bridge swallowing the shell's
+    /// output for good. A session silent for 15 s ends.
+    func testASilentSessionEnds() {
+        let h = Harness()
+        var clock = Date(timeIntervalSince1970: 5000)
+        var later: [() -> Void] = []
+        h.bridge.now = { clock }
+        h.bridge.after = { _, work in later.append(work) }
+        h.bridge.fromRemote(ZModemEncoder().hexHeader(ZModemHeader(type: .rqinit)))
+        h.queue.removeAll()
+        XCTAssertTrue(h.bridge.isActive)
+        clock += 16
+        later.forEach { $0() }
+        XCTAssertFalse(h.bridge.isActive, "ended")
+        XCTAssertTrue(h.text.contains("Session failed"), h.text)
+        h.terminal = []
+        h.bridge.fromRemote(bytes("root@box:/tmp# "))
+        XCTAssertEqual(String(decoding: h.terminal, as: UTF8.self), "root@box:/tmp# ")
+    }
+
+    func testTheSilenceWatchIsOffWhileTheUserChooses() {
+        let h = Harness()
+        var clock = Date(timeIntervalSince1970: 5000)
+        var later: [() -> Void] = []
+        var answer: ((ZModemFileSink?) -> Void)?
+        h.bridge.now = { clock }
+        h.bridge.after = { _, work in later.append(work) }
+        h.bridge.save = { _, a in answer = a }
+        _ = remoteSz(h, [("slow.txt", bytes("x"))])
+        h.run()
+        XCTAssertNotNil(answer, "the save panel is up")
+        clock += 30
+        later.forEach { $0() }
+        XCTAssertTrue(h.bridge.isActive, "the user may take their time")
+    }
 }

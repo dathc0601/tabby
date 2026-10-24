@@ -1906,6 +1906,9 @@ msgstr ""
 msgid "no answer from the proxy"
 msgstr ""
 
+msgid "no answer from the remote"
+msgstr ""
+
 msgid "no answer from the server"
 msgstr ""
 

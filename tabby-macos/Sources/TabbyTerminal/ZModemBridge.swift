@@ -63,6 +63,12 @@ public final class ZModemBridge {
     }
     /// The clock (tests set it).
     public var now: () -> Date = { Date() }
+    /// A session with nothing from the remote for this long ends (sz/rz died, say), so the
+    /// terminal comes back. Not while a panel waits for the user.
+    public var stallTimeout: TimeInterval = 15
+    private var lastRemote = Date.distantPast
+    private var watchPending = false
+    private var waitingForUser = false
     /// Tabby: a progress line at most every 500 ms.
     public var progressInterval: TimeInterval = 0.5
 
@@ -113,7 +119,13 @@ public final class ZModemBridge {
             }
             guard let detection = result.detection else { return }
             let direction: ZModemDirection = detection == .receive ? .receive : .send
-            if let until = ignoreUntil, now() < until { return }
+            if let until = ignoreUntil, now() < until {
+                // A repeat of a refused session's header: drop it (and its line end), keep the
+                // rest — often the shell's prompt once sz/rz gave up.
+                let rest = result.protocolBytes.dropFirst(result.headerLength).drop { [0x0D, 0x8D, 0x0A, 0x8A, 0x11].contains($0) }
+                if !rest.isEmpty { fromRemote(Array(rest)) }
+                return
+            }
             state = .asking(direction, result.protocolBytes)
             ask(direction) { [weak self] ok in self?.answered(direction, ok) }
         case .asking(let direction, let held):
@@ -123,13 +135,40 @@ public final class ZModemBridge {
             guard held.count + bytes.count <= Self.maxHeld else { return refuse() }
             state = .choosing(held + bytes)
         case .receiving(let receiver):
+            heardFromRemote()
             receiver.feed(bytes)
             if receiver.isEnding {
                 // Some senders never write "OO".
                 after(1) { [weak receiver] in receiver?.endWithoutOverAndOut() }
             }
         case .sending(let sender):
+            heardFromRemote()
             sender.feed(bytes)
+        }
+    }
+
+    private func heardFromRemote() {
+        lastRemote = now()
+        watchForSilence()
+    }
+
+    private func watchForSilence() {
+        guard !watchPending else { return }
+        watchPending = true
+        after(stallTimeout) { [weak self] in
+            guard let self else { return }
+            self.watchPending = false
+            switch self.state {
+            case .receiving, .sending:
+                if self.waitingForUser || self.now().timeIntervalSince(self.lastRemote) < self.stallTimeout {
+                    self.watchForSilence()
+                } else {
+                    self.toRemote(ZModem.abortSequence)
+                    self.failed(L("no answer from the remote"))
+                }
+            default:
+                break
+            }
         }
     }
 
@@ -161,10 +200,12 @@ public final class ZModemBridge {
         guard ok else { return refuse() }
         line(Self.label("ZMODEM", .blue), L("Session started")) // l10n-ignore: the protocol's name
         line("------------------------", nil) // l10n-ignore: a rule
+        lastRemote = now()
         switch direction {
         case .receive:
             let receiver = makeReceiver()
             state = .receiving(receiver)
+            watchForSilence()
             receiver.start()
             receiver.feed(held)
         case .send:
@@ -188,8 +229,11 @@ public final class ZModemBridge {
         receiver.onOffer = { [weak self, weak receiver] info in
             guard let self else { return }
             self.line(Self.label(L("Offered"), .yellow), info.name, overwrite: true)
+            self.waitingForUser = true
             self.save(info) { [weak self, weak receiver] sink in
                 guard let self, let receiver else { return }
+                self.waitingForUser = false
+                self.lastRemote = self.now()
                 if let sink {
                     self.current = (info, sink, 0)
                     receiver.accept()
@@ -277,6 +321,8 @@ public final class ZModemBridge {
         sender.onFinished = { [weak self] rest in self?.finished(rest) }
         sender.onError = { [weak self] reason in self?.failed(reason) }
         state = .sending(sender)
+        lastRemote = now()
+        watchForSilence()
         sender.feed(held)
     }
 
@@ -312,6 +358,7 @@ public final class ZModemBridge {
 
     private func endSession() {
         state = .watching
+        waitingForUser = false
         sentry = ZModemSentry()
         sendingIndex = nil
         uploads = []

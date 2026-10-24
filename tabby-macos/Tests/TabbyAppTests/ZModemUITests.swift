@@ -59,12 +59,16 @@ final class ZModemUITests: XCTestCase {
         defer { TestApp.dispose(c) }
         let target = folder.appendingPathComponent("saved.txt")
         var suggested: String?
-        MainWindowController.zmodemSavePanel = { _, name, done in suggested = name; done(target) }
+        var suggestedFolder: URL?
+        MainWindowController.zmodemSavePanel = { _, name, folder, done in suggested = name; suggestedFolder = folder; done(target) }
         var ended = false
         let sz = remoteSz(pane, [("hello.txt", Array("hello zmodem".utf8))])
         sz.onFinished = { _ in ended = true }
         XCTAssertTrue(TestApp.pump(until: { ended }))
         XCTAssertEqual(suggested, "hello.txt")
+        XCTAssertEqual(suggestedFolder.map { ($0.path as NSString).resolvingSymlinksInPath },
+                       pane.currentDirectory().map { ($0 as NSString).resolvingSymlinksInPath },
+                       "a local pane's folder, as Export to file")
         XCTAssertEqual(try String(contentsOf: target, encoding: .utf8), "hello zmodem")
         let mode = try FileManager.default.attributesOfItem(atPath: target.path)[.posixPermissions] as? Int
         XCTAssertEqual(mode, 0o644, "Tabby writes 0644")
@@ -79,7 +83,7 @@ final class ZModemUITests: XCTestCase {
         let (c, pane) = try window()
         defer { TestApp.dispose(c) }
         let target = folder.appendingPathComponent("big.bin")
-        MainWindowController.zmodemSavePanel = { _, _, done in done(target) }
+        MainWindowController.zmodemSavePanel = { _, _, _, done in done(target) }
         var ended = false
         let big = (0..<400_000).map { UInt8($0 % 3) }
         let sz = remoteSz(pane, [("big.bin", big)])

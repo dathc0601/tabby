@@ -160,6 +160,47 @@ final class ZModemInteropTests: XCTestCase {
         XCTAssertTrue(received == Self.numbers, "\(received.count) of \(Self.numbers.count) bytes")
     }
 
+    /// M11: skipping the only (or last) file left the session open after sz exited, so the
+    /// shell's prompt was swallowed.
+    func testSkippingTheLastFileEndsTheSession() throws {
+        var errors: [String] = []
+        var finished = false
+        var tail: [UInt8] = []
+        let done = DispatchSemaphore(value: 0)
+        let sentry = ZModemSentry()
+        let receiver = ZModemReceiver()
+        var stdinHandle: FileHandle?
+        var detected = false
+        var got = 0
+        receiver.toRemote = { bytes in try? stdinHandle?.write(contentsOf: Data(bytes)) }
+        receiver.onOffer = { _ in receiver.accept() }
+        receiver.onData = { data in
+            got += data.count
+            if got > 100_000 { receiver.skipCurrent() }
+        }
+        receiver.onFinished = { rest in finished = true; tail = rest; done.signal() }
+        receiver.onError = { errors.append($0); done.signal() }
+        let (process, stdin) = try run("cd /tmp && head -c 3000000 /dev/zero > big && sz big; echo AFTER") { bytes in
+            if finished { tail += bytes; return }
+            if detected { receiver.feed(bytes); return }
+            let r = sentry.feed(bytes)
+            if r.detection == .receive {
+                detected = true
+                receiver.start()
+                receiver.feed(r.protocolBytes)
+            }
+        }
+        stdinHandle = stdin
+        let ended = done.wait(timeout: .now() + 20)
+        Thread.sleep(forTimeInterval: 1)
+        queue.sync {}
+        try? stdin.close()
+        process.waitUntilExit()
+        XCTAssertEqual(ended, .success, "the session ended")
+        XCTAssertEqual(errors, [])
+        XCTAssertTrue(String(decoding: tail, as: UTF8.self).contains("AFTER"), String(decoding: tail, as: UTF8.self).debugDescription)
+    }
+
     func testSendingToRz() throws {
         let big = (0..<200_000).map { UInt8(truncatingIfNeeded: $0 &* 2654435761 >> 7) }
         let files: [(String, [UInt8])] = [("first file.txt", Array("hello\n".utf8)), ("data.bin", big)]

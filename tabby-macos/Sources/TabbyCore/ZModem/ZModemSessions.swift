@@ -436,6 +436,8 @@ public final class ZModemSentry {
         public var detection: Detection?
         /// The header and the rest of the chunk, for the session.
         public var protocolBytes: [UInt8] = []
+        /// How many of `protocolBytes` are the header itself.
+        public var headerLength = 0
     }
 
     private enum Check { case partial, no, header(UInt8) }
@@ -479,6 +481,7 @@ public final class ZModemSentry {
             case .header(let type) where type == ZModemFrameType.rqinit.rawValue || type == ZModemFrameType.rinit.rawValue:
                 result.detection = type == ZModemFrameType.rqinit.rawValue ? .receive : .send
                 result.protocolBytes = held + again + Array(bytes[i...])
+                result.headerLength = held.count
                 held = []
                 return result
             case .header, .no:

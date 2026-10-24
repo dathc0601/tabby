@@ -2684,6 +2684,9 @@ msgstr "không tới được mạng"
 msgid "no answer from the proxy"
 msgstr "proxy không trả lời"
 
+msgid "no answer from the remote"
+msgstr "phía bên kia không trả lời"
+
 msgid "no answer from the server"
 msgstr "máy chủ không trả lời"
 

@@ -455,6 +455,13 @@ public final class TerminalPane: TerminalEngineDelegate {
             start()
             return
         }
+        // Every way keys reach the session (typing, the ctrl-c hotkey, broadcast) can cancel
+        // a ZMODEM transfer. ★ That Ctrl-C stays here: through a terminal it would interrupt
+        // sz/rz before they could end the session (Tabby passes it on).
+        if zmodem.isActive && data == Data([0x03]) {
+            zmodem.userInput([0x03])
+            return
+        }
         session?.write(InputProcessing.translate(data, backspace: InputProcessing.backspaceMode(profile.options)))
         if settings.scrollOnInput { engine?.scroll(.bottom) }
         if let s = String(data: data, encoding: .utf8) {
@@ -571,7 +578,6 @@ public final class TerminalPane: TerminalEngineDelegate {
     public func engine(_ engine: TerminalEngine, send data: Data) {
         onUserInput?(self, data)
         send(data)
-        if zmodem.isActive { zmodem.userInput(Array(data)) }
     }
 
     public func engine(_ engine: TerminalEngine, resized cols: Int, rows: Int) {

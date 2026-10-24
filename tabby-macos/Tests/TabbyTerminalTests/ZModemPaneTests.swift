@@ -61,4 +61,21 @@ final class ZModemPaneTests: XCTestCase {
         try XCTUnwrap(factory.sessions.last).onOutput?(Data("new shell$ ".utf8))
         XCTAssertTrue(engine.text.hasSuffix("new shell$ "), engine.text.suffix(30).debugDescription)
     }
+
+    /// M11: Ctrl-C is a hotkey whose command writes 0x03 with `send(text:)`, past the engine,
+    /// so it never cancelled a transfer.
+    func testCtrlCFromTheHotkeyCancels() throws {
+        let (pane, _, factory) = try makeFakePane(type: "local")
+        defer { pane.close() }
+        let host = AcceptingHost()
+        pane.zmodemHost = host
+        pane.start()
+        try XCTUnwrap(factory.sessions.last).onOutput?(Data(ZModemEncoder().hexHeader(ZModemHeader(type: .rqinit))))
+        XCTAssertTrue(pane.zmodem.isActive)
+        let session = try XCTUnwrap(factory.sessions.last)
+        pane.send(text: "\u{03}")
+        XCTAssertFalse(pane.zmodem.isActive, "cancelled")
+        XCTAssertFalse(session.written.contains(Data([0x03])),
+                       "M11: through a terminal, the byte interrupted sz before it could finish the session")
+    }
 }

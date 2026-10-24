@@ -130,7 +130,7 @@ final class ZModemFileReader: ZModemTransferHandle {
 
 extension MainWindowController: ZModemHost {
     typealias ZModemAsk = (_ window: NSWindow?, _ tab: String, _ answer: @escaping (Bool) -> Void) -> Void
-    typealias ZModemSavePanel = (_ window: NSWindow?, _ name: String, _ done: @escaping (URL?) -> Void) -> Void
+    typealias ZModemSavePanel = (_ window: NSWindow?, _ name: String, _ folder: URL?, _ done: @escaping (URL?) -> Void) -> Void
     typealias ZModemOpenPanel = (_ window: NSWindow?, _ done: @escaping ([URL]) -> Void) -> Void
 
     static let defaultZModemAsk: ZModemAsk = { window, tab, answer in
@@ -138,9 +138,10 @@ extension MainWindowController: ZModemHost {
         Prompts.confirm(in: window, title: q.title, message: ZModemUI.message(for: tab), confirm: q.accept, cancel: q.reject,
                         completion: answer)
     }
-    static let defaultZModemSavePanel: ZModemSavePanel = { window, name, done in
+    static let defaultZModemSavePanel: ZModemSavePanel = { window, name, folder, done in
         let panel = NSSavePanel()
         panel.nameFieldStringValue = name
+        if let folder { panel.directoryURL = folder }
         if let window {
             panel.beginSheetModal(for: window) { done($0 == .OK ? panel.url : nil) }
         } else {
@@ -171,7 +172,9 @@ extension MainWindowController: ZModemHost {
     }
 
     func zmodemSave(_ info: ZModemFileInfo, in pane: TerminalPane, answer: @escaping (ZModemFileSink?) -> Void) {
-        Self.zmodemSavePanel(window, info.name) { [weak self] url in
+        // ★ A local pane's folder, as Export to file (Tabby's dialog has none).
+        let folder = pane.profile.type == "local" ? pane.currentDirectory().map { URL(fileURLWithPath: $0) } : nil
+        Self.zmodemSavePanel(window, info.name, folder) { [weak self] url in
             guard let url else { return answer(nil) }
             do {
                 answer(try ZModemFileWriter(url: url, info: info, host: pane.title))
