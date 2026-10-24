@@ -41,6 +41,11 @@ public struct TerminalSettings: Equatable {
     public var drawBoldTextInBrightColors: Bool
     public var minimumContrastRatio: Double
     public var useSchemeBackground: Bool
+    /// Extra points above and below each line (`terminal.linePadding`).
+    public var linePadding: Double
+    /// `terminal.paletteGenerate` / `terminal.paletteHarmonious`: colours 16–255 from the scheme.
+    public var paletteGenerate: Bool
+    public var paletteHarmonious: Bool
     public var environment: [String: String]
 
     public init(config c: ConfigStore) {
@@ -71,6 +76,9 @@ public struct TerminalSettings: Equatable {
         drawBoldTextInBrightColors = c.value("terminal.drawBoldTextInBrightColors")?.boolValue ?? true
         minimumContrastRatio = c.double("terminal.minimumContrastRatio") ?? 4
         useSchemeBackground = c.string("terminal.background") == "colorScheme"
+        linePadding = c.double("terminal.linePadding") ?? 0
+        paletteGenerate = c.bool("terminal.paletteGenerate")
+        paletteHarmonious = c.bool("terminal.paletteHarmonious")
         environment = (c.value("terminal.environment")?.objectValue ?? [:]).compactMapValues(\.stringValue)
     }
 }

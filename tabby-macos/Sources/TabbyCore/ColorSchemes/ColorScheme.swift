@@ -136,6 +136,29 @@ public final class ColorSchemeCatalog {
         (config.value("terminal.customColorSchemes")?.arrayValue ?? []).compactMap { ColorScheme(config: $0) }
     }
 
+    /// Renames a custom scheme, and the dark or light selection that uses it. Refuses an
+    /// empty name or one another custom scheme has.
+    @discardableResult
+    public static func renameCustom(_ name: String, to newName: String, in config: ConfigStore) -> Bool {
+        let trimmed = newName.trimmingCharacters(in: .whitespaces)
+        var list = config.value("terminal.customColorSchemes")?.arrayValue ?? []
+        guard !trimmed.isEmpty, trimmed != name, !list.contains(where: { $0["name"]?.stringValue == trimmed }),
+              let index = list.firstIndex(where: { $0["name"]?.stringValue == name }) else { return false }
+        list[index]["name"] = .string(trimmed)
+        config.set("terminal.customColorSchemes", .array(list))
+        for key in ["colorScheme", "lightColorScheme"] where config.value(at: ["terminal", key, "name"])?.stringValue == name {
+            config.set(at: ["terminal", key, "name"], .string(trimmed))
+        }
+        return true
+    }
+
+    /// Removes a custom scheme from the list; a selection or profile that embeds it keeps its
+    /// colours (Tabby stores whole schemes there).
+    public static func deleteCustom(_ name: String, in config: ConfigStore) {
+        let list = (config.value("terminal.customColorSchemes")?.arrayValue ?? []).filter { $0["name"]?.stringValue != name }
+        config.set("terminal.customColorSchemes", .array(list))
+    }
+
     public enum Mode: String, CaseIterable, Sendable { case dark, light, auto }
 
     /// Port of `ThemesService._getActiveColorScheme`: picks `terminal.colorScheme` or

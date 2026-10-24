@@ -406,11 +406,20 @@ struct AppearanceSettingsView: View {
                         Text(L("Light")).tag("light")
                     }
                 }
+                SettingsRow(L("Terminal background")) {
+                    RowSegments(selection: ConfigBinding.string("terminal.background")) {
+                        Text(L("From theme")).tag("theme")
+                        Text(L("From color scheme")).tag("colorScheme")
+                    }
+                }
             }
             SettingsGroup(L("Terminal font")) {
+                let fonts = Self.fontChoices(including: config.string("terminal.font"))
                 SettingsRow(L("Font")) {
                     RowPicker(selection: ConfigBinding.string("terminal.font")) {
-                        ForEach(Self.monospacedFamilies(including: config.string("terminal.font")), id: \.self) { Text($0).tag($0) }
+                        ForEach(fonts.monospaced, id: \.self) { Text($0).tag($0) }
+                        Divider()
+                        ForEach(fonts.others, id: \.self) { Text($0).tag($0) }
                     }
                 }
                 SettingsRow(L("Size")) {
@@ -418,8 +427,17 @@ struct AppearanceSettingsView: View {
                 }
                 SettingsRow(L("Weight")) {
                     RowPicker(selection: ConfigBinding.int("terminal.fontWeight")) {
-                        ForEach([300, 400, 500, 600, 700], id: \.self) { Text("\($0)").tag($0) }
+                        ForEach(Self.weights, id: \.self) { Text("\($0)").tag($0) }
                     }
+                }
+                SettingsRow(L("Line padding"), subtitle: L("Space above and below each line")) {
+                    RowStepper(value: ConfigBinding.double("terminal.linePadding"), range: 0...10, step: 1) { "\(Int($0)) pt" } // l10n-ignore: a unit
+                }
+                SettingsRow(L("Preview")) {
+                    Text(verbatim: "AaBb 0123 {}[]() -> != ~/") // l10n-ignore: sample terminal text
+                        .font(.custom(config.string("terminal.font") ?? "Menlo", size: config.double("terminal.fontSize") ?? 14) // l10n-ignore: a font name
+                            .weight(Self.fontWeight(config.int("terminal.fontWeight") ?? 400)))
+                        .lineLimit(1)
                 }
                 SettingsRow(L("Fallback font")) { RowField(placeholder: L("None"), text: ConfigBinding.optionalString("terminal.fallbackFont")) }
                 SettingsRow(L("Draw bold text in bright colours"), isOn: ConfigBinding.bool("terminal.drawBoldTextInBrightColors"))
@@ -445,14 +463,34 @@ struct AppearanceSettingsView: View {
         }
     }
 
-    static func monospacedFamilies(including current: String?) -> [String] {
-        let manager = NSFontManager.shared
-        var families = manager.availableFontFamilies.filter { family in
-            guard let font = NSFont(name: family, size: 12) else { return false }
+    /// Tabby's weights: 100–900.
+    static let weights = Array(stride(from: 100, through: 900, by: 100))
+
+    /// Every font family: the monospaced ones first (with the configured font, even one this
+    /// Mac doesn't have), then the rest, as Tabby lists every font.
+    static func fontChoices(including current: String?) -> (monospaced: [String], others: [String]) {
+        let all = NSFontManager.shared.availableFontFamilies
+        var mono = all.filter { family in
+            guard let font = NSFont(name: family, size: 12) else { return family.lowercased().contains("mono") }
             return font.isFixedPitch || family.lowercased().contains("mono")
         }
-        if let current, !families.contains(current) { families.insert(current, at: 0) }
-        return families
+        if let current, !current.isEmpty, !mono.contains(current) { mono.insert(current, at: 0) }
+        let set = Set(mono)
+        return (mono, all.filter { !set.contains($0) })
+    }
+
+    static func fontWeight(_ value: Int) -> Font.Weight {
+        switch value {
+        case ..<150: return .ultraLight
+        case ..<250: return .thin
+        case ..<350: return .light
+        case ..<450: return .regular
+        case ..<550: return .medium
+        case ..<650: return .semibold
+        case ..<750: return .bold
+        case ..<850: return .heavy
+        default: return .black
+        }
     }
 }
 

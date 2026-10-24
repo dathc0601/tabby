@@ -166,6 +166,9 @@ msgstr ""
 msgid "Block"
 msgstr ""
 
+msgid "Block cursor foreground"
+msgstr ""
+
 msgid "Bracketed paste"
 msgstr ""
 
@@ -406,6 +409,9 @@ msgstr ""
 msgid "Cursor"
 msgstr ""
 
+msgid "Cursor text"
+msgstr ""
+
 msgid "Custom baud rate"
 msgstr ""
 
@@ -637,6 +643,12 @@ msgstr ""
 msgid "From {host}"
 msgstr ""
 
+msgid "Generate 256-color palette"
+msgstr ""
+
+msgid "Generate extended 256-color palette from your base 16 colors"
+msgstr ""
+
 msgid "GitHub"
 msgstr ""
 
@@ -644,6 +656,9 @@ msgid "Global hotkey"
 msgstr ""
 
 msgid "Good"
+msgstr ""
+
+msgid "Harmonious palette"
 msgstr ""
 
 msgid "Have an account? Sign in"
@@ -997,6 +1012,9 @@ msgstr ""
 msgid "Overrides the colour scheme for this profile's tabs."
 msgstr ""
 
+msgid "Palette"
+msgstr ""
+
 msgid "Pane {index} of {total} maximised"
 msgstr ""
 
@@ -1045,6 +1063,9 @@ msgstr ""
 msgid "Press up to three keys in a row for a chord."
 msgstr ""
 
+msgid "Preview"
+msgstr ""
+
 msgid "Previous Pane"
 msgstr ""
 
@@ -1073,6 +1094,9 @@ msgid "Process exited with code {code}. Press any key to restart."
 msgstr ""
 
 msgid "Process terminated. Press any key to restart."
+msgstr ""
+
+msgid "Profiles and appearances that use it keep its colours."
 msgstr ""
 
 msgid "Profiles and keys stay usable here, unsynced"
@@ -1169,6 +1193,9 @@ msgid "Removes the connection messages once connected"
 msgstr ""
 
 msgid "Removing a Mac signs it out; it stops receiving updates."
+msgstr ""
+
+msgid "Rename color scheme"
 msgstr ""
 
 msgid "Rename pane"
@@ -1315,6 +1342,12 @@ msgstr ""
 msgid "Selection"
 msgstr ""
 
+msgid "Selection foreground"
+msgstr ""
+
+msgid "Selection text"
+msgstr ""
+
 msgid "Send"
 msgstr ""
 
@@ -1427,6 +1460,9 @@ msgid "Skip the login banner"
 msgstr ""
 
 msgid "Socket error: {reason}"
+msgstr ""
+
+msgid "Space above and below each line"
 msgstr ""
 
 msgid "Split Down"
@@ -1802,6 +1838,9 @@ msgid "When the tab is restored; the remote shell must report it (OSC 7)"
 msgstr ""
 
 msgid "Where forwarded X11 connections go; empty uses $DISPLAY"
+msgstr ""
+
+msgid "Whether to invert generated light theme colors. This helps give the 256-color palette more semantic meaning."
 msgstr ""
 
 msgid "While connected, change them from Ports on the connection chip"

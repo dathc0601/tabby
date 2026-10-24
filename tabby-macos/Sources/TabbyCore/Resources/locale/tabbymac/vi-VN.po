@@ -212,6 +212,9 @@ msgstr "Nhấp nháy"
 msgid "Block"
 msgstr "Khối"
 
+msgid "Block cursor foreground"
+msgstr "Màu chữ dưới con trỏ khối"
+
 msgid "Blue"
 msgstr "Xanh dương"
 
@@ -571,6 +574,9 @@ msgstr "Tiến trình hiện tại: {name}"
 
 msgid "Cursor"
 msgstr "Con trỏ"
+
+msgid "Cursor text"
+msgstr "Chữ dưới con trỏ"
 
 msgid "Custom"
 msgstr "Tuỳ chỉnh"
@@ -947,11 +953,23 @@ msgstr "Chuyển tiếp bắt đầu cùng phiên"
 msgid "Frame"
 msgstr "Khung cửa sổ"
 
+msgid "From color scheme"
+msgstr "Theo bảng màu"
+
+msgid "From theme"
+msgstr "Theo giao diện"
+
 msgid "From {host}"
 msgstr "Từ {host}"
 
 msgid "General"
 msgstr "Chung"
+
+msgid "Generate 256-color palette"
+msgstr "Tạo bảng 256 màu"
+
+msgid "Generate extended 256-color palette from your base 16 colors"
+msgstr "Tạo bảng 256 màu mở rộng từ 16 màu cơ bản"
 
 msgid "GitHub"
 msgstr "GitHub"
@@ -976,6 +994,9 @@ msgstr "Proxy HTTP"
 
 msgid "HTTP proxy host"
 msgstr "Máy proxy HTTP"
+
+msgid "Harmonious palette"
+msgstr "Bảng màu hài hòa"
 
 msgid "Have an account? Sign in"
 msgstr "Đã có tài khoản? Đăng nhập"
@@ -1186,6 +1207,9 @@ msgstr "Từng dòng"
 
 msgid "Line editor, input is sent after you press Enter"
 msgstr "Trình soạn dòng, dữ liệu được gửi sau khi bạn nhấn Enter"
+
+msgid "Line padding"
+msgstr "Khoảng đệm dòng"
 
 msgid "Links"
 msgstr "Liên kết"
@@ -1529,6 +1553,9 @@ msgstr "Xuống dòng ở đầu ra"
 msgid "Overrides the colour scheme for this profile's tabs."
 msgstr "Thay bảng màu cho các tab của hồ sơ này."
 
+msgid "Palette"
+msgstr "Bảng màu"
+
 msgid "Pane resize step"
 msgstr "Bước đổi kích thước khung"
 
@@ -1607,6 +1634,9 @@ msgstr "Cổng"
 msgid "Press up to three keys in a row for a chord."
 msgstr "Nhấn tối đa ba tổ hợp phím liên tiếp để tạo chuỗi phím."
 
+msgid "Preview"
+msgstr "Xem trước"
+
 msgid "Previous Pane"
 msgstr "Khung trước"
 
@@ -1654,6 +1684,9 @@ msgstr "Hồ sơ & kết nối…"
 
 msgid "Profiles & connections"
 msgstr "Hồ sơ & kết nối"
+
+msgid "Profiles and appearances that use it keep its colours."
+msgstr "Các hồ sơ và giao diện đang dùng vẫn giữ màu của nó."
 
 msgid "Profiles and keys stay usable here, unsynced"
 msgstr "Hồ sơ và khoá vẫn dùng được ở đây, nhưng không đồng bộ"
@@ -1786,6 +1819,9 @@ msgstr "Đổi tên"
 
 msgid "Rename Tab…"
 msgstr "Đổi tên tab…"
+
+msgid "Rename color scheme"
+msgstr "Đổi tên bảng màu"
 
 msgid "Rename pane"
 msgstr "Đổi tên khung"
@@ -2000,6 +2036,12 @@ msgstr "Chọn thư mục đích cho {name}"
 msgid "Selection"
 msgstr "Vùng chọn"
 
+msgid "Selection foreground"
+msgstr "Màu chữ khi chọn"
+
+msgid "Selection text"
+msgstr "Chữ khi chọn"
+
 msgid "Send"
 msgstr "Gửi"
 
@@ -2171,6 +2213,9 @@ msgstr "Gửi chậm"
 msgid "Socket error: {reason}"
 msgstr "Lỗi socket: {reason}"
 
+msgid "Space above and below each line"
+msgstr "Khoảng trống trên và dưới mỗi dòng"
+
 msgid "Spaciness"
 msgstr "Độ thoáng"
 
@@ -2326,6 +2371,9 @@ msgstr "Phiên Telnet"
 
 msgid "Terminal"
 msgstr "Terminal"
+
+msgid "Terminal background"
+msgstr "Nền terminal"
 
 msgid "Terminal font"
 msgstr "Phông chữ terminal"
@@ -2653,6 +2701,9 @@ msgstr "Khi tab được khôi phục; shell ở máy chủ phải báo thư m�
 
 msgid "Where forwarded X11 connections go; empty uses $DISPLAY"
 msgstr "Nơi các kết nối X11 được chuyển tiếp tới; để trống sẽ dùng $DISPLAY"
+
+msgid "Whether to invert generated light theme colors. This helps give the 256-color palette more semantic meaning."
+msgstr "Có đảo màu được tạo cho giao diện sáng hay không. Điều này giúp bảng 256 màu mang nghĩa rõ ràng hơn."
 
 msgid "While connected, change them from Ports on the connection chip"
 msgstr "Khi đang kết nối, hãy đổi chúng từ mục Cổng trên nhãn kết nối"
