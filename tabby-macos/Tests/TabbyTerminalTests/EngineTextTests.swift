@@ -1,14 +1,17 @@
 #if canImport(AppKit)
 import XCTest
 import AppKit
+import SwiftTerm
 @testable import TabbyCore
 @testable import TabbyTerminal
 
 /// Phase 6 on the real SwiftTerm view: formatted copy, word separators, the buffer for
 /// "Export to file". A private pasteboard keeps the user's clipboard out of it.
 final class EngineTextTests: XCTestCase {
-    func engine(_ user: [String: ConfigValue] = [:]) throws -> (SwiftTermEngine, NSPasteboard) {
-        let config = ConfigStore(defaults: try ConfigStore.bundledDefaults(), user: .object(["terminal": .object(user)]))
+    func engine(_ user: [String: ConfigValue] = [:], clickableLinks: String? = nil) throws -> (SwiftTermEngine, NSPasteboard) {
+        var root: [String: ConfigValue] = ["terminal": .object(user)]
+        if let clickableLinks { root["clickableLinks"] = .object(["modifier": .string(clickableLinks)]) }
+        let config = ConfigStore(defaults: try ConfigStore.bundledDefaults(), user: .object(root))
         let settings = TerminalSettings(config: config)
         let engine = SwiftTermEngine(frame: CGRect(x: 0, y: 0, width: 600, height: 200), settings: settings)
         engine.apply(settings: settings, scheme: .tabbyDefault, fontSize: settings.fontSize)
@@ -80,6 +83,46 @@ final class EngineTextTests: XCTestCase {
         let (ssh, sshEngine, _) = try makeFakePane(type: "ssh")
         ssh.engine(sshEngine, directoryChanged: "~/src")
         XCTAssertEqual(ssh.currentDirectory(), "~/src", "the remote home is unknown here")
+    }
+
+    final class LinkSpy: TerminalEngineDelegate {
+        var links: [String] = []
+        func engine(_ engine: TerminalEngine, send data: Data) {}
+        func engine(_ engine: TerminalEngine, resized cols: Int, rows: Int) {}
+        func engine(_ engine: TerminalEngine, titleChanged title: String) {}
+        func engine(_ engine: TerminalEngine, directoryChanged directory: String?) {}
+        func engineBell(_ engine: TerminalEngine) {}
+        func engineDidFocus(_ engine: TerminalEngine) {}
+        func engine(_ engine: TerminalEngine, paste text: String) {}
+        func engineSelectionChanged(_ engine: TerminalEngine) {}
+        func engine(_ engine: TerminalEngine, openLink link: String) { links.append(link) }
+    }
+
+    func testTheLinkSettingPicksHowSwiftTermReportsLinks() throws {
+        let (plain, _) = try engine()
+        XCTAssertEqual(plain.linkReporting, .implicit)
+        XCTAssertEqual(plain.linkHighlightMode, .hover, "Tabby's default: a plain click opens a link")
+        let (command, _) = try engine(clickableLinks: "metaKey")
+        XCTAssertEqual(command.linkHighlightMode, .hoverWithModifier)
+        let (shift, _) = try engine(clickableLinks: "shiftKey")
+        XCTAssertEqual(shift.linkReporting, LinkReporting.none, "⇧ and ⌥ clicks are handled by TabbyMac")
+    }
+
+    func testAClickOpensTheLinkUnderItWithTheRightKey() throws {
+        let (plain, _) = try engine()
+        let spy = LinkSpy()
+        plain.engineDelegate = spy
+        plain.feed(Data("ping 192.168.1.10 or https://example.com/x".utf8))
+        plain.clickLink(column: 8, row: 0, modifiers: [])
+        XCTAssertEqual(spy.links, ["192.168.1.10"], "SwiftTerm doesn't detect bare addresses; TabbyMac does")
+        let (shift, _) = try engine(clickableLinks: "shiftKey")
+        let shiftSpy = LinkSpy()
+        shift.engineDelegate = shiftSpy
+        shift.feed(Data("see https://example.com/x now".utf8))
+        shift.clickLink(column: 8, row: 0, modifiers: [])
+        XCTAssertEqual(shiftSpy.links, [], "the key is required")
+        shift.clickLink(column: 8, row: 0, modifiers: [.shift])
+        XCTAssertEqual(shiftSpy.links, ["https://example.com/x"])
     }
 
     func testTheBufferTextIncludesTheScrollback() throws {

@@ -248,6 +248,8 @@ hacks:
   enableFluentBackground: false
   globalHotkey: null
 language: null
+clickableLinks:
+  modifier: null
 defaultQuickConnectProvider: ssh
 showProfileTree: false
 # TabbyMac personal account and sync (not in Tabby). Stays on this Mac; never synced.

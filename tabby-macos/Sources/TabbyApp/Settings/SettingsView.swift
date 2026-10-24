@@ -545,6 +545,14 @@ struct TerminalSettingsView: View {
                 SettingsRow(L("Paste on middle click"), isOn: ConfigBinding.bool("terminal.pasteOnMiddleClick"))
                 SettingsRow(L("Option key acts as Meta"), isOn: ConfigBinding.bool("terminal.altIsMeta"))
                 SettingsRow(L("Scroll to bottom on input"), isOn: ConfigBinding.bool("terminal.scrollOnInput"))
+                SettingsRow(L("Require a key to click links"), subtitle: L("When enabled, links are only clickable while holding this key")) {
+                    RowPicker(selection: ConfigBinding.optionalString("clickableLinks.modifier")) {
+                        Text(L("No modifier")).tag("")
+                        Text(verbatim: "⌥").tag("altKey")
+                        Text(L("Shift")).tag("shiftKey")
+                        Text(verbatim: "⌘").tag("metaKey")
+                    }
+                }
                 SettingsRow(L("Word separators"), subtitle: L("Double-click selection will stop at these characters")) {
                     RowField(placeholder: TerminalTextDefaults.wordSeparator, text: ConfigBinding.optionalString("terminal.wordSeparator"), width: 140)
                 }

@@ -19,6 +19,8 @@ public struct TerminalSettings: Equatable {
     /// the background (Electron's `flashFrame`).
     public var bellFlashFrame: Bool
     public var copyOnSelect: Bool
+    /// Tabby's `clickableLinks.modifier`: the key a click on a link needs.
+    public var linkModifier: LinkModifier
     /// Tabby's `terminal.focusFollowsMouse`.
     public var focusFollowsMouse: Bool
     /// Tabby's `terminal.copyAsHTML` ("Copy with formatting"): copies carry HTML too.
@@ -51,6 +53,7 @@ public struct TerminalSettings: Equatable {
         bellFlashFrame = c.bool("terminal.bellFlashFrame")
         copyOnSelect = c.bool("terminal.copyOnSelect")
         focusFollowsMouse = c.bool("terminal.focusFollowsMouse")
+        linkModifier = LinkModifier(config: c.string("clickableLinks.modifier"))
         copyAsHTML = c.value("terminal.copyAsHTML")?.boolValue ?? true
         wordSeparator = c.string("terminal.wordSeparator") ?? TerminalTextDefaults.wordSeparator
         rightClick = RightClick(rawValue: c.string("terminal.rightClick") ?? "menu") ?? .menu

@@ -36,6 +36,7 @@ public protocol TerminalEngine: AnyObject {
 
 public extension TerminalEngineDelegate {
     func engineClicked(_ engine: TerminalEngine) {}
+    func engine(_ engine: TerminalEngine, openLink link: String) {}
 }
 
 public protocol TerminalEngineDelegate: AnyObject {
@@ -48,6 +49,8 @@ public protocol TerminalEngineDelegate: AnyObject {
     func engineDidFocus(_ engine: TerminalEngine)
     /// A left click in the terminal (ends broadcasting to every tab, as in Tabby).
     func engineClicked(_ engine: TerminalEngine)
+    /// The user clicked a link (a URL, an address or a path, as shown); the pane decides.
+    func engine(_ engine: TerminalEngine, openLink link: String)
     /// The user chose Paste (menu, ⌘V, middle click); the pane decides how to send it.
     func engine(_ engine: TerminalEngine, paste text: String)
     func engineSelectionChanged(_ engine: TerminalEngine)

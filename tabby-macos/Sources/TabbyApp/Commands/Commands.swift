@@ -2,6 +2,7 @@
 import AppKit
 import TabbyCore
 import TabbyTerminal
+import TabbyCLIKit
 
 /// Hotkey / menu / palette command dispatch for a window. The ids are Tabby's hotkey ids
 /// (`tabby-core/src/hotkeys.ts`, `tabby-terminal/src/hotkeys.ts`), so `hotkeys:` in an
@@ -344,6 +345,32 @@ extension MainWindowController {
         model.focus(paneID: pane.id)
         let bracketed = pane.settings.bracketedPaste && pane.engine?.isBracketedPasteMode == true
         for chunk in PathDrop.text(for: urls.map(\.path), bracketed: bracketed) { pane.send(text: chunk) }
+    }
+
+    // MARK: Links
+
+    static let defaultOpenURL: (URL) -> Void = { NSWorkspace.shared.open($0) }
+    /// Hands a URL to its app (tests record it).
+    static var openURL: (URL) -> Void = defaultOpenURL
+
+    /// A clicked link (Tabby's linkifier): web links and addresses go to their app, `ssh://`
+    /// and `telnet://` open a quick-connect tab, and a path that exists on this Mac (resolved
+    /// against a local pane's folder) opens in its default app.
+    func openLink(_ link: String, from pane: TerminalPane) {
+        let target = LinkTarget.resolve(link, cwd: pane.currentDirectory(), home: NSHomeDirectory(),
+                                        local: pane.profile.type == "local") { FileManager.default.fileExists(atPath: $0) }
+        switch target {
+        case .web(let string)?:
+            URL(string: string).map(Self.openURL)
+        case .file(let path)?:
+            Self.openURL(URL(fileURLWithPath: path))
+        case .quickConnect(let string)?:
+            guard let url = URL(string: string), case let .quickConnect(provider, query)? = TabbyURL.parse(url),
+                  let profile = AppServices.shared.profiles.quickConnect(query, providerId: provider) else { return }
+            model.openTab(profile: profile)
+        case nil:
+            break
+        }
     }
 
     // MARK: Export to file

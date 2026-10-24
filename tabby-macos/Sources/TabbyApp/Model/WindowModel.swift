@@ -16,6 +16,8 @@ public protocol WindowModelUI: AnyObject {
     func notifyActivity(_ pane: TerminalPane)
     /// The terminal bell rang in `pane` (phase 5: the Dock bounce).
     func paneRang(_ pane: TerminalPane)
+    /// The user clicked a link in `pane` (phase 6).
+    func openLink(_ link: String, from pane: TerminalPane)
     func modelDidBecomeEmpty()
     /// Asks which port and baud rate a serial profile without them should use (Tabby asks
     /// the rate in `getNewTabParameters`); the completion gets the profile with the answers.
@@ -28,6 +30,7 @@ public extension WindowModelUI {
     func notifyProcessCompleted(_ pane: TerminalPane, processName: String) {}
     func notifyActivity(_ pane: TerminalPane) {}
     func paneRang(_ pane: TerminalPane) {}
+    func openLink(_ link: String, from pane: TerminalPane) {}
 }
 
 /// Tabs of one window (Tabby's `AppService` for a window).
@@ -120,6 +123,9 @@ public final class WindowModel {
             MainActor.assumeIsolated {
                 for other in self?.broadcastTargets(from: p) ?? [] { other.sendPaste(text) }
             }
+        }
+        pane.onOpenLink = { [weak self] p, link in
+            MainActor.assumeIsolated { self?.ui?.openLink(link, from: p) }
         }
         pane.onClick = { [weak self] _ in
             MainActor.assumeIsolated { self?.broadcastAllTabs = false }

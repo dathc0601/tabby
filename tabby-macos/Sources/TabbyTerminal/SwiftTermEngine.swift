@@ -25,6 +25,9 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
     private var copyOnSelect = false
     private var copyAsHTML = true
     private var wordSeparator = TerminalTextDefaults.wordSeparator
+    private var linkModifier: LinkModifier = .none
+    /// SwiftTerm opened a link during the current mouse-up.
+    private var openedLink = false
     private var pasteOnMiddleClick = true
     private var appliedScrollback = 0
     private var lastApplied: (TerminalSettings, ColorScheme, Double)?
@@ -103,6 +106,19 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
         copyOnSelect = settings.copyOnSelect
         copyAsHTML = settings.copyAsHTML
         wordSeparator = settings.wordSeparator
+        linkModifier = settings.linkModifier
+        // SwiftTerm underlines and opens links itself on a plain click (.hover) or a ⌘-click;
+        // for ⌥ and ⇧ (and ⌃ from a Tabby config) TabbyMac looks them up on the click.
+        switch linkModifier {
+        case .none:
+            linkReporting = .implicit
+            linkHighlightMode = .hover
+        case .command:
+            linkReporting = .implicit
+            linkHighlightMode = .hoverWithModifier
+        case .option, .shift, .control:
+            linkReporting = .none
+        }
         pasteOnMiddleClick = settings.pasteOnMiddleClick
         needsDisplay = true
     }
@@ -209,8 +225,43 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
     }
 
     public override func mouseUp(with event: NSEvent) {
+        openedLink = false
         super.mouseUp(with: event)
         if copyOnSelect { _ = copySelection() }
+        if event.clickCount == 1, !openedLink, !selectionActive,
+           let (column, row) = cell(at: convert(event.locationInWindow, from: nil)) {
+            clickLink(column: column, row: row, modifiers: event.modifierFlags)
+        }
+    }
+
+    /// A click on a cell: opens the link there when the key Tabby's setting asks for is held —
+    /// one SwiftTerm leaves to TabbyMac (⌥/⇧ modes) or a form it doesn't detect (a bare IPv4
+    /// address, `www.…`).
+    func clickLink(column: Int, row: Int, modifiers: NSEvent.ModifierFlags) {
+        let held: Bool
+        switch linkModifier {
+        case .none: held = true
+        case .option: held = modifiers.contains(.option)
+        case .shift: held = modifiers.contains(.shift)
+        case .command: held = modifiers.contains(.command)
+        case .control: held = modifiers.contains(.control)
+        }
+        guard held else { return }
+        let t = getTerminal()
+        if linkReporting == .none, let link = t.link(at: .screen(Position(col: column, row: row)), mode: .explicitAndImplicit) {
+            engineDelegate?.engine(self, openLink: link)
+            return
+        }
+        let bufferRow = row + t.buffer.yDisp
+        guard let line = t.getScrollInvariantLine(row: bufferRow + t.buffer.totalLinesTrimmed) else { return }
+        let text = String((0..<min(line.count, t.cols)).map { i -> Character in
+            let cd = line[i]
+            let ch = cd.width == 0 ? " " : t.getCharacter(for: cd)
+            return ch == "\0" ? " " : ch
+        })
+        if let link = LinkDetector.match(in: text, at: column) {
+            engineDelegate?.engine(self, openLink: link)
+        }
     }
 
     /// The visible cell under `point` (column, row from the top of the screen).
@@ -382,12 +433,11 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
 
     public func scrolled(source: TerminalView, position: Double) {}
 
+    /// SwiftTerm found a link under the click (OSC 8 or its own detection): the pane decides
+    /// what it opens (Tabby's linkifier handlers).
     public func requestOpenLink(source: TerminalView, link: String, params: [String: String]) {
-        if let url = URL(string: link), url.scheme != nil {
-            NSWorkspace.shared.open(url)
-        } else if link.hasPrefix("/") || link.hasPrefix("~") {
-            NSWorkspace.shared.open(URL(fileURLWithPath: (link as NSString).expandingTildeInPath))
-        }
+        openedLink = true
+        engineDelegate?.engine(self, openLink: link)
     }
 
     /// SwiftTerm reports the bell to its delegate only in audible mode; TabbyMac needs it in

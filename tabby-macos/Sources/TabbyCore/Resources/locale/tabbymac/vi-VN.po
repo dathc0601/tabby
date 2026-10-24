@@ -1274,6 +1274,9 @@ msgstr "Không có kịch bản đăng nhập"
 msgid "No matches for “{query}”"
 msgstr "Không có kết quả cho “{query}”"
 
+msgid "No modifier"
+msgstr "Không cần phím"
+
 msgid "No ports found"
 msgstr "Không tìm thấy cổng nào"
 
@@ -1688,6 +1691,9 @@ msgstr "Thay các cài đặt này bằng {path}"
 msgid "Report a problem"
 msgstr "Báo lỗi"
 
+msgid "Require a key to click links"
+msgstr "Cần giữ phím khi nhấp liên kết"
+
 msgid "Reset"
 msgstr "Đặt lại"
 
@@ -1909,6 +1915,9 @@ msgstr "Hình dạng"
 
 msgid "Shell"
 msgstr "Shell"
+
+msgid "Shift"
+msgstr "Shift"
 
 msgid "Show"
 msgstr "Hiện"
@@ -2449,6 +2458,9 @@ msgstr "Chào mừng đến với TabbyMac"
 
 msgid "What to sync"
 msgstr "Đồng bộ những gì"
+
+msgid "When enabled, links are only clickable while holding this key"
+msgstr "Khi bật, chỉ nhấp được liên kết khi đang giữ phím này"
 
 msgid "When the bell rings while TabbyMac is in the background"
 msgstr "Khi chuông reo lúc TabbyMac đang chạy nền"
