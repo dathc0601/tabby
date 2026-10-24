@@ -122,8 +122,11 @@ public struct Profile: Hashable, Identifiable, Sendable {
         "\(type):custom:\(Slug.make(name)):\(UUID().uuidString.lowercased())"
     }
 
-    /// The hotkey id Tabby uses to open this profile (`profile.<id with . -> ->`).
-    public var hotkeyId: String { "profile." + id.replacingOccurrences(of: ".", with: "-") }
+    /// Tabby's `getProfileHotkeyName`: the id with `.` turned into `-` (a hotkey path segment).
+    public var hotkeyName: String { (id.isEmpty ? name : id).replacingOccurrences(of: ".", with: "-") }
+
+    /// The hotkey id Tabby uses to open this profile (`profile.<hotkeyName>`).
+    public var hotkeyId: String { "profile." + hotkeyName }
 }
 
 /// A profile group. Groups nest through `parentGroupId` and can carry per-provider defaults.
