@@ -37,6 +37,7 @@ final class SplitTreeView: NSView {
             _ = self.tab.focusedPaneID
             _ = self.tab.broadcastInput
             _ = self.tab.isRearranging
+            _ = self.controller?.model.broadcastAllTabs
             for pane in self.tab.orderedPanes {
                 _ = pane.customTitle
                 _ = pane.customTitleVisible
@@ -73,7 +74,7 @@ final class SplitTreeView: NSView {
                 view.isHidden = false
                 view.frame = f
                 // Every pane looks focused while input goes to all of them, as in Tabby.
-                let focused = tab.broadcastInput || tab.focusedPaneID == id
+                let focused = tab.broadcastInput || controller?.model.broadcastAllTabs == true || tab.focusedPaneID == id
                 view.showsFocusRing = multiple && focused && tab.maximizedPaneID == nil
                 view.isDimmed = multiple && !focused && tab.maximizedPaneID == nil
                 view.labelIndex = multiple && tab.maximizedPaneID == nil ? tab.layout.panes.firstIndex(of: id).map { $0 + 1 } : nil
@@ -550,12 +551,26 @@ final class PaneContainerView: NSView {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
-        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect], owner: self))
+        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .mouseMoved, .activeInKeyWindow, .inVisibleRect], owner: self))
     }
 
     override func mouseEntered(with event: NSEvent) {
         overlay.isHovering = true
         needsLayout = true
+        pointerMoved()
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        super.mouseMoved(with: event)
+        pointerMoved()
+    }
+
+    /// Tabby's `terminal.focusFollowsMouse`: moving the pointer over a pane focuses it.
+    func pointerMoved() {
+        guard AppServices.shared.terminalSettings.focusFollowsMouse, !pane.isFocused,
+              let model = controller?.model, model.activeTab?.panes[pane.id] != nil,
+              model.activeTab?.focusedPaneID != pane.id else { return }
+        model.focus(paneID: pane.id)
     }
 
     override func mouseExited(with event: NSEvent) {

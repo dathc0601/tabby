@@ -81,6 +81,9 @@ extension MainWindowController {
         case "pane-increase-horizontal": model.resizePane(.horizontal, grow: true)
         case "pane-decrease-horizontal": model.resizePane(.horizontal, grow: false)
         case "pane-focus-all": if let t = model.activeTab { t.broadcastInput.toggle() }
+        case "focus-all-tabs":
+            guard model.activePane != nil || model.broadcastAllTabs else { return false }
+            model.broadcastAllTabs.toggle()
         case "rename-pane": if let pane { renamePaneAsking(pane) }
         case "toggle-pane-label":
             guard let pane, pane.customTitle?.isEmpty == false else { return false }
@@ -356,6 +359,7 @@ extension MainWindowController {
         splitItem.submenu = split
         menu.addItem(splitItem)
         item(L("Broadcast Input to All Panes"), "pane-focus-all", checked: model.activeTab?.broadcastInput == true)
+        item(L("Broadcast Input to All Tabs"), "focus-all-tabs", checked: model.broadcastAllTabs)
         item(L("Select All"), "select-all")
         item(L("Clear"), "clear")
         item(L("Export to file"), "export-buffer")

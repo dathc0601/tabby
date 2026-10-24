@@ -17,6 +17,8 @@ struct TabBarActions {
     var setColor: (TabModel, String?) -> Void
     /// A pane label dropped on the tab bar (rearranging): the pane becomes a tab.
     var detachPane: (UUID) -> Void = { _ in }
+    /// "Focus all tabs" is on (the tab menu's check mark).
+    var isBroadcastingToAllTabs: () -> Bool = { false }
 }
 
 enum TabBarPlacement {

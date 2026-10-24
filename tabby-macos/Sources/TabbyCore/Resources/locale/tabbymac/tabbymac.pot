@@ -169,6 +169,9 @@ msgstr ""
 msgid "Broadcast Input to All Panes"
 msgstr ""
 
+msgid "Broadcast Input to All Tabs"
+msgstr ""
+
 msgid "Built in"
 msgstr ""
 

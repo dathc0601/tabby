@@ -73,6 +73,18 @@ public final class WindowModel {
         return pane
     }
 
+    /// Tabby's "Focus all tabs" (`focus-all-tabs`): what is typed or pasted in the active
+    /// pane goes to every pane of every tab of this window, until a click in a terminal, a
+    /// tab switch, another pane taking focus, or the command again.
+    public var broadcastAllTabs = false
+
+    /// The panes that also get what `source` was given.
+    func broadcastTargets(from source: TerminalPane) -> [TerminalPane] {
+        if broadcastAllTabs { return tabs.flatMap(\.orderedPanes).filter { $0 !== source } }
+        guard let tab = tabs.first(where: { $0.panes[source.id] != nil }), tab.broadcastInput else { return [] }
+        return tab.orderedPanes.filter { $0 !== source }
+    }
+
     private func wire(_ pane: TerminalPane) {
         pane.onRequestClose = { [weak self] p in
             MainActor.assumeIsolated { self?.closePane(p.id, force: true) }
@@ -101,15 +113,16 @@ public final class WindowModel {
         }
         pane.onUserInput = { [weak self] p, data in
             MainActor.assumeIsolated {
-                guard let tab = self?.tabs.first(where: { $0.panes[p.id] != nil }), tab.broadcastInput else { return }
-                for other in tab.orderedPanes where other !== p { other.send(data) }
+                for other in self?.broadcastTargets(from: p) ?? [] { other.send(data) }
             }
         }
         pane.onPaste = { [weak self] p, text in
             MainActor.assumeIsolated {
-                guard let tab = self?.tabs.first(where: { $0.panes[p.id] != nil }), tab.broadcastInput else { return }
-                for other in tab.orderedPanes where other !== p { other.sendPaste(text) }
+                for other in self?.broadcastTargets(from: p) ?? [] { other.sendPaste(text) }
             }
+        }
+        pane.onClick = { [weak self] _ in
+            MainActor.assumeIsolated { self?.broadcastAllTabs = false }
         }
         pane.onRecoveryStateChanged = { [weak self] in
             MainActor.assumeIsolated { self?.onRecoveryStateChanged?() }
@@ -182,7 +195,10 @@ public final class WindowModel {
 
     public func select(_ id: UUID) {
         guard tabs.contains(where: { $0.id == id }) else { return }
-        if activeTabID != id { previousTabID = activeTabID }
+        if activeTabID != id {
+            previousTabID = activeTabID
+            broadcastAllTabs = false
+        }
         activeTabID = id
         mru.removeAll { $0 == id }
         mru.insert(id, at: 0)
@@ -321,6 +337,8 @@ public final class WindowModel {
 
     public func focus(paneID: UUID) {
         guard let tab = tabs.first(where: { $0.panes[paneID] != nil }) else { return }
+        // Tabby: the focused terminal losing focus ends "Focus all tabs".
+        if tab.focusedPaneID != paneID || activeTabID != tab.id { broadcastAllTabs = false }
         tab.focusedPaneID = paneID
         if tab.maximizedPaneID != nil && tab.maximizedPaneID != paneID { tab.maximizedPaneID = nil }
         if activeTabID != tab.id {

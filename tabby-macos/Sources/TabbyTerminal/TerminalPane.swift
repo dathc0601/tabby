@@ -105,6 +105,8 @@ public final class TerminalPane: TerminalEngineDelegate {
     @ObservationIgnored public var onRequestPasteConfirmation: ((TerminalPane, String) -> Void)?
     @ObservationIgnored public var onBell: ((TerminalPane) -> Void)?
     @ObservationIgnored public var onFocus: ((TerminalPane) -> Void)?
+    /// A left click in the terminal.
+    @ObservationIgnored public var onClick: ((TerminalPane) -> Void)?
     /// Fired whenever the session ends by itself; the app decides whether to notify
     /// (it does when it is not the active app).
     @ObservationIgnored public var onProcessEnded: ((TerminalPane, Int32?) -> Void)?
@@ -550,6 +552,10 @@ public final class TerminalPane: TerminalEngineDelegate {
         // Tabby: `if (!this.hasFocus) this.displayActivity()`.
         if !isFocused { hasActivity = true }
         onBell?(self)
+    }
+
+    public func engineClicked(_ engine: TerminalEngine) {
+        onClick?(self)
     }
 
     public func engineDidFocus(_ engine: TerminalEngine) {

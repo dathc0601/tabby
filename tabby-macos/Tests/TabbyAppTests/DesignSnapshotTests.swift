@@ -110,6 +110,10 @@ final class DesignSnapshotTests: XCTestCase {
         c.model.activeTab?.isRearranging = true
         TestApp.pump(0.4)
         try save(try XCTUnwrap(c.window?.contentView), "split-rearranging")
+        c.model.activeTab?.isRearranging = false
+        c.model.broadcastAllTabs = true
+        TestApp.pump(0.4)
+        try save(try XCTUnwrap(c.window?.contentView), "broadcast-all-tabs")
     }
 
     func testStartPage() throws {

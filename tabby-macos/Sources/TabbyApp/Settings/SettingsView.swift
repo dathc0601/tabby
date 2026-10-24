@@ -490,6 +490,10 @@ struct WindowSettingsView: View {
                 SettingsRow(L("Cycle through tabs"), subtitle: L("Next tab on the last tab goes back to the first"),
                             isOn: ConfigBinding.bool("appearance.cycleTabs"))
                 SettingsRow(L("Closing the last tab closes the window"), isOn: ConfigBinding.bool("appearance.lastTabClosesWindow"))
+            }
+            SettingsGroup(L("Panes")) {
+                SettingsRow(L("Focus follows mouse"), subtitle: L("Moving the mouse over an inactive pane will cause it to activate"),
+                            isOn: ConfigBinding.bool("terminal.focusFollowsMouse"))
                 SettingsRow(L("Pane resize step")) {
                     RowSlider(value: ConfigBinding.double("terminal.paneResizeStep"), range: 0.05...0.25, format: percent)
                 }

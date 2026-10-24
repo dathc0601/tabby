@@ -43,6 +43,7 @@ enum TabMenu {
         if tab.content == nil {
             command(L("Rename Tab…"), "rename-tab")
             command(L("Duplicate Tab"), "duplicate-tab")
+            command(L("Broadcast Input to All Tabs"), "focus-all-tabs", checked: actions.isBroadcastingToAllTabs())
             let notify = NotifyMenu.items(for: tab.focusedPane)
             if !notify.isEmpty { menu.addItem(.separator()) }
             for entry in notify {

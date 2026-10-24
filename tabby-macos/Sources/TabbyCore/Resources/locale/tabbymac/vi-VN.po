@@ -218,6 +218,12 @@ msgstr "Đưa tất cả ra trước"
 msgid "Broadcast Input to All Panes"
 msgstr "Gửi dữ liệu nhập tới mọi khung"
 
+msgid "Broadcast Input to All Tabs"
+msgstr "Gửi dữ liệu nhập tới mọi tab"
+
+msgid "Broadcast mode. Click anywhere to cancel."
+msgstr "Chế độ phát. Nhấp vào bất kỳ đâu để hủy."
+
 msgid "Built in"
 msgstr "Có sẵn"
 
@@ -806,6 +812,9 @@ msgstr "Chọn tất cả khung cùng lúc (phát chung)"
 msgid "Focus all tabs at once"
 msgstr "Chọn tất cả tab cùng lúc"
 
+msgid "Focus follows mouse"
+msgstr "Tiêu điểm theo chuột"
+
 msgid "Focus next pane"
 msgstr "Chuyển tới khung kế tiếp"
 
@@ -1159,6 +1168,9 @@ msgstr "Chuyển tab sang trái"
 
 msgid "Move tab to the right"
 msgstr "Chuyển tab sang phải"
+
+msgid "Moving the mouse over an inactive pane will cause it to activate"
+msgstr "Di chuột qua một khung không hoạt động sẽ kích hoạt khung đó"
 
 msgid "Name"
 msgstr "Tên"

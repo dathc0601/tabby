@@ -200,6 +200,7 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
     public override func mouseDown(with event: NSEvent) {
         super.mouseDown(with: event)
         engineDelegate?.engineDidFocus(self)
+        engineDelegate?.engineClicked(self)
         // SwiftTerm's double-click word is fixed (letters, digits, "._-"); Tabby's stops at
         // `terminal.wordSeparator`.
         if event.clickCount == 2, let (column, row) = cell(at: convert(event.locationInWindow, from: nil)) {
