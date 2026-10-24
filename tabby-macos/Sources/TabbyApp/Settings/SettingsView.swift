@@ -256,15 +256,16 @@ struct RowSlider: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Text(format(range.lowerBound)).font(.system(size: 11)).foregroundStyle(chrome.textFaint.color)
+            // The ends keep their width (the M11 walk found them squeezed to a letter a line).
+            Text(format(range.lowerBound)).font(.system(size: 11)).foregroundStyle(chrome.textFaint.color).fixedSize()
             Group {
                 if let step { Slider(value: value, in: range, step: step) } else { Slider(value: value, in: range) }
             }
             .controlSize(.small)
             .tint(chrome.accent.color)
             .frame(width: 180)
-            Text(format(range.upperBound)).font(.system(size: 11)).foregroundStyle(chrome.textFaint.color)
-            Text(format(value.wrappedValue)).font(.custom("Menlo", size: 11)).frame(width: 40, alignment: .trailing)
+            Text(format(range.upperBound)).font(.system(size: 11)).foregroundStyle(chrome.textFaint.color).fixedSize()
+            Text(format(value.wrappedValue)).font(.custom("Menlo", size: 11)).lineLimit(1).frame(width: 40, alignment: .trailing)
         }
     }
 }

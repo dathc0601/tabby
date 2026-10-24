@@ -46,6 +46,15 @@ final class LinkTests: XCTestCase {
         XCTAssertNil(LinkDetector.match(in: "version 1.2.3.4.5", at: 10), "not an address")
     }
 
+    /// M11 walk: SwiftTerm has no `telnet:` in its schemes and read `//127.0.0.1:2323` as a path.
+    func testTelnetAndSSHLinksAreFoundWhole() {
+        let line = "try telnet://127.0.0.1:2323 or ssh://me@host:22 now"
+        XCTAssertEqual(LinkDetector.match(in: line, at: 6), "telnet://127.0.0.1:2323")
+        XCTAssertEqual(LinkDetector.match(in: line, at: 20), "telnet://127.0.0.1:2323", "on the address too")
+        XCTAssertEqual(LinkDetector.schemeLink(in: line, at: 33), "ssh://me@host:22")
+        XCTAssertNil(LinkDetector.schemeLink(in: line, at: 1))
+    }
+
     func testTheModifierSetting() {
         XCTAssertEqual(LinkModifier(config: nil), .none)
         XCTAssertEqual(LinkModifier(config: "altKey"), .option)

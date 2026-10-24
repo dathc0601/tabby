@@ -65,6 +65,14 @@ final class SettingsLayoutTests: XCTestCase {
         XCTAssertLessThanOrEqual(size.height, 200, "the title and text are not squeezed into a narrow column")
     }
 
+    /// Found in the M11 walk: beside a long description, the sliders' end labels were squeezed
+    /// to one character a line ("0 . 8" stacked, "1 0 0 %") on the Window page.
+    func testSliderEndLabelsStayOnOneLine() {
+        let slider = RowSlider(value: .constant(1), range: 0.5...1, format: { "\(Int(($0 * 100).rounded()))%" }).chromeEnvironment()
+        let height = NSHostingController(rootView: slider).sizeThatFits(in: CGSize(width: 240, height: 400)).height
+        XCTAssertLessThanOrEqual(height, 24, "one line, not a column of digits")
+    }
+
     /// The page itself fits (rather than being cut off): 640 pt minus the 221 pt sidebar.
     func testTheColorSchemePageFitsBesideTheSidebar() {
         let host = NSHostingController(rootView: ColorSchemeSettingsView())

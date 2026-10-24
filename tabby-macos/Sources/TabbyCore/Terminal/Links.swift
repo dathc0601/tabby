@@ -92,14 +92,26 @@ public enum LinkTarget: Equatable, Sendable {
 public enum LinkDetector {
     static let ipv4 = #"(?<![\d.])(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?!\.?\d)(?::\d{1,5})?(?:/[^\s'"<>()]*)?"#
     static let www = #"(?<![\w.])www\.[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+(?::\d{1,5})?(?:/[^\s'"<>()]*)?"#
+    /// The links that open a quick-connect tab. SwiftTerm has no `telnet:` in its schemes and
+    /// reads the rest of such a link as the path `//host:port`.
+    static let scheme = #"(?<![\w+.-])(?:telnet|ssh)://[^\s'"<>()]*[^\s'"<>().,;:!?]"#
 
-    /// The address or `www.` link that covers character `column` of `line`.
+    /// The address, `www.` or `telnet://`/`ssh://` link that covers character `column` of `line`.
     public static func match(in line: String, at column: Int) -> String? {
+        first(of: [scheme, ipv4, www], in: line, at: column)
+    }
+
+    /// The `telnet://` or `ssh://` link that covers character `column` of `line`.
+    public static func schemeLink(in line: String, at column: Int) -> String? {
+        first(of: [scheme], in: line, at: column)
+    }
+
+    private static func first(of patterns: [String], in line: String, at column: Int) -> String? {
         guard column >= 0, column < line.count else { return nil }
         let index = line.index(line.startIndex, offsetBy: column)
         let utf16 = index.utf16Offset(in: line)
         let ns = NSRange(line.startIndex..., in: line)
-        for pattern in [ipv4, www] {
+        for pattern in patterns {
             guard let re = try? NSRegularExpression(pattern: pattern) else { continue }
             for m in re.matches(in: line, range: ns) where NSLocationInRange(utf16, m.range) {
                 return Range(m.range, in: line).map { String(line[$0]) }

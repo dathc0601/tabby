@@ -229,6 +229,8 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
 
     public override func mouseUp(with event: NSEvent) {
         openedLink = false
+        clickedCell = cell(at: convert(event.locationInWindow, from: nil))
+        defer { clickedCell = nil }
         super.mouseUp(with: event)
         if copyOnSelect { _ = copySelection() }
         if event.clickCount == 1, !openedLink, !selectionActive,
@@ -251,20 +253,33 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
         }
         guard held else { return }
         let t = getTerminal()
-        if linkReporting == .none, let link = t.link(at: .screen(Position(col: column, row: row)), mode: .explicitAndImplicit) {
+        let found = linkReporting == .none ? t.link(at: .screen(Position(col: column, row: row)), mode: .explicitAndImplicit) : nil
+        if let link = link(column: column, row: row, swiftTerm: found) {
             engineDelegate?.engine(self, openLink: link)
-            return
         }
-        let bufferRow = row + t.buffer.yDisp
-        guard let line = t.getScrollInvariantLine(row: bufferRow + t.buffer.totalLinesTrimmed) else { return }
-        let text = String((0..<min(line.count, t.cols)).map { i -> Character in
+    }
+
+    /// The cell of the click SwiftTerm is handling (set around `super.mouseUp`).
+    var clickedCell: (Int, Int)?
+
+    /// What a click on a cell opens: a `telnet://`/`ssh://` link first (SwiftTerm reads
+    /// `telnet://host` as the path `//host`), then what SwiftTerm found, then the forms only
+    /// TabbyMac detects (a bare address, `www.…`).
+    func link(column: Int, row: Int, swiftTerm: String?) -> String? {
+        let text = rowText(row)
+        if let link = LinkDetector.schemeLink(in: text, at: column) { return link }
+        return swiftTerm ?? LinkDetector.match(in: text, at: column)
+    }
+
+    /// The visible row's characters, one per cell.
+    private func rowText(_ row: Int) -> String {
+        let t = getTerminal()
+        guard let line = t.getScrollInvariantLine(row: row + t.buffer.yDisp + t.buffer.totalLinesTrimmed) else { return "" }
+        return String((0..<min(line.count, t.cols)).map { i -> Character in
             let cd = line[i]
             let ch = cd.width == 0 ? " " : t.getCharacter(for: cd)
             return ch == "\0" ? " " : ch
         })
-        if let link = LinkDetector.match(in: text, at: column) {
-            engineDelegate?.engine(self, openLink: link)
-        }
     }
 
     /// The visible cell under `point` (column, row from the top of the screen).
@@ -440,7 +455,8 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
     /// what it opens (Tabby's linkifier handlers).
     public func requestOpenLink(source: TerminalView, link: String, params: [String: String]) {
         openedLink = true
-        engineDelegate?.engine(self, openLink: link)
+        let chosen = clickedCell.flatMap { self.link(column: $0.0, row: $0.1, swiftTerm: link) } ?? link
+        engineDelegate?.engine(self, openLink: chosen)
     }
 
     /// SwiftTerm reports the bell to its delegate only in audible mode; TabbyMac needs it in

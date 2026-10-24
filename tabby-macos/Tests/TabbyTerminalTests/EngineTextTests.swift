@@ -125,6 +125,24 @@ final class EngineTextTests: XCTestCase {
         XCTAssertEqual(shiftSpy.links, ["https://example.com/x"])
     }
 
+    /// M11 walk: a plain click on `telnet://127.0.0.1:2323` did nothing. SwiftTerm doesn't know
+    /// the scheme and reported the rest as the path `//127.0.0.1:2323`.
+    func testATelnetLinkIsNotTakenForAPath() throws {
+        let (plain, _) = try engine()
+        let spy = LinkSpy()
+        plain.engineDelegate = spy
+        plain.feed(Data("telnet://127.0.0.1:2323".utf8))
+        plain.clickedCell = (3, 0)
+        plain.requestOpenLink(source: plain, link: "//127.0.0.1:2323", params: [:])
+        XCTAssertEqual(spy.links, ["telnet://127.0.0.1:2323"])
+        let (shift, _) = try engine(clickableLinks: "shiftKey")
+        let shiftSpy = LinkSpy()
+        shift.engineDelegate = shiftSpy
+        shift.feed(Data("telnet://127.0.0.1:2323".utf8))
+        shift.clickLink(column: 3, row: 0, modifiers: [.shift])
+        XCTAssertEqual(shiftSpy.links, ["telnet://127.0.0.1:2323"], "SwiftTerm's own lookup (⇧ mode) too")
+    }
+
     final class ReplySpy: TerminalEngineDelegate {
         var sent = Data()
         func engine(_ engine: TerminalEngine, send data: Data) { sent.append(data) }
