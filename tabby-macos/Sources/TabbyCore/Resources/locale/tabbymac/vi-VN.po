@@ -719,6 +719,9 @@ msgstr "Bỏ qua"
 msgid "Display on"
 msgstr "Hiển thị trên"
 
+msgid "Displays a full tree of profiles in the sidebar."
+msgstr "Hiện toàn bộ cây hồ sơ ở thanh bên."
+
 msgid "Do not abort"
 msgstr "Không huỷ"
 
@@ -2158,6 +2161,9 @@ msgstr "Hiện biểu tượng hồ sơ"
 
 msgid "Show profile selector"
 msgstr "Hiện bộ chọn hồ sơ"
+
+msgid "Show profile sidebar"
+msgstr "Hiện thanh bên hồ sơ"
 
 msgid "Show recent profiles in selector"
 msgstr "Hiện hồ sơ gần đây trong bộ chọn"

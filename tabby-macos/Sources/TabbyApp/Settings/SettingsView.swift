@@ -530,6 +530,8 @@ struct WindowSettingsView: View {
                         Text(L("Native")).tag("native")
                     }
                 }
+                SettingsRow(L("Show profile sidebar"), subtitle: L("Displays a full tree of profiles in the sidebar."),
+                            isOn: ConfigBinding.bool("showProfileTree"))
                 SettingsRow(L("Tab bar location")) {
                     RowSegments(selection: ConfigBinding.string("appearance.tabsLocation")) {
                         Text(L("Top")).tag("top")

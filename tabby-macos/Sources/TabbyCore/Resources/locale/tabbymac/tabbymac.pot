@@ -499,6 +499,9 @@ msgstr ""
 msgid "Dismiss"
 msgstr ""
 
+msgid "Displays a full tree of profiles in the sidebar."
+msgstr ""
+
 msgid "Dock"
 msgstr ""
 
@@ -1409,6 +1412,9 @@ msgid "Show pane label"
 msgstr ""
 
 msgid "Show profile icon"
+msgstr ""
+
+msgid "Show profile sidebar"
 msgstr ""
 
 msgid "Show tab index"
