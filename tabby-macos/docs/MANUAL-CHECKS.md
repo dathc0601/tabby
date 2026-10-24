@@ -497,6 +497,44 @@ default-handler item is the owner's. A telnet quick connect uses the line editor
 `inputMode: readline`), so against busybox, which echoes too, each line shows twice after a
 "> " prompt, as in Tabby.
 
+## M11 Terminal and tab parity (phase 6)
+
+Run the app built by Xcode with its own config folder (as in M10), the busybox telnetd on
+127.0.0.1:2323, and lrzsz in Docker (`scripts/lrzsz-image.sh`, then
+`docker run --rm -it tabbymac-lrzsz:1 bash` in a local tab). Links that would open a browser
+or another app are left to the owner.
+
+- [ ] Export to file (pane menu and tab menu): the save panel suggests terminal.txt; the
+      file holds the whole buffer with its scrollback; a toast says "Saved to <path>".
+- [ ] Copy with formatting: `printf '\e[31mred\e[0m plain'`, select it, ⌘C: the clipboard
+      holds HTML as well as text; turned off in Settings › Terminal, text only.
+- [ ] Word separators: a double-click on `/usr/local/bin:x` selects all of it; with " /" in
+      Settings › Terminal › Word separators it selects `usr`.
+- [ ] In a split: the pane menu offers "Rename pane"; a name shows as a label at the pane's
+      top; "Show pane label" hides it. A single pane has no "Rename pane".
+- [ ] Holding ⌃⇧ shows a label on every pane; letting go hides them. *Dragging a label onto
+      another pane's side, an outer edge or the tab bar is a mouse drag: left to the owner.*
+- [ ] Focus follows mouse (Settings › Window › Panes): moving the pointer over another pane
+      focuses it.
+- [ ] ⌘⌥⇧I (or the menus' "Broadcast Input to All Tabs"): a red border and the banner
+      "Broadcast mode. Click anywhere to cancel."; what is typed reaches every tab; a click in
+      a terminal ends it.
+- [ ] *Dropping files from Finder on a pane types their quoted paths: a mouse drag, left to
+      the owner.*
+- [ ] OSC 1337: in a telnet tab, `printf '\033]1337;CurrentDir=/tmp\a'`, then "Save as
+      profile": the new profile in config.yaml has `cwd: /tmp`.
+- [ ] New terminal / New with profile ▸ (pane menu and tab menu): from a shell in a folder,
+      the new tab opens in that folder; the submenu lists the local profiles.
+- [ ] Save as profile: asks for a name; the new profile keeps the pane's folder; "Saved".
+- [ ] Links: a plain click on an `ssh://` link opens a tab; with "Require a key to click
+      links" set to ⌘, a plain click doesn't and a ⌘-click does. *Web, address and file links
+      open other apps: left to the owner (unit tests cover what they resolve to).*
+- [ ] ZMODEM: `sz` in the container asks "Accept a ZMODEM session?"; Accept, a save panel,
+      the status lines (ZMODEM, Offered, %, Received, Complete) and a transfers row; the file
+      matches. `rz` asks again, an open panel, "Sent"; the container has the file. Reject
+      tells sz no. Ctrl-C during a big `sz` cancels the file.
+- [ ] Settings › Terminal shows "Sixel graphics support (experimental)" (on by default).
+
 ## Findings
 
 | Date | Milestone | Finding | Fix |

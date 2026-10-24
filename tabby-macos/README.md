@@ -62,16 +62,16 @@ The first launch starts with defaults. To bring over your Electron Tabby setup, 
 **Settings → Application → Import Tabby's config.yaml**. Your Electron Tabby files are only
 read, never written.
 
-## What works (phases 1 to 5)
+## What works (phases 1 to 6)
 
 | Area | Status |
 |---|---|
 | Local shells | Login shell, one built-in profile per `/etc/shells` entry, custom local profiles, cwd inheritance for new tabs and splits |
-| Terminal | SwiftTerm VT engine, 191 bundled colour schemes, font, cursor, scrollback, bell, search (⌘F), zoom, copy on select, right-click modes, middle-click paste, multi-line paste warning, bracketed paste, progress in tab, OSC title and OSC 7 cwd |
+| Terminal | SwiftTerm VT engine, 191 bundled colour schemes, font, cursor, scrollback, bell, search (⌘F), zoom, copy on select (with formatting), word separators, right-click modes, middle-click paste, multi-line paste warning, bracketed paste, progress in tab, OSC title, OSC 7 and OSC 1337 folders, Export to file, dropped files type their paths, clickable links (URLs, addresses, paths, `ssh://`) with Tabby's key option, ZMODEM (`sz`/`rz`) with the transfers list, Sixel switch |
 | Tabs | New, close, reopen, rename, duplicate, pin, colour, reorder by drag, tabs on any side, MRU and index switching |
-| Split panes | Split in four directions, drag dividers, keyboard navigation, maximize, resize, broadcast input, explode and combine tabs |
+| Split panes | Split in four directions, drag dividers, keyboard navigation, maximize, resize, broadcast input to a tab's panes or to every tab, explode and combine tabs, rename a pane (its label), rearrange panes by holding ⌃⇧ and dragging, focus follows mouse |
 | Hotkeys | All Tabby hotkey ids with macOS defaults, multi-key chords, editor with capture, menu shortcuts follow the config |
-| Profiles | Selector (⌘E) with recents, groups, built-ins, quick connect; editor for local, SSH, serial and telnet profiles; save layout as profile |
+| Profiles | Selector (⌘E) with recents, groups, built-ins, quick connect; editor for local, SSH, serial and telnet profiles; save layout as profile; save a pane as profile; New terminal / New with profile from the tab and pane menus |
 | SSH | Built-in client (libssh): password, key, agent and keyboard-interactive auth (2FA panel in the pane); host keys in known_hosts with a changed-key warning; passwords in the login keychain; jump-host chains; SOCKS/HTTP proxies and proxy commands; agent and X11 forwarding; shared connections; `~/.ssh/config` import; Test connection. `ssh.backend: openssh` uses the system OpenSSH client instead |
 | SFTP and forwards | SFTP panel in the pane (browse, filter, upload by drop, download, folder download, Edit locally, delete); transfers popover; live local, remote and dynamic (SOCKS) port forwards from the connection chip |
 | Serial | Ports listed through IOKit and kept current; a profile per port, ⌥K selector, quick connect `/dev/cu.x@9600`; asks for the port and baud rate when a profile has none; data/stop bits, parity, RTS/CTS and XON/XOFF, slow feed; change the rate while connected from the chip's popover |

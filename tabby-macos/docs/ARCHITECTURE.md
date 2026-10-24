@@ -8,8 +8,8 @@ modules with plain protocols and registries instead.
 
 | Module | Platform | Role | Tabby counterpart |
 |---|---|---|---|
-| `TabbyCore` | macOS, Linux | Config store and migrations, profiles and groups, hotkeys and chord matching, split layout tree, recovery tokens, colour schemes and chrome palette, ssh_config import and generation, serial and telnet providers, stream processing, the telnet protocol, localization (`L()` over Tabby's `.po` catalogs) | `tabby-core`, parts of `tabby-terminal`, `tabby-ssh`, `tabby-community-color-schemes` |
-| `TabbyTerminal` | macOS, Linux (except `SwiftTermEngine`) | `PTYProcess`, `TerminalSession`, `LocalSession`, `ProcessedSession`, `TerminalPane` controller, output processing, `SwiftTermEngine` view | `tabby-terminal`, `tabby-local`, `app/lib/pty.ts` |
+| `TabbyCore` | macOS, Linux | Config store and migrations, profiles and groups, hotkeys and chord matching, split layout tree, recovery tokens, colour schemes and chrome palette, ssh_config import and generation, serial and telnet providers, stream processing, the telnet protocol, localization (`L()` over Tabby's `.po` catalogs), ZMODEM (`TabbyCore/ZModem`), link resolution and formatted copy (`TabbyCore/Terminal`) | `tabby-core`, parts of `tabby-terminal`, `tabby-ssh`, `tabby-community-color-schemes` |
+| `TabbyTerminal` | macOS, Linux (except `SwiftTermEngine`) | `PTYProcess`, `TerminalSession`, `LocalSession`, `ProcessedSession`, `TerminalPane` controller, output processing, `ZModemBridge`, `SwiftTermEngine` view | `tabby-terminal`, `tabby-local`, `app/lib/pty.ts` |
 | `TabbySSH` | macOS, Linux | `SSHSession` over system OpenSSH (the `openssh` backend), askpass server, password stores | `tabby-ssh` |
 | `TabbySSHLib` | macOS | The `library` backend over libssh (`CLibSSH`): `SSHConnection`, `LibSSHSession`, `SSHConnector` (sharing, jump hosts), port forwards, `SFTPClient` | `tabby-ssh` (russh) |
 | `TabbySerial` | macOS | `SerialPort` (termios, `IOSSIOSPEED`, exclusive open), `SerialPortList` (IOKit, hot-plug), `SerialSession` | `tabby-serial` (serialport) |
@@ -158,6 +158,14 @@ in-app toast shows as well, because macOS refuses banners to ad-hoc signed build
 | `tabby-core/src/services/locale.service.ts`, `locale/*.po` | `TabbyCore/L10n`, `Resources/locale` |
 | `app/lib/cli.ts`, `app/lib/urlHandler.ts`, `*/src/cli.ts` (`CLIHandler`s) | `TabbyCLIKit`, `TabbyCLI` (`tabby`), `CLIRouter` |
 | `tabby-core/src/tabContextMenu.ts` (`TaskCompletionContextMenu`), `app.service.ts` (`CompletionObserver`) | `NotifyMenu`, `TerminalPane.setNotifyWhenDone`, `Notifier` |
+| `tabby-core/src/tabContextMenu.ts` (`CommonOptionsContextMenu`), `splitTabPaneLabel.component.ts`, `splitTabDropZone.component.ts` | `TabMenu`, `PaneLabels.swift` (`PaneTitleLabel`, `RearrangeOverlayView`), `SplitTreeView.paneDropZone`, `SplitLayout.move` |
+| `tabby-terminal/src/services/multifocus.service.ts` | `WindowModel.broadcastAllTabs`, `BroadcastIndicatorView` |
+| `tabby-terminal/src/tabContextMenu.ts` (`SaveAsProfileContextMenu`), `tabby-local/src/tabContextMenu.ts` (`NewTabContextMenu`) | `saveAsProfile`, `openNewTerminal`, `NewTabMenu` |
+| `tabby-electron/src/terminalContextMenu.ts`, `pathDrop.ts` | `exportBuffer`, `dropFiles`, `PathDrop` |
+| `tabby-terminal/src/frontends/xtermFrontend.ts` (`copyAsHTML`, `wordSeparator`) | `TerminalHTML`, `WordSelection`, `SwiftTermEngine.copySelection` |
+| `tabby-terminal/src/middleware/oscProcessing.ts` | `TerminalOSC`, `SwiftTermEngine.iTermContent` |
+| `tabby-linkifier/src/*` | `LinkTarget`, `LinkDetector`, `LinkModifier`, `MainWindowController.openLink` |
+| `tabby-terminal/src/features/zmodem.ts` (zmodem.js) | `TabbyCore/ZModem`, `ZModemBridge`, `ZModemUI` |
 
 ## Roadmap
 
@@ -181,5 +189,12 @@ in-app toast shows as well, because macOS refuses banners to ad-hoc signed build
 5. **More of Tabby (phase 5).** Localization from Tabby's catalogs plus Vietnamese,
    per-tab "Notify when done" and "Notify on activity", the bell's Dock flash, `ssh://` and
    `telnet://` links, the `tabby` command line. On-screen checks in M10.
-6. **Next.** SwiftTerm 2.x once Xcode 26 is the baseline; translating TabbyMac's own
-   strings into Tabby's other languages; plugins.
+6. **Terminal and tab parity (phase 6).** Export to file, copy with formatting, word
+   separators, pane labels and rearranging panes, focus follows mouse, broadcast to every
+   tab, OSC 1337 folders, dropped files, New terminal / New with profile, Save as profile,
+   Tabby's link options, ZMODEM, the Sixel switch. On-screen checks in M11.
+7. **Next.** The settings and profile editors Tabby has and TabbyMac lacks (group editing,
+   per-group and per-type defaults, the environment editor), macOS integration (Dock menu,
+   Finder services, menu bar icon, updates), Tabby's vault; native versions of popular
+   plugins; TabbyMac's own strings in Tabby's other languages; SwiftTerm 2.0 once it is
+   released (1.99 previews need Swift 6.2).
