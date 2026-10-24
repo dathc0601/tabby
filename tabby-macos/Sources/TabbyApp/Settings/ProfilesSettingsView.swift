@@ -24,9 +24,9 @@ struct ProfilesSettingsView: View {
         let all = FuzzyMatcher.filter(registry.allProfiles(includeHidden: showHidden), query: filter) { "\($0.name) \(registry.groupPath($0.group))" }
         let sections = Self.sections(all, registry: registry)
         let selected = all.first { $0.id == selection }
-        SettingsPage("Profiles & connections") {
+        SettingsPage(L("Profiles & connections")) {
             SettingsGroup {
-                SettingsRow("Default profile for new tabs") {
+                SettingsRow(L("Default profile for new tabs")) {
                     RowPicker(selection: ConfigBinding.string("terminal.profile")) {
                         ForEach(registry.allProfiles(includeHidden: true).filter { !$0.isTemplate }, id: \.id) { p in Text(p.name).tag(p.id) }
                     }
@@ -35,12 +35,12 @@ struct ProfilesSettingsView: View {
             HStack(spacing: 10) {
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass").foregroundStyle(chrome.textMuted.color)
-                    TextField("Filter profiles", text: $filter).textFieldStyle(.plain)
+                    TextField(L("Filter profiles"), text: $filter).textFieldStyle(.plain)
                 }
                 .padding(.horizontal, 8)
                 .frame(height: 26)
                 .background(RoundedRectangle(cornerRadius: 6).fill(chrome.fill.color))
-                Toggle("Show hidden", isOn: $showHidden).toggleStyle(.checkbox)
+                Toggle(L("Show hidden"), isOn: $showHidden).toggleStyle(.checkbox)
                 Menu {
                     ForEach(ProfileTypes.creatable, id: \.self) { type in
                         Button {
@@ -52,7 +52,7 @@ struct ProfilesSettingsView: View {
                         }
                     }
                 } label: {
-                    Label("New", systemImage: "plus")
+                    Label(L("New"), systemImage: "plus")
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
@@ -79,26 +79,26 @@ struct ProfilesSettingsView: View {
                         }
                     }
                     if sections.isEmpty {
-                        Text(filter.isEmpty ? "No profiles" : "No profiles match “\(filter)”")
+                        Text(filter.isEmpty ? L("No profiles") : L("No profiles match “{filter}”", ["filter": filter]))
                             .foregroundStyle(chrome.textMuted.color).padding(20)
                     }
                 }
                 .padding(6)
                 Rectangle().fill(chrome.separator.color).frame(height: 1)
                 HStack(spacing: 4) {
-                    IconButton(symbol: "plus", help: "New local profile", size: 24) { editing = EditableProfile(ProfileTypes.newProfile("local"), isNew: true) }
-                    IconButton(symbol: "minus", help: "Delete profile", size: 24) { if let selected { delete(selected, registry: registry) } }
+                    IconButton(symbol: "plus", help: L("New local profile"), size: 24) { editing = EditableProfile(ProfileTypes.newProfile("local"), isNew: true) }
+                    IconButton(symbol: "minus", help: L("Delete profile"), size: 24) { if let selected { delete(selected, registry: registry) } }
                         .disabled(selected.map { $0.isBuiltin } ?? true)
                     Rectangle().fill(chrome.separator.color).frame(width: 1, height: 16).padding(.horizontal, 4)
-                    Button { if let selected { duplicate(selected) } } label: { Label("Duplicate", systemImage: "doc.on.doc") }
+                    Button { if let selected { duplicate(selected) } } label: { Label(L("Duplicate"), systemImage: "doc.on.doc") }
                         .disabled(selected == nil)
                     Button { if let selected { toggleHidden(selected, registry: registry) } } label: {
-                        Label(selected?.extra["hidden"]?.boolValue == true ? "Unhide" : "Hide", systemImage: "eye.slash")
+                        Label(selected?.extra["hidden"]?.boolValue == true ? L("Unhide") : L("Hide"), systemImage: "eye.slash")
                     }
                     .disabled(selected.map { $0.isBuiltin } ?? true)
-                    Button { newGroup(registry: registry) } label: { Label("New group", systemImage: "folder.badge.plus") }
+                    Button { newGroup(registry: registry) } label: { Label(L("New group"), systemImage: "folder.badge.plus") }
                     Spacer()
-                    Button(selected?.isBuiltin == true ? "Duplicate…" : "Edit…") { if let selected { edit(selected) } }
+                    Button(selected?.isBuiltin == true ? L("Duplicate…") : L("Edit…")) { if let selected { edit(selected) } }
                         .buttonStyle(ChromeButtonStyle(kind: .primary))
                         .keyboardShortcut(.defaultAction)
                         .disabled(selected == nil)
@@ -123,15 +123,15 @@ struct ProfilesSettingsView: View {
 
     @ViewBuilder
     private func menu(for p: Profile, registry: ProfileRegistry) -> some View {
-        Button("Open in a new tab") { _ = WindowManager.shared.activeController?.model.openTab(profile: p) }
-        Button("Use for new tabs") { AppServices.shared.config.set("terminal.profile", .string(p.id)) }
+        Button(L("Open in a new tab")) { _ = WindowManager.shared.activeController?.model.openTab(profile: p) }
+        Button(L("Use for new tabs")) { AppServices.shared.config.set("terminal.profile", .string(p.id)) }
         Divider()
-        if !p.isBuiltin { Button("Edit…") { edit(p) } }
-        Button("Duplicate") { duplicate(p) }
+        if !p.isBuiltin { Button(L("Edit…")) { edit(p) } }
+        Button(L("Duplicate")) { duplicate(p) }
         if !p.isBuiltin {
-            Button(p.extra["hidden"]?.boolValue == true ? "Unhide" : "Hide") { toggleHidden(p, registry: registry) }
+            Button(p.extra["hidden"]?.boolValue == true ? L("Unhide") : L("Hide")) { toggleHidden(p, registry: registry) }
             Divider()
-            Button("Delete…", role: .destructive) { delete(p, registry: registry) }
+            Button(L("Delete…"), role: .destructive) { delete(p, registry: registry) }
         }
     }
 
@@ -156,9 +156,9 @@ struct ProfilesSettingsView: View {
 
     private func delete(_ p: Profile, registry: ProfileRegistry) {
         guard !p.isBuiltin else { return }
-        Prompts.confirm(in: NSApp.keyWindow, title: "Delete “\(p.name)”?",
-                        message: "The profile is removed here and, when profiles sync, on your other Macs. A password saved for it stays in the Keychain (Settings › Vault).",
-                        confirm: "Delete", destructive: true) { ok in
+        Prompts.confirm(in: NSApp.keyWindow, title: L("Delete “{name}”?", ["name": p.name]),
+                        message: L("The profile is removed here and, when profiles sync, on your other Macs. A password saved for it stays in the Keychain (Settings › Vault)."),
+                        confirm: L("Delete"), destructive: true) { ok in
             guard ok else { return }
             registry.delete(profileId: p.id)
             if selection == p.id { selection = nil }
@@ -166,7 +166,7 @@ struct ProfilesSettingsView: View {
     }
 
     private func newGroup(registry: ProfileRegistry) {
-        Prompts.text(in: NSApp.keyWindow, title: "New group", value: "", confirm: "Create") { name, _ in
+        Prompts.text(in: NSApp.keyWindow, title: L("New group"), value: "", confirm: L("Create")) { name, _ in
             guard let name = name?.trimmingCharacters(in: .whitespaces), !name.isEmpty,
                   !registry.groups.contains(where: { $0.name == name }) else { return }
             registry.save(ProfileGroup(name: name))
@@ -185,7 +185,7 @@ struct ProfilesSettingsView: View {
         var map: [String: [Profile]] = [:]
         var colors: [String: String] = [:]
         for p in profiles where !p.isTemplate {
-            let title = p.isBuiltin ? (p.group ?? "Built-in") : (registry.groupPath(p.group).isEmpty ? "Ungrouped" : registry.groupPath(p.group))
+            let title = p.isBuiltin ? (p.group ?? L("Built-in")) : (registry.groupPath(p.group).isEmpty ? L("Ungrouped") : registry.groupPath(p.group))
             if map[title] == nil { order.append(title) }
             map[title, default: []].append(p)
             if let g = registry.groups.first(where: { $0.id == p.group }), let c = g.color { colors[title] = c }
@@ -245,7 +245,7 @@ private struct ProfileListRow: View {
             if let tint { StatusDot(color: tint, size: 7) }
             if hidden { Image(systemName: "eye.slash").font(.system(size: 11)).foregroundStyle(muted.color) }
             if isDefault {
-                Text("Default").font(.system(size: 10, weight: .semibold)).padding(.horizontal, 6).frame(height: 16)
+                Text(L("Default")).font(.system(size: 10, weight: .semibold)).padding(.horizontal, 6).frame(height: 16)
                     .foregroundStyle((isSelected ? chrome.onAccent : chrome.accent).color)
                     .background(Capsule().fill((isSelected ? chrome.onAccent.withAlpha(0.2) : chrome.accentFill).color))
             }
@@ -279,9 +279,19 @@ struct EditableProfile: Identifiable {
 /// are preserved.
 struct ProfileEditorSheet: View {
     enum Page: String, CaseIterable, Identifiable {
-        case general = "General", ports = "Ports", advanced = "Advanced", ciphers = "Ciphers", colors = "Colours",
-             scripts = "Login scripts"
+        case general = "General", ports = "Ports", advanced = "Advanced", ciphers = "Ciphers", colors = "Colours", // l10n-ignore: ids
+             scripts = "Login scripts" // l10n-ignore: id
         var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .general: return L("General")
+            case .ports: return L("Ports")
+            case .advanced: return L("Advanced")
+            case .ciphers: return L("Ciphers")
+            case .colors: return L("Colours")
+            case .scripts: return L("Login scripts")
+            }
+        }
     }
 
     let item: EditableProfile
@@ -408,11 +418,11 @@ struct ProfileEditorSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     common
-                    Picker("", selection: $page) { ForEach(pages) { Text($0.rawValue).tag($0) } }
+                    Picker("", selection: $page) { ForEach(pages) { Text($0.title).tag($0) } }
                         .pickerStyle(.segmented).labelsHidden()
                     switch page {
                     case .general: generalPage
-                    case .ports: AnyView(SettingsGroup("Forwarded ports") { PortForwardsEditor(options: $profile.options) })
+                    case .ports: AnyView(SettingsGroup(L("Forwarded ports")) { PortForwardsEditor(options: $profile.options) })
                     case .advanced: advancedPage
                     case .ciphers: AnyView(sshCiphers)
                     case .colors: AnyView(colours)
@@ -424,8 +434,8 @@ struct ProfileEditorSheet: View {
             Rectangle().fill(chrome.separator.color).frame(height: 1)
             HStack {
                 Spacer()
-                Button("Cancel") { done(nil) }.buttonStyle(ChromeButtonStyle()).keyboardShortcut(.cancelAction)
-                Button(item.isNew ? "Create" : "Save") { done(finalProfile()) }
+                Button(L("Cancel")) { done(nil) }.buttonStyle(ChromeButtonStyle()).keyboardShortcut(.cancelAction)
+                Button(item.isNew ? L("Create") : L("Save")) { done(finalProfile()) }
                     .buttonStyle(ChromeButtonStyle(kind: .primary))
                     .keyboardShortcut("s", modifiers: .command)
                     .disabled(["ssh", "telnet"].contains(profile.type) && (profile.options["host"]?.stringValue ?? "").isEmpty)
@@ -461,14 +471,14 @@ struct ProfileEditorSheet: View {
     private var common: some View {
         let registry = AppServices.shared.profiles
         return SettingsGroup {
-            SettingsRow("Group") {
+            SettingsRow(L("Group")) {
                 HStack(spacing: 6) {
                     RowPicker(selection: Binding(get: { profile.group ?? "" }, set: { profile.group = $0.isEmpty ? nil : $0 })) {
-                        Text("None").tag("")
+                        Text(L("None")).tag("")
                         ForEach(registry.groups, id: \.id) { g in Text(registry.groupPath(g.id)).tag(g.id) }
                     }
-                    IconButton(symbol: "folder.badge.plus", help: "New group", size: 24) {
-                        Prompts.text(in: NSApp.keyWindow, title: "New group", confirm: "Create") { name, _ in
+                    IconButton(symbol: "folder.badge.plus", help: L("New group"), size: 24) {
+                        Prompts.text(in: NSApp.keyWindow, title: L("New group"), confirm: L("Create")) { name, _ in
                             guard let name = name?.trimmingCharacters(in: .whitespaces), !name.isEmpty else { return }
                             if let g = registry.groups.first(where: { $0.name == name }) {
                                 profile.group = g.id
@@ -481,25 +491,25 @@ struct ProfileEditorSheet: View {
                     }
                 }
             }
-            SettingsRow("Icon & colour") {
+            SettingsRow(L("Icon & colour")) {
                 HStack(spacing: 8) {
                     RowPicker(selection: Binding(get: { profile.icon ?? "" }, set: { profile.icon = $0.isEmpty ? nil : $0 })) {
-                        Text("Default").tag("")
+                        Text(L("Default")).tag("")
                         ForEach(ProfileIcons.choices, id: \.self) { name in Label(name, systemImage: ProfileIcons.symbol(for: name)).tag(name) }
                     }
                     ColourSwatches(selection: $profile.color)
                 }
             }
-            SettingsRow("When the session ends") {
+            SettingsRow(L("When the session ends")) {
                 RowSegments(selection: $profile.behaviorOnSessionEnd) {
-                    Text("Auto").tag(SessionEndBehavior.auto)
-                    Text("Keep").tag(SessionEndBehavior.keep)
-                    Text("Reconnect").tag(SessionEndBehavior.reconnect)
-                    Text("Close").tag(SessionEndBehavior.close)
+                    Text(L("Auto")).tag(SessionEndBehavior.auto)
+                    Text(L("Keep")).tag(SessionEndBehavior.keep)
+                    Text(L("Reconnect")).tag(SessionEndBehavior.reconnect)
+                    Text(L("Close")).tag(SessionEndBehavior.close)
                 }
             }
             if isConnection {
-                SettingsRow("Clear terminal after connection", subtitle: "Removes the connection messages once connected",
+                SettingsRow(L("Clear terminal after connection"), subtitle: L("Removes the connection messages once connected"),
                             isOn: $profile.clearServiceMessagesOnConnect)
             }
         }
@@ -509,8 +519,8 @@ struct ProfileEditorSheet: View {
         switch profile.type {
         case "ssh": return "user@host:port"
         case "telnet": return "host:port"
-        case "serial": return "Device name"
-        default: return "Name"
+        case "serial": return L("Device name")
+        default: return L("Name")
         }
     }
 
@@ -537,10 +547,10 @@ struct ProfileEditorSheet: View {
     private var serialGeneral: some View {
         let ports = AppServices.shared.serialPorts.ports
         return VStack(alignment: .leading, spacing: 18) {
-            SettingsGroup(footer: "Without a device or a baud rate, Tabby asks each time the profile opens.") {
-                SettingsRow("Device") {
+            SettingsGroup(footer: L("Without a device or a baud rate, Tabby asks each time the profile opens.")) {
+                SettingsRow(L("Device")) {
                     HStack(spacing: 6) {
-                        RowField(placeholder: "Ask every time", text: option("port"), width: 300)
+                        RowField(placeholder: L("Ask every time"), text: option("port"), width: 300)
                         Menu {
                             let entries = Self.deviceMenu(ports: ports)
                             ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in
@@ -551,16 +561,16 @@ struct ProfileEditorSheet: View {
                                     Divider()
                                 }
                             }
-                            if entries.isEmpty { Text("No serial ports found") }
+                            if entries.isEmpty { Text(L("No serial ports found")) }
                         } label: { Image(systemName: "chevron.up.chevron.down") }
                             .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                     }
                 }
-                SettingsRow("Baud rate") {
+                SettingsRow(L("Baud rate")) {
                     HStack(spacing: 6) {
-                        RowField(placeholder: "Ask every time", text: optionalIntOption("baudrate"), width: 180)
+                        RowField(placeholder: L("Ask every time"), text: optionalIntOption("baudrate"), width: 180)
                         Menu {
-                            Button("Ask every time") { profile.options["baudrate"] = .null }
+                            Button(L("Ask every time")) { profile.options["baudrate"] = .null }
                             ForEach(BaudRates.standard, id: \.self) { rate in
                                 Button(String(rate)) { profile.options["baudrate"] = .int(rate) }
                             }
@@ -575,12 +585,12 @@ struct ProfileEditorSheet: View {
 
     private var serialAdvanced: some View {
         SettingsGroup {
-            SettingsRow("Data bits") {
+            SettingsRow(L("Data bits")) {
                 RowSegments(selection: intOption("databits", default: 8)) {
                     ForEach([5, 6, 7, 8], id: \.self) { Text(String($0)).tag($0) }
                 }
             }
-            SettingsRow("Stop bits") {
+            SettingsRow(L("Stop bits")) {
                 RowSegments(selection: Binding(get: { profile.options["stopbits"]?.doubleValue ?? 1 },
                                              set: { profile.options["stopbits"] = $0 == 1.5 ? .double($0) : .int(Int($0)) })) {
                     Text("1").tag(1.0)
@@ -588,31 +598,31 @@ struct ProfileEditorSheet: View {
                     Text("2").tag(2.0)
                 }
             }
-            SettingsRow("Parity") {
+            SettingsRow(L("Parity")) {
                 RowSegments(selection: Binding(get: { profile.options["parity"]?.stringValue ?? "none" },
                                              set: { profile.options["parity"] = .string($0) })) {
-                    Text("None").tag("none")
-                    Text("Even").tag("even")
-                    Text("Odd").tag("odd")
+                    Text(L("None")).tag("none")
+                    Text(L("Even")).tag("even")
+                    Text(L("Odd")).tag("odd")
                 }
             }
-            SettingsRow("RTS / CTS", isOn: boolOption("rtscts"))
-            SettingsRow("XON", isOn: boolOption("xon"))
-            SettingsRow("XOFF", isOn: boolOption("xoff"))
-            SettingsRow("Xany", isOn: boolOption("xany"))
-            SettingsRow("Slow feed", subtitle: "Sends data one byte at a time", isOn: boolOption("slowSend"))
+            SettingsRow(L("RTS / CTS"), isOn: boolOption("rtscts"))
+            SettingsRow(L("XON"), isOn: boolOption("xon"))
+            SettingsRow(L("XOFF"), isOn: boolOption("xoff"))
+            SettingsRow(L("Xany"), isOn: boolOption("xany"))
+            SettingsRow(L("Slow feed"), subtitle: L("Sends data one byte at a time"), isOn: boolOption("slowSend"))
             backspaceRow
-            SettingsRow("Ignore titles set by programs", isOn: $profile.disableDynamicTitle)
+            SettingsRow(L("Ignore titles set by programs"), isOn: $profile.disableDynamicTitle)
         }
     }
 
     private var telnetGeneral: some View {
         VStack(alignment: .leading, spacing: 18) {
             SettingsGroup {
-                SettingsRow("Host") {
+                SettingsRow(L("Host")) {
                     HStack(spacing: 8) {
-                        RowField(placeholder: "example.com", text: option("host"), width: 300)
-                        Text("Port").foregroundStyle(chrome.textMuted.color).fixedSize()
+                        RowField(placeholder: "example.com", text: option("host"), width: 300) // l10n-ignore: sample input
+                        Text(L("Port")).foregroundStyle(chrome.textMuted.color).fixedSize()
                         TextField("23", value: intOption("port", default: 23), format: .number.grouping(.never))
                             .textFieldStyle(.roundedBorder).font(.custom("Menlo", size: 12)).frame(width: 56)
                     }
@@ -625,29 +635,29 @@ struct ProfileEditorSheet: View {
     private var telnetAdvanced: some View {
         SettingsGroup {
             backspaceRow
-            SettingsRow("Ignore titles set by programs", isOn: $profile.disableDynamicTitle)
+            SettingsRow(L("Ignore titles set by programs"), isOn: $profile.disableDynamicTitle)
         }
     }
 
     /// Tabby's stream-processing settings, with its names and descriptions.
     private var streamProcessing: some View {
-        SettingsGroup("Stream processing") {
-            SettingsRow("Input mode", subtitle: StreamModeNames.inputDescription(Self.effectiveOption(profile, "inputMode"))) {
+        SettingsGroup(L("Stream processing")) {
+            SettingsRow(L("Input mode"), subtitle: StreamModeNames.inputDescription(Self.effectiveOption(profile, "inputMode"))) {
                 RowPicker(selection: modeOption("inputMode")) {
                     ForEach(StreamModeNames.inputModes, id: \.value) { Text($0.name).tag($0.value) }
                 }
             }
-            SettingsRow("Output mode", subtitle: StreamModeNames.outputDescription(Self.effectiveOption(profile, "outputMode"))) {
+            SettingsRow(L("Output mode"), subtitle: StreamModeNames.outputDescription(Self.effectiveOption(profile, "outputMode"))) {
                 RowPicker(selection: modeOption("outputMode")) {
                     ForEach(StreamModeNames.outputModes, id: \.value) { Text($0.name).tag($0.value) }
                 }
             }
-            SettingsRow("Input newlines") {
+            SettingsRow(L("Input newlines")) {
                 RowPicker(selection: modeOption("inputNewlines")) {
                     ForEach(StreamModeNames.newlineModes, id: \.value) { Text($0.name).tag($0.value) }
                 }
             }
-            SettingsRow("Output newlines") {
+            SettingsRow(L("Output newlines")) {
                 RowPicker(selection: modeOption("outputNewlines")) {
                     ForEach(StreamModeNames.newlineModes, id: \.value) { Text($0.name).tag($0.value) }
                 }
@@ -656,31 +666,31 @@ struct ProfileEditorSheet: View {
     }
 
     private var backspaceRow: some View {
-        SettingsRow("Backspace sends") {
+        SettingsRow(L("Backspace sends")) {
             RowPicker(selection: backspaceOption) {
-                Text("Backspace (DEL)").tag("backspace")
-                Text("Ctrl-H").tag("ctrl-h")
-                Text("Ctrl-?").tag("ctrl-?")
-                Text("Delete (ESC [3~)").tag("delete")
+                Text(L("Backspace (DEL)")).tag("backspace")
+                Text(L("Ctrl-H")).tag("ctrl-h")
+                Text(L("Ctrl-?")).tag("ctrl-?")
+                Text(L("Delete (ESC [3~)")).tag("delete")
             }
         }
     }
 
     private var localGeneral: some View {
         SettingsGroup {
-            SettingsRow("Command") { RowField(placeholder: "/bin/zsh", text: option("command"), width: 300) }
-            SettingsRow("Arguments", subtitle: "One per line") {
+            SettingsRow(L("Command")) { RowField(placeholder: "/bin/zsh", text: option("command"), width: 300) } // l10n-ignore: sample input
+            SettingsRow(L("Arguments"), subtitle: L("One per line")) {
                 TextEditor(text: listOption("args")).font(.custom("Menlo", size: 12)).frame(width: 300, height: 54)
                     .scrollContentBackground(.hidden).background(RoundedRectangle(cornerRadius: 5).fill(chrome.surface.color))
             }
-            SettingsRow("Working directory") { RowField(placeholder: "Inherit", text: option("cwd"), width: 300) }
+            SettingsRow(L("Working directory")) { RowField(placeholder: L("Inherit"), text: option("cwd"), width: 300) }
         }
     }
 
     private var localAdvanced: some View {
         SettingsGroup {
-            SettingsRow("Keep the tab open after the process exits", isOn: boolOption("pauseAfterExit"))
-            SettingsRow("Ignore titles set by programs", isOn: $profile.disableDynamicTitle)
+            SettingsRow(L("Keep the tab open after the process exits"), isOn: boolOption("pauseAfterExit"))
+            SettingsRow(L("Ignore titles set by programs"), isOn: $profile.disableDynamicTitle)
         }
     }
 
@@ -688,53 +698,53 @@ struct ProfileEditorSheet: View {
         let registry = AppServices.shared.profiles
         return VStack(alignment: .leading, spacing: 18) {
             SettingsGroup {
-                SettingsRow("Host") {
+                SettingsRow(L("Host")) {
                     HStack(spacing: 8) {
-                        RowField(placeholder: "example.com", text: option("host"), width: 220)
-                        Text("Port").foregroundStyle(chrome.textMuted.color).fixedSize()
+                        RowField(placeholder: "example.com", text: option("host"), width: 220) // l10n-ignore: sample input
+                        Text(L("Port")).foregroundStyle(chrome.textMuted.color).fixedSize()
                         TextField("22", value: intOption("port", default: 22), format: .number.grouping(.never))
                             .textFieldStyle(.roundedBorder).font(.custom("Menlo", size: 12)).frame(width: 60)
                     }
                 }
-                SettingsRow("Username") { RowField(placeholder: NSUserName(), text: option("user")) }
-                SettingsRow("Authentication") {
+                SettingsRow(L("Username")) { RowField(placeholder: NSUserName(), text: option("user")) }
+                SettingsRow(L("Authentication")) {
                     RowPicker(selection: option("auth")) {
-                        Text("Automatic").tag("")
-                        Text("Password").tag("password")
-                        Text("Public key").tag("publicKey")
-                        Text("Agent").tag("agent")
-                        Text("Keyboard-interactive").tag("keyboardInteractive")
+                        Text(L("Automatic")).tag("")
+                        Text(L("Password")).tag("password")
+                        Text(L("Public key")).tag("publicKey")
+                        Text(L("Agent")).tag("agent")
+                        Text(L("Keyboard-interactive")).tag("keyboardInteractive")
                     }
                 }
-                SettingsRow("Password", subtitle: passwordSaved ? "Saved in Keychain" : "Asked for when connecting") {
+                SettingsRow(L("Password"), subtitle: passwordSaved ? L("Saved in Keychain") : L("Asked for when connecting")) {
                     HStack(spacing: 6) {
-                        Button(passwordSaved ? "Change…" : "Set…") { setPassword() }.buttonStyle(ChromeButtonStyle())
+                        Button(passwordSaved ? L("Change…") : L("Set…")) { setPassword() }.buttonStyle(ChromeButtonStyle())
                             .disabled((profile.options["host"]?.stringValue ?? "").isEmpty)
                         if passwordSaved {
-                            Button("Forget") { forgetPassword() }.buttonStyle(ChromeButtonStyle(kind: .plain))
+                            Button(L("Forget")) { forgetPassword() }.buttonStyle(ChromeButtonStyle(kind: .plain))
                         }
                     }
                 }
             }
-            SettingsGroup("Private keys") {
+            SettingsGroup(L("Private keys")) {
                 PrivateKeysEditor(options: $profile.options)
             }
             SettingsGroup {
-                SettingsRow("Jump host") {
+                SettingsRow(L("Jump host")) {
                     RowPicker(selection: option("jumpHost")) {
-                        Text("None").tag("")
+                        Text(L("None")).tag("")
                         ForEach(registry.allProfiles(includeHidden: true).filter { $0.type == "ssh" && !$0.isTemplate && $0.id != profile.id }, id: \.id) { p in
                             Text(p.name).tag(p.id)
                         }
                     }
                 }
-                SettingsRow("Proxy command") { RowField(placeholder: "None", text: option("proxyCommand"), width: 300) }
+                SettingsRow(L("Proxy command")) { RowField(placeholder: L("None"), text: option("proxyCommand"), width: 300) }
             }
             SettingsGroup {
-                SettingsRow("Test connection", subtitle: testSubtitle) {
+                SettingsRow(L("Test connection"), subtitle: testSubtitle) {
                     HStack(spacing: 8) {
                         if testing { ProgressView().controlSize(.small) }
-                        Button { testConnection() } label: { Label("Test connection", systemImage: "bolt") }
+                        Button { testConnection() } label: { Label(L("Test connection"), systemImage: "bolt") }
                             .buttonStyle(ChromeButtonStyle())
                             .disabled(testing || (profile.options["host"]?.stringValue ?? "").isEmpty)
                     }
@@ -746,8 +756,8 @@ struct ProfileEditorSheet: View {
     private var testSubtitle: String {
         switch testOutcome {
         case .success(let text)?: return text
-        case .failure(let text)?: return "Failed: \(text)"
-        case nil: return "Connects and logs in with these values; no shell is opened"
+        case .failure(let text)?: return L("Failed: {text}", ["text": text])
+        case nil: return L("Connects and logs in with these values; no shell is opened")
         }
     }
 
@@ -767,37 +777,37 @@ struct ProfileEditorSheet: View {
     /// Algorithm preferences, sent as written (Tabby sorted them alphabetically, which
     /// changed the preference order).
     private var sshCiphers: some View {
-        SettingsGroup(footer: "Comma-separated, most preferred first. Empty uses the defaults.") {
-            SettingsRow("Key exchange") { RowField(placeholder: "Default", text: algorithmOption("kex"), width: 320) }
-            SettingsRow("Host key") { RowField(placeholder: "Default", text: algorithmOption("serverHostKey"), width: 320) }
-            SettingsRow("Ciphers") { RowField(placeholder: "Default", text: algorithmOption("cipher"), width: 320) }
-            SettingsRow("MACs") { RowField(placeholder: "Default", text: algorithmOption("hmac"), width: 320) }
-            SettingsRow("Compression") { RowField(placeholder: "Default", text: algorithmOption("compression"), width: 320) }
+        SettingsGroup(footer: L("Comma-separated, most preferred first. Empty uses the defaults.")) {
+            SettingsRow(L("Key exchange")) { RowField(placeholder: L("Default"), text: algorithmOption("kex"), width: 320) }
+            SettingsRow(L("Host key")) { RowField(placeholder: L("Default"), text: algorithmOption("serverHostKey"), width: 320) }
+            SettingsRow(L("Ciphers")) { RowField(placeholder: L("Default"), text: algorithmOption("cipher"), width: 320) }
+            SettingsRow(L("MACs")) { RowField(placeholder: L("Default"), text: algorithmOption("hmac"), width: 320) }
+            SettingsRow(L("Compression")) { RowField(placeholder: L("Default"), text: algorithmOption("compression"), width: 320) }
         }
     }
 
     private var sshAdvanced: some View {
         SettingsGroup {
-            SettingsRow("Agent forwarding", isOn: boolOption("agentForward"))
-            SettingsRow("X11 forwarding", isOn: boolOption("x11"))
-            SettingsRow("Reuse the connection for new tabs", isOn: boolOption("reuseSession", default: true))
-            SettingsRow("Skip the login banner", isOn: boolOption("skipBanner"))
-            SettingsRow("Ignore titles set by programs", isOn: $profile.disableDynamicTitle)
-            SettingsRow("Keep-alive interval", subtitle: "Milliseconds") {
+            SettingsRow(L("Agent forwarding"), isOn: boolOption("agentForward"))
+            SettingsRow(L("X11 forwarding"), isOn: boolOption("x11"))
+            SettingsRow(L("Reuse the connection for new tabs"), isOn: boolOption("reuseSession", default: true))
+            SettingsRow(L("Skip the login banner"), isOn: boolOption("skipBanner"))
+            SettingsRow(L("Ignore titles set by programs"), isOn: $profile.disableDynamicTitle)
+            SettingsRow(L("Keep-alive interval"), subtitle: L("Milliseconds")) {
                 TextField("5000", value: intOption("keepaliveInterval", default: 5000), format: .number.grouping(.never))
                     .textFieldStyle(.roundedBorder).font(.custom("Menlo", size: 12)).frame(width: 90)
             }
-            SettingsRow("Keep-alive count", subtitle: "Unanswered keep-alives before the connection counts as lost") {
+            SettingsRow(L("Keep-alive count"), subtitle: L("Unanswered keep-alives before the connection counts as lost")) {
                 TextField("10", value: intOption("keepaliveCountMax", default: 10), format: .number.grouping(.never))
                     .textFieldStyle(.roundedBorder).font(.custom("Menlo", size: 12)).frame(width: 90)
             }
-            SettingsRow("Ready timeout", subtitle: "Milliseconds to wait for the connection; empty waits as long as the system does") {
-                RowField(placeholder: "Default", text: optionalIntOption("readyTimeout"), width: 90)
+            SettingsRow(L("Ready timeout"), subtitle: L("Milliseconds to wait for the connection; empty waits as long as the system does")) {
+                RowField(placeholder: L("Default"), text: optionalIntOption("readyTimeout"), width: 90)
             }
             backspaceRow
-            SettingsRow("Terminal type") { RowField(placeholder: "xterm-256color", text: option("term")) }
-            SettingsRow("Start in directory") { RowField(placeholder: "Home", text: option("cwd")) }
-            SettingsRow("Reopen in the last directory", subtitle: "When the tab is restored; the remote shell must report it (OSC 7)",
+            SettingsRow(L("Terminal type")) { RowField(placeholder: "xterm-256color", text: option("term")) } // l10n-ignore: sample input
+            SettingsRow(L("Start in directory")) { RowField(placeholder: L("Home"), text: option("cwd")) }
+            SettingsRow(L("Reopen in the last directory"), subtitle: L("When the tab is restored; the remote shell must report it (OSC 7)"),
                         isOn: boolOption("rememberCwd"))
         }
     }
@@ -807,8 +817,8 @@ struct ProfileEditorSheet: View {
         let all = services.schemes.all(custom: ColorSchemeCatalog.customSchemes(from: services.config))
         let current = ColorScheme(config: profile.terminalColorScheme)
         return VStack(alignment: .leading, spacing: 14) {
-            SettingsGroup(footer: "Overrides the colour scheme for this profile's tabs.") {
-                SettingsRow("Colour scheme") {
+            SettingsGroup(footer: L("Overrides the colour scheme for this profile's tabs.")) {
+                SettingsRow(L("Colour scheme")) {
                     RowPicker(selection: Binding(get: { current?.name ?? "" }, set: { name in
                         profile.terminalColorScheme = all.first { $0.name == name }.map { s in
                             var v = s.configValue
@@ -816,7 +826,7 @@ struct ProfileEditorSheet: View {
                             return v
                         }
                     })) {
-                        Text("Use the global scheme").tag("")
+                        Text(L("Use the global scheme")).tag("")
                         ForEach(all, id: \.name) { Text($0.name).tag($0.name) }
                     }
                 }
@@ -838,8 +848,8 @@ struct ProfileEditorSheet: View {
 
     private func setPassword() {
         let k = keyFor
-        Prompts.text(in: NSApp.keyWindow, title: "Password for \(k.user)@\(k.host)", message: "Saved in the login keychain.",
-                     secure: true, confirm: "Save") { value, _ in
+        Prompts.text(in: NSApp.keyWindow, title: L("Password for {user}@{host}", ["user": k.user, "host": k.host]), message: L("Saved in the login keychain."),
+                     secure: true, confirm: L("Save")) { value, _ in
             guard let value, !value.isEmpty else { return }
             AppServices.shared.passwords.savePassword(value, host: k.host, port: k.port, user: k.user)
             refreshPasswordState()
@@ -848,9 +858,9 @@ struct ProfileEditorSheet: View {
 
     private func forgetPassword() {
         let k = keyFor
-        Prompts.confirm(in: NSApp.keyWindow, title: "Forget the password for \(k.user)@\(k.host)?",
-                        message: "It is removed from the Keychain here and, when passwords sync, on your other Macs.",
-                        confirm: "Forget", destructive: true) { ok in
+        Prompts.confirm(in: NSApp.keyWindow, title: L("Forget the password for {user}@{host}?", ["user": k.user, "host": k.host]),
+                        message: L("It is removed from the Keychain here and, when passwords sync, on your other Macs."),
+                        confirm: L("Forget"), destructive: true) { ok in
             guard ok else { return }
             AppServices.shared.passwords.deletePassword(host: k.host, port: k.port, user: k.user)
             refreshPasswordState()
@@ -884,7 +894,7 @@ private struct ColourSwatches: View {
                 Image(systemName: "nosign").font(.system(size: 13)).foregroundStyle(chrome.textMuted.color)
             }
             .buttonStyle(.plain)
-            .help("No colour")
+            .help(L("No colour"))
             ForEach(colours, id: \.self) { hex in
                 Button { selection = hex } label: {
                     Circle().fill((RGBColor(hex: hex) ?? .black).color).frame(width: 15, height: 15)
@@ -905,15 +915,15 @@ private struct PrivateKeysEditor: View {
         let keys = options["privateKeys"]?.stringArrayValue ?? []
         ForEach(Array(keys.enumerated()), id: \.offset) { index, path in
             SettingsRow((path as NSString).abbreviatingWithTildeInPath) {
-                IconButton(symbol: "minus", help: "Remove", size: 22) {
+                IconButton(symbol: "minus", help: L("Remove"), size: 22) {
                     var list = keys
                     list.remove(at: index)
                     options["privateKeys"] = .array(list.map { .string($0) })
                 }
             }
         }
-        SettingsRow(keys.isEmpty ? "No keys: ssh tries the agent and its default identities" : "Add another key") {
-            Button("Add key…") {
+        SettingsRow(keys.isEmpty ? L("No keys: ssh tries the agent and its default identities") : L("Add another key")) {
+            Button(L("Add key…")) {
                 let panel = NSOpenPanel()
                 panel.directoryURL = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(".ssh")
                 panel.showsHiddenFiles = true
@@ -937,17 +947,17 @@ struct PortForwardsEditor: View {
         ForEach(Array(forwards.enumerated()), id: \.offset) { index, f in
             HStack(spacing: 6) {
                 RowPicker(selection: binding(forwards, index, \.type)) {
-                    ForEach(PortForwardType.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0) }
+                    ForEach(PortForwardType.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
                 TextField("127.0.0.1", text: binding(forwards, index, \.host)).frame(width: 96)
                 TextField("8080", value: binding(forwards, index, \.port), format: .number.grouping(.never)).frame(width: 56)
                 if f.type != .dynamic {
                     Image(systemName: "arrow.right").foregroundStyle(chrome.textFaint.color)
-                    TextField("localhost", text: binding(forwards, index, \.targetAddress)).frame(width: 110)
+                    TextField("localhost", text: binding(forwards, index, \.targetAddress)).frame(width: 110) // l10n-ignore: sample input
                     TextField("80", value: binding(forwards, index, \.targetPort), format: .number.grouping(.never)).frame(width: 56)
                 }
                 Spacer()
-                IconButton(symbol: "minus", help: "Remove", size: 22) {
+                IconButton(symbol: "minus", help: L("Remove"), size: 22) {
                     var list = forwards
                     list.remove(at: index)
                     options["forwardedPorts"] = .array(list.map(\.configValue))
@@ -958,11 +968,11 @@ struct PortForwardsEditor: View {
             .padding(.horizontal, 14)
             .frame(minHeight: 40)
         }
-        SettingsRow(forwards.isEmpty ? "No forwarded ports" : "Forwards start with the session",
-                    subtitle: "While connected, change them from Ports on the connection chip") {
-            Menu("Add forward") {
+        SettingsRow(forwards.isEmpty ? L("No forwarded ports") : L("Forwards start with the session"),
+                    subtitle: L("While connected, change them from Ports on the connection chip")) {
+            Menu(L("Add forward")) {
                 ForEach(PortForwardType.allCases, id: \.self) { type in
-                    Button(type.rawValue.capitalized) {
+                    Button(type.title) {
                         var list = forwards
                         list.append(ForwardedPort(type: type, host: "127.0.0.1", port: 8080, targetAddress: "localhost", targetPort: 80))
                         options["forwardedPorts"] = .array(list.map(\.configValue))
@@ -989,16 +999,16 @@ private struct LoginScriptsEditor: View {
 
     var body: some View {
         let scripts = options["scripts"]?.arrayValue ?? []
-        SettingsGroup("Login scripts", footer: "When the output contains the text, TabbyMac types the reply and presses Return.") {
+        SettingsGroup(L("Login scripts"), footer: L("When the output contains the text, TabbyMac types the reply and presses Return.")) {
             ForEach(Array(scripts.enumerated()), id: \.offset) { index, _ in
                 HStack(spacing: 6) {
-                    TextField("Expect", text: field(scripts, index, "expect")).frame(width: 160)
+                    TextField(L("Expect"), text: field(scripts, index, "expect")).frame(width: 160)
                     Image(systemName: "arrow.right").foregroundStyle(chrome.textFaint.color)
-                    TextField("Send", text: field(scripts, index, "send")).frame(width: 160)
-                    Toggle("Regex", isOn: flag(scripts, index, "isRegex")).toggleStyle(.checkbox)
-                    Toggle("Optional", isOn: flag(scripts, index, "optional")).toggleStyle(.checkbox)
+                    TextField(L("Send"), text: field(scripts, index, "send")).frame(width: 160)
+                    Toggle(L("Regex"), isOn: flag(scripts, index, "isRegex")).toggleStyle(.checkbox)
+                    Toggle(L("Optional"), isOn: flag(scripts, index, "optional")).toggleStyle(.checkbox)
                     Spacer()
-                    IconButton(symbol: "minus", help: "Remove", size: 22) {
+                    IconButton(symbol: "minus", help: L("Remove"), size: 22) {
                         var list = scripts
                         list.remove(at: index)
                         options["scripts"] = .array(list)
@@ -1009,8 +1019,8 @@ private struct LoginScriptsEditor: View {
                 .padding(.horizontal, 14)
                 .frame(minHeight: 40)
             }
-            SettingsRow(scripts.isEmpty ? "No login scripts" : "Add another") {
-                Button("Add script") { options["scripts"] = .array(scripts + [["expect": "", "send": ""]]) }
+            SettingsRow(scripts.isEmpty ? L("No login scripts") : L("Add another")) {
+                Button(L("Add script")) { options["scripts"] = .array(scripts + [["expect": "", "send": ""]]) }
                     .buttonStyle(ChromeButtonStyle())
             }
         }

@@ -1,7 +1,6 @@
 #if canImport(AppKit)
 import AppKit
 import QuartzCore
-import UserNotifications
 import TabbyCore
 import TabbySSH
 import TabbyAccount
@@ -57,16 +56,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        if Bundle.main.bundleIdentifier != nil {
-            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, error in
-                if let error { NSLog("TabbyMac: notifications unavailable: \(error.localizedDescription)") }
-            }
-        }
+        Notifier.shared.start()
+        // `TabbyMacDev open ~/x`: queued until the window exists, like a link that arrives now.
+        CLIRouter.shared.launchArguments(Array(CommandLine.arguments.dropFirst()), cwd: FileManager.default.currentDirectoryPath)
 
         let controller = WindowManager.shared.newWindow(openDefaultTab: false)
         let restored = RecoveryCoordinator.shared.restore(into: controller)
         let autoOpen = services.config.value("terminal.autoOpen")?.boolValue ?? true
-        if !restored && autoOpen {
+        // Tabby's AutoOpenTabCLIHandler only opens the default tab when nothing else did.
+        if !restored && autoOpen && !CLIRouter.shared.hasPendingRequests {
             controller.model.openTab()
         }
         if WelcomePolicy.shouldShow(config: services.config, restoredTabs: restored) {
@@ -76,8 +74,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DockController.shared.apply(followMouse: true)
         NSApp.activate(ignoringOtherApps: true)
 
+        CLIRouter.shared.becomeReady()
+
         if let error = services.loadError {
-            Prompts.message(in: controller.window, title: "Couldn't read config.yaml", message: "\(error)\n\nDefaults are in use; your file was not modified.")
+            Prompts.message(in: controller.window, title: L("Couldn't read config.yaml"), message: L("{error}\n\nDefaults are in use; your file was not modified.", ["error": String(describing: error)]))
+        }
+    }
+
+    /// tabbymac:// (the `tabby` helper), ssh:// and telnet:// links (phase 5).
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls where !CLIRouter.shared.handle(url: url) {
+            NSLog("TabbyMac: cannot open \(url.absoluteString)")
         }
     }
 
@@ -99,10 +106,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Quit is the default button (design C10).
     static func quitAlert(warnings: [String]) -> NSAlert {
         let alert = NSAlert()
-        alert.messageText = "Quit TabbyMac?"
+        alert.messageText = L("Quit TabbyMac?")
         alert.informativeText = MainWindowController.closeMessage(warnings) ?? ""
-        alert.addButton(withTitle: "Quit")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: L("Quit"))
+        alert.addButton(withTitle: L("Cancel"))
         return alert
     }
 
@@ -156,8 +163,8 @@ final class WindowManager {
         if let error {
             let message = error.localizedDescription
             if message != lastSyncError {
-                controller.toasts.show(ToastCenter.Toast(symbol: "exclamationmark.icloud", tint: .danger, title: "Sync failed", detail: message,
-                                                         actionTitle: "Settings", action: { [weak self] in self?.openSettings(section: .account) }), for: 8)
+                controller.toasts.show(ToastCenter.Toast(symbol: "exclamationmark.icloud", tint: .danger, title: L("Sync failed"), detail: message,
+                                                         actionTitle: L("Settings"), action: { [weak self] in self?.openSettings(section: .account) }), for: 8)
             }
             lastSyncError = message
             return
@@ -166,7 +173,7 @@ final class WindowManager {
         guard let report else { return }
         if report.applied && !account.isRestoring {
             controller.toasts.show(ToastCenter.Toast(symbol: "arrow.triangle.2.circlepath.icloud", tint: .accent,
-                                                     title: "Synced", detail: "Changes from your other Macs are here."))
+                                                     title: L("Synced"), detail: L("Changes from your other Macs are here.")))
         }
         let fresh = report.pendingKeyFiles.filter { !offeredKeyFiles.contains($0.id) }
         if !fresh.isEmpty, controller.window?.attachedSheet == nil {

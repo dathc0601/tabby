@@ -69,7 +69,7 @@ private struct SearchBarContent: View {
     var body: some View {
         HStack(spacing: 2) {
             Image(systemName: "magnifyingglass").foregroundStyle(chrome.textMuted.color).padding(.leading, 4)
-            TextField("Search", text: $model.query)
+            TextField(L("Search"), text: $model.query)
                 .textFieldStyle(.plain)
                 .frame(width: 180)
                 .focused($focused)
@@ -84,18 +84,18 @@ private struct SearchBarContent: View {
                 .onKeyPress(.upArrow) { model.find(backwards: true); return .handled }
                 .onKeyPress(.downArrow) { model.find(); return .handled }
                 .onExitCommand { onClose() }
-            Text(model.total == 0 ? (model.query.isEmpty ? "" : "No results") : "\(model.index) / \(model.total)")
+            Text(model.total == 0 ? (model.query.isEmpty ? "" : L("No results")) : "\(model.index) / \(model.total)")
                 .font(ChromeFont.caption.monospacedDigit())
                 .foregroundStyle(chrome.textMuted.color)
                 .frame(minWidth: 58, alignment: .trailing)
                 .padding(.trailing, 4)
-            toggle("textformat", "Match case", $model.caseSensitive)
-            toggle("asterisk", "Regular expression", $model.regex)
-            toggle("textformat.abc", "Whole word", $model.wholeWord)
+            toggle("textformat", L("Match case"), $model.caseSensitive)
+            toggle("asterisk", L("Regular expression"), $model.regex)
+            toggle("textformat.abc", L("Whole word"), $model.wholeWord)
             Rectangle().fill(chrome.separator.color).frame(width: 1, height: 16).padding(.horizontal, 2)
-            IconButton(symbol: "chevron.up", help: "Previous match (⇧↩)", size: 24) { model.find(backwards: true) }
-            IconButton(symbol: "chevron.down", help: "Next match (↩)", size: 24) { model.find() }
-            IconButton(symbol: "xmark", help: "Close search (esc)", size: 24, action: onClose)
+            IconButton(symbol: "chevron.up", help: L("Previous match (⇧↩)"), size: 24) { model.find(backwards: true) }
+            IconButton(symbol: "chevron.down", help: L("Next match (↩)"), size: 24) { model.find() }
+            IconButton(symbol: "xmark", help: L("Close search (esc)"), size: 24, action: onClose)
         }
         .font(ChromeFont.body)
         .padding(.horizontal, 6)

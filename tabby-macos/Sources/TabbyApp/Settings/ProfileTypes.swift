@@ -10,10 +10,10 @@ enum ProfileTypes {
 
     static func title(_ type: String) -> String {
         switch type {
-        case "local": return "Local terminal"
+        case "local": return L("Local terminal")
         case "ssh": return "SSH connection"
-        case "serial": return "Serial connection"
-        case "telnet": return "Telnet connection"
+        case "serial": return L("Serial connection")
+        case "telnet": return L("Telnet connection")
         default: return type.capitalized
         }
     }
@@ -22,8 +22,8 @@ enum ProfileTypes {
     static func badge(_ type: String) -> String {
         switch type {
         case "ssh": return "SSH"
-        case "local": return "Local"
-        case "split-layout": return "Layout"
+        case "local": return L("Local")
+        case "split-layout": return L("Layout")
         default: return type.capitalized
         }
     }
@@ -34,7 +34,7 @@ enum ProfileTypes {
         // No port or rate: both are asked for when the tab opens, until the profile names them.
         case "serial": return Profile(type: "serial", name: "", options: [:])
         case "telnet": return Profile(type: "telnet", name: "", options: ["host": "", "port": 23])
-        default: return Profile(type: "local", name: "New profile", options: LocalOptions(command: ShellDetector.loginShellName()).configValue)
+        default: return Profile(type: "local", name: L("New profile"), options: LocalOptions(command: ShellDetector.loginShellName()).configValue)
         }
     }
 
@@ -53,27 +53,27 @@ enum StreamModeNames {
         var description = ""
     }
 
-    static let inputModes = [
-        Mode(value: "", name: "Normal", description: "Input is sent as you type"),
-        Mode(value: "local-echo", name: "Local echo", description: "Immediately echoes your input locally"),
-        Mode(value: "readline", name: "Line by line", description: "Line editor, input is sent after you press Enter"),
-        Mode(value: "readline-hex", name: "Hexadecimal", description: "Send bytes by typing in hex values"),
-    ]
+    static var inputModes: [Mode] { [
+        Mode(value: "", name: L("Normal"), description: L("Input is sent as you type")),
+        Mode(value: "local-echo", name: L("Local echo"), description: L("Immediately echoes your input locally")),
+        Mode(value: "readline", name: L("Line by line"), description: L("Line editor, input is sent after you press Enter")),
+        Mode(value: "readline-hex", name: L("Hexadecimal"), description: L("Send bytes by typing in hex values")),
+    ] }
 
-    static let outputModes = [
-        Mode(value: "", name: "Normal", description: "Output is shown as it is received"),
-        Mode(value: "hex", name: "Hexadecimal", description: "Output is shown as a hexdump"),
-    ]
+    static var outputModes: [Mode] { [
+        Mode(value: "", name: L("Normal"), description: L("Output is shown as it is received")),
+        Mode(value: "hex", name: L("Hexadecimal"), description: L("Output is shown as a hexdump")),
+    ] }
 
-    static let newlineModes = [
-        Mode(value: "", name: "Keep"),
-        Mode(value: "strip", name: "Strip"),
-        Mode(value: "cr", name: "Force CR"),
-        Mode(value: "lf", name: "Force LF"),
-        Mode(value: "crlf", name: "Force CRLF"),
-        Mode(value: "implicit_cr", name: "Implicit CR in every LF"),
-        Mode(value: "implicit_lf", name: "Implicit LF in every CR"),
-    ]
+    static var newlineModes: [Mode] { [
+        Mode(value: "", name: L("Keep")),
+        Mode(value: "strip", name: L("Strip")),
+        Mode(value: "cr", name: L("Force CR")),
+        Mode(value: "lf", name: L("Force LF")),
+        Mode(value: "crlf", name: L("Force CRLF")),
+        Mode(value: "implicit_cr", name: L("Implicit CR in every LF")),
+        Mode(value: "implicit_lf", name: L("Implicit LF in every CR")),
+    ] }
 
     static func inputDescription(_ value: String?) -> String {
         inputModes.first { $0.value == (value ?? "") }?.description ?? ""

@@ -44,7 +44,15 @@ public enum SSHAuthMethod: String, CaseIterable, Sendable {
 }
 
 public enum PortForwardType: String, CaseIterable, Sendable {
-    case local = "Local", remote = "Remote", dynamic = "Dynamic"
+    case local = "Local", remote = "Remote", dynamic = "Dynamic" // l10n-ignore: Tabby's config values
+
+    public var title: String {
+        switch self {
+        case .local: return L("Local")
+        case .remote: return L("Remote")
+        case .dynamic: return L("Dynamic")
+        }
+    }
 }
 
 public struct ForwardedPort: Hashable, Sendable {

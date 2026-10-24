@@ -34,13 +34,13 @@ final class LibSSHPromptPresenter: SSHSessionUI {
     }
 
     func password(user: String, host: String, for session: LibSSHSession) async -> SecretAnswer? {
-        await text(in: window(for: session), title: "Password for \(user)@\(host)", message: session.profile.name,
-                   remember: "Remember in Keychain", confirm: "Log in")
+        await text(in: window(for: session), title: L("Password for {user}@{host}", ["user": user, "host": host]), message: session.profile.name,
+                   remember: L("Remember in Keychain"), confirm: L("Log in"))
     }
 
     func passphrase(keyPath: String, for session: LibSSHSession) async -> SecretAnswer? {
-        await text(in: window(for: session), title: "Passphrase for key", message: keyPath, remember: "Remember in Keychain",
-                   confirm: "Unlock")
+        await text(in: window(for: session), title: L("Passphrase for key"), message: keyPath, remember: L("Remember in Keychain"),
+                   confirm: L("Unlock"))
     }
 
     /// The pane running `session`.
@@ -69,8 +69,8 @@ final class LibSSHPromptPresenter: SSHSessionUI {
         for (index, prompt) in round.prompts.enumerated() {
             let message = [round.instruction, prompt.text].filter { !$0.isEmpty }.joined(separator: "\n")
             guard let answer = await text(in: window, title: round.name.isEmpty ? round.host : round.name, message: message,
-                                          secure: !prompt.echo, remember: prompt.isPasswordLike ? "Remember in Keychain" : nil,
-                                          value: round.prefilled[index] ?? "", confirm: "Continue") else { return nil }
+                                          secure: !prompt.echo, remember: prompt.isPasswordLike ? L("Remember in Keychain") : nil,
+                                          value: round.prefilled[index] ?? "", confirm: L("Continue")) else { return nil }
             answers.append(answer.value)
             remember = remember || answer.remember
         }
@@ -98,8 +98,8 @@ final class LibSSHPromptPresenter: SSHSessionUI {
     }
 
     func username(host: String, for session: LibSSHSession) async -> String? {
-        await text(in: window(for: session), title: "Username for \(host)", message: session.profile.name, secure: false,
-                   confirm: "Continue")?.value
+        await text(in: window(for: session), title: L("Username for {host}", ["host": host]), message: session.profile.name, secure: false,
+                   confirm: L("Continue"))?.value
     }
 
     func text(in window: NSWindow?, title: String, message: String, secure: Bool = true, remember: String? = nil,
@@ -126,13 +126,13 @@ final class WindowPrompter: SSHConnectionPrompter {
     }
 
     func password(user: String, host: String) async -> SecretAnswer? {
-        await LibSSHPromptPresenter.shared.text(in: window, title: "Password for \(user)@\(host)", message: "",
-                                                remember: "Remember in Keychain", confirm: "Log in")
+        await LibSSHPromptPresenter.shared.text(in: window, title: L("Password for {user}@{host}", ["user": user, "host": host]), message: "",
+                                                remember: L("Remember in Keychain"), confirm: L("Log in"))
     }
 
     func passphrase(keyPath: String) async -> SecretAnswer? {
-        await LibSSHPromptPresenter.shared.text(in: window, title: "Passphrase for key", message: keyPath,
-                                                remember: "Remember in Keychain", confirm: "Unlock")
+        await LibSSHPromptPresenter.shared.text(in: window, title: L("Passphrase for key"), message: keyPath,
+                                                remember: L("Remember in Keychain"), confirm: L("Unlock"))
     }
 
     func keyboardInteractive(_ round: KeyboardInteractiveRound) async -> KeyboardInteractiveAnswer? {
@@ -140,8 +140,8 @@ final class WindowPrompter: SSHConnectionPrompter {
     }
 
     func username(host: String) async -> String? {
-        await LibSSHPromptPresenter.shared.text(in: window, title: "Username for \(host)", message: "", secure: false,
-                                                confirm: "Continue")?.value
+        await LibSSHPromptPresenter.shared.text(in: window, title: L("Username for {host}", ["host": host]), message: "", secure: false,
+                                                confirm: L("Continue"))?.value
     }
 
     func message(_ text: String) {}

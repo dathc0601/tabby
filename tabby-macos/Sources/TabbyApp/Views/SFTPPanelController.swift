@@ -33,7 +33,7 @@ final class SFTPPanels {
                 await controller.model.navigate(to: start)
             } catch {
                 WindowManager.shared.activeController?.toasts.show(ToastCenter.Toast(
-                    symbol: "folder", tint: .danger, title: "SFTP", detail: (error as? LocalizedError)?.errorDescription ?? error.localizedDescription))
+                    symbol: "folder", tint: .danger, title: L("SFTP"), detail: (error as? LocalizedError)?.errorDescription ?? error.localizedDescription))
             }
         }
     }
@@ -123,8 +123,8 @@ final class SFTPPanelController {
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.canCreateDirectories = true
-        panel.prompt = "Download here"
-        panel.message = "Select destination folder for \(entry.name)"
+        panel.prompt = L("Download here")
+        panel.message = L("Select destination folder for {name}", ["name": entry.name])
         panel.beginSheetModal(for: window ?? NSWindow()) { [self] response in
             guard response == .OK, let folder = panel.url, let name = SFTPPath.safeLocalName(entry.name) else { return }
             let unique = SFTPPath.uniqueName(name) { FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path) }
@@ -182,7 +182,7 @@ final class SFTPPanelController {
         panel.allowsMultipleSelection = true
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
-        panel.prompt = "Upload"
+        panel.prompt = L("Upload")
         panel.beginSheetModal(for: window ?? NSWindow()) { [self] response in
             guard response == .OK else { return }
             upload(panel.urls)
@@ -193,7 +193,7 @@ final class SFTPPanelController {
         let panel = NSOpenPanel()
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
-        panel.prompt = "Upload"
+        panel.prompt = L("Upload")
         panel.beginSheetModal(for: window ?? NSWindow()) { [self] response in
             guard response == .OK else { return }
             upload(panel.urls)
@@ -258,21 +258,21 @@ final class SFTPPanelController {
     }
 
     func createDirectory() {
-        Prompts.text(in: window, title: "Name for the new directory", confirm: "Create") { [self] name, _ in
+        Prompts.text(in: window, title: L("Name for the new directory"), confirm: L("Create")) { [self] name, _ in
             guard let name else { return }
             Task {
                 do {
                     try await model.createDirectory(named: name)
                 } catch {
-                    toast("The directory could not be created", Self.message(error))
+                    toast(L("The directory could not be created"), Self.message(error))
                 }
             }
         }
     }
 
     func delete(_ entry: SFTPEntry) {
-        Prompts.confirm(in: window, title: "Delete \(entry.path)?", message: entry.isDirectory ? "Everything in it is deleted too." : "",
-                        confirm: "Delete", destructive: true) { [self] ok in
+        Prompts.confirm(in: window, title: L("Delete {path}?", ["path": entry.path]), message: entry.isDirectory ? L("Everything in it is deleted too.") : "",
+                        confirm: L("Delete"), destructive: true) { [self] ok in
             guard ok else { return }
             let client = client
             Task {
@@ -283,7 +283,7 @@ final class SFTPPanelController {
                         try await client.removeFile(entry.path)
                     }
                 } catch {
-                    toast("Could not delete", Self.message(error))
+                    toast(L("Could not delete"), Self.message(error))
                 }
                 await model.refresh()
             }
@@ -304,7 +304,7 @@ final class SFTPPanelController {
                 NSWorkspace.shared.open(local)
                 watch(folder: folder, file: local, remote: entry.path, mode: entry.mode & 0o777)
             } catch {
-                toast("Edit locally", Self.message(error))
+                toast(L("Edit locally"), Self.message(error))
             }
         }
     }

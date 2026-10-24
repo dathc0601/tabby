@@ -99,6 +99,10 @@ Spacing scale `sp-2 … sp-24` = 2, 4, 6, 8, 12, 16, 20, 24 pt × spaciness.
 | Confirmation alert | `NSAlert`; a destructive confirm has no ↩ (Cancel answers esc); Quit is the default button |
 | Toast | `surfaceRaised`, radius 10, icon + title + detail, bottom-right of the window |
 | Visual bell | 150 ms flash of the pane |
+| Menu checkbox item | tab and pane menus: a disabled "Current process: name" line, then "Notify when done" / "Notify on activity" with the system checkmark while armed (phase 5) |
+| Toast (notify) | "Process completed" (`checkmark.circle`, success) and "Tab activity" (`bell`, accent) with a Show action that focuses the pane (phase 5) |
+| Settings: Language | Application page, first group: a menu row, "Automatic" then each language in its own name (phase 5) |
+| Settings: Links / Command-line tool | Application page: the current `ssh://` handler on the subtitle and a secondary push button; the helper's path in Menlo with a "Copy install command" button (phase 5) |
 
 ## Icons (SF Symbols)
 
@@ -128,6 +132,11 @@ Spacing scale `sp-2 … sp-24` = 2, 4, 6, 8, 12, 16, 20, 24 pt × spaciness.
 | Auth prompt | `lock` |
 | Paste | `doc.on.clipboard` |
 | Reconnect | `arrow.clockwise` |
+| Notify when done / process completed | `checkmark.circle` |
+| Notify on activity / tab activity | `bell` |
+| Language | `globe` |
+| Links | `link` |
+| Command-line tool | `terminal` |
 | Split | `rectangle.split.2x1` |
 | Maximise | `arrow.up.left.and.arrow.down.right` |
 | Hotkeys | `keyboard` |

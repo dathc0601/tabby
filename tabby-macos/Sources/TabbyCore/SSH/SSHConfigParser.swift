@@ -101,7 +101,7 @@ public enum SSHConfigParser {
                 if byAlias[hopName] != nil {
                     options["jumpHost"] = .string("ssh:ssh-config:\(Slug.make(hopName))")
                 } else {
-                    options["proxyCommand"] = .string("ssh -W %h:%p \(firstHop)")
+                    options["proxyCommand"] = .string("ssh -W %h:%p \(firstHop)") // l10n-ignore: a command line
                 }
             }
             if let pc = e.first("proxycommand"), pc.lowercased() != "none" { options["proxyCommand"] = .string(pc) }
@@ -125,7 +125,7 @@ public enum SSHConfigParser {
                 id: "ssh:ssh-config:\(Slug.make(e.alias))",
                 type: "ssh",
                 name: e.alias,
-                group: "Imported from .ssh/config",
+                group: L("Imported from .ssh/config"),
                 options: .object(options),
                 isBuiltin: true,
                 extra: ["sshConfigAlias": .string(e.alias)]

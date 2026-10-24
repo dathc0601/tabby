@@ -34,6 +34,7 @@ let package = Package(
         .library(name: "TabbySyncProtocol", targets: ["TabbySyncProtocol"]),
         .executable(name: "tabby-askpass", targets: ["TabbyAskpass"]),
         .executable(name: "TabbyMacDev", targets: ["TabbyMacDev"]),
+        .executable(name: "tabby", targets: ["TabbyCLI"]),
     ],
     dependencies: [
         // Pinned to the last 1.x release that builds with Xcode 16 (swift-tools 6.0).
@@ -50,6 +51,7 @@ let package = Package(
             resources: [
                 .copy("Resources/defaults.yaml"),
                 .copy("Resources/schemes"),
+                .copy("Resources/locale"),
             ]
         ),
         .target(
@@ -70,7 +72,7 @@ let package = Package(
         .target(
             name: "TabbyApp",
             dependencies: [
-                "TabbyCore", "TabbyTerminal", "TabbySSH",
+                "TabbyCore", "TabbyTerminal", "TabbySSH", "TabbyCLIKit",
                 .target(name: "TabbySSHLib", condition: .when(platforms: [.macOS])),
                 .target(name: "TabbySerial", condition: .when(platforms: [.macOS])),
                 .target(name: "TabbyTelnet", condition: .when(platforms: [.macOS])),
@@ -104,6 +106,13 @@ let package = Package(
             name: "TabbyTelnet",
             dependencies: ["TabbyCore", "TabbyTerminal"]
         ),
+        // Phase 5: Tabby's command line and tabbymac:// / ssh:// / telnet:// links, parsed into one
+        // request type (Foundation only, tested on Linux). Used by the app and the `tabby` helper.
+        .target(name: "TabbyCLIKit"),
+        .testTarget(name: "TabbyCLIKitTests", dependencies: ["TabbyCLIKit", "TabbyCLI"]),
+        // `tabby`: the command-line helper (Contents/MacOS/tabby in the app). It hands requests
+        // to the app as tabbymac:// links.
+        .executableTarget(name: "TabbyCLI", dependencies: ["TabbyCLIKit"]),
         // Socket and pty helpers shared by the integration test targets (not shipped).
         .target(
             name: "TabbyTestSupport",

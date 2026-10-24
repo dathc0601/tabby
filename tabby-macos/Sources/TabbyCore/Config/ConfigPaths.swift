@@ -83,7 +83,7 @@ public struct ConfigFile {
     public enum ImportError: Error, LocalizedError {
         case encrypted
         public var errorDescription: String? {
-            "Tabby's config is encrypted with a vault passphrase. Disable \"Encrypt config\" in Tabby first."
+            L("Tabby's config is encrypted with a vault passphrase. Disable \"Encrypt config\" in Tabby first.")
         }
     }
 }

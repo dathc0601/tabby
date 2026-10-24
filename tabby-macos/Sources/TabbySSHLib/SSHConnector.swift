@@ -81,10 +81,10 @@ public final class SSHConnector {
         if let jumpID = options.jumpHost, options.proxyCommand == nil {
             let chain = chain + [profile.id]
             guard !chain.contains(jumpID) else {
-                throw SSHConnectionError.connectFailed("Jump host loop: \((chain + [jumpID]).joined(separator: " → "))")
+                throw SSHConnectionError.connectFailed(L("Jump host loop: {chain}", ["chain": (chain + [jumpID]).joined(separator: " → ")]))
             }
             guard let jumpProfile = resolveProfile(jumpID) else {
-                throw SSHConnectionError.connectFailed("\(options.host): jump host \"\(jumpID)\" not found in your config")
+                throw SSHConnectionError.connectFailed(L("{host}: jump host \"{jumpID}\" not found in your config", ["host": options.host, "jumpID": jumpID]))
             }
             let jump = try await acquire(jumpProfile, prompter: prompter, chain: chain)
             do {

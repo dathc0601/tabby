@@ -32,7 +32,7 @@ final class Transfer: Identifiable {
         progress = TransferProgress(total: total, start: Date())
     }
 
-    var subtitle: String { direction == .upload ? "To \(host)" : "From \(host)" }
+    var subtitle: String { direction == .upload ? L("To {host}", ["host": host]) : L("From {host}", ["host": host]) }
     var isRunning: Bool { status == .running }
 
     func record(_ bytes: UInt64) {
@@ -121,7 +121,7 @@ struct TransfersToolbarButton: View {
 
     var body: some View {
         if !center.transfers.isEmpty {
-            IconButton(symbol: "arrow.up.arrow.down", help: "Transfers") { showsPopover.toggle() }
+            IconButton(symbol: "arrow.up.arrow.down", help: L("Transfers")) { showsPopover.toggle() }
                 .overlay(alignment: .topTrailing) {
                     if center.activeCount > 0 {
                         Text("\(center.activeCount)").font(.system(size: 9, weight: .bold)).foregroundStyle(chrome.onAccent.color)
@@ -148,9 +148,9 @@ struct TransfersPopover: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Transfers").font(ChromeFont.headline)
+                Text(L("Transfers")).font(ChromeFont.headline)
                 Spacer()
-                Button("Clear finished") {
+                Button(L("Clear finished")) {
                     if center.clearNeedsConfirmation { confirmClear = true } else { center.clearFinished() }
                 }
                 .buttonStyle(ChromeButtonStyle())
@@ -165,12 +165,12 @@ struct TransfersPopover: View {
         .padding(14)
         .frame(width: 380)
         .foregroundStyle(chrome.text.color)
-        .confirmationDialog("There are active file transfers", isPresented: $confirmClear) {
-            Button("Abort all", role: .destructive) {
+        .confirmationDialog(L("There are active file transfers"), isPresented: $confirmClear) {
+            Button(L("Abort all"), role: .destructive) {
                 center.abortAll()
                 center.clearFinished()
             }
-            Button("Do not abort", role: .cancel) { center.clearFinished() }
+            Button(L("Do not abort"), role: .cancel) { center.clearFinished() }
         }
     }
 }
@@ -193,11 +193,11 @@ private struct TransferRow: View {
                 Text(detail).font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color).lineLimit(1)
             }
             if transfer.isRunning {
-                IconButton(symbol: "xmark", help: "Cancel", size: 22) { transfer.cancel() }
+                IconButton(symbol: "xmark", help: L("Cancel"), size: 22) { transfer.cancel() }
             } else if transfer.status == .done, let url = transfer.localURL {
-                IconButton(symbol: "folder", help: "Show in Finder", size: 22) { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+                IconButton(symbol: "folder", help: L("Show in Finder"), size: 22) { NSWorkspace.shared.activateFileViewerSelecting([url]) }
             } else {
-                IconButton(symbol: "checkmark", help: "Remove from the list", size: 22) { center.remove(transfer) }
+                IconButton(symbol: "checkmark", help: L("Remove from the list"), size: 22) { center.remove(transfer) }
             }
         }
     }
@@ -218,9 +218,9 @@ private struct TransferRow: View {
         switch transfer.status {
         case .running:
             let speed = ByteCountFormatter.string(fromByteCount: Int64(transfer.progress.bytesPerSecond), countStyle: .file)
-            return "\(transfer.subtitle) · \(done) of \(size) · \(speed)/s"
-        case .done: return "\(transfer.subtitle) · \(size) · Done"
-        case .cancelled: return "\(transfer.subtitle) · Cancelled"
+            return "\(transfer.subtitle) · " + L("{done} of {size}", ["done": done, "size": size]) + " · \(speed)/s"
+        case .done: return "\(transfer.subtitle) · \(size) · " + L("Done")
+        case .cancelled: return "\(transfer.subtitle) · " + L("Cancelled")
         case .failed(let reason): return "\(transfer.subtitle) · \(reason)"
         }
     }

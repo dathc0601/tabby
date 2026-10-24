@@ -72,8 +72,8 @@ private struct StartPageContent: View {
 
     private func rows(recents: [Profile]) -> (actions: [Row], recent: [Row], settings: Row) {
         let actions = [
-            Row(icon: "terminal", tint: nil, title: "New terminal", subtitle: nil, shortcut: StartPageView.shortcut("new-tab"), action: newTab),
-            Row(icon: "rectangle.stack", tint: nil, title: "Profiles & connections", subtitle: nil,
+            Row(icon: "terminal", tint: nil, title: L("New terminal"), subtitle: nil, shortcut: StartPageView.shortcut("new-tab"), action: newTab),
+            Row(icon: "rectangle.stack", tint: nil, title: L("Profiles & connections"), subtitle: nil,
                 shortcut: StartPageView.shortcut("profile-selector"), action: showProfiles),
         ]
         let recent = recents.enumerated().map { i, p in
@@ -81,7 +81,7 @@ private struct StartPageContent: View {
                 tint: p.color.flatMap(RGBColor.init(hex:)), title: p.name, subtitle: StartPageView.subtitle(of: p),
                 shortcut: "⌘\(i + 1)", action: { openProfile(p) })
         }
-        let settings = Row(icon: "gearshape", tint: nil, title: "Settings", subtitle: nil, shortcut: StartPageView.shortcut("settings"), action: showSettings)
+        let settings = Row(icon: "gearshape", tint: nil, title: L("Settings"), subtitle: nil, shortcut: StartPageView.shortcut("settings"), action: showSettings)
         return (actions, recent, settings)
     }
 
@@ -99,12 +99,12 @@ private struct StartPageContent: View {
                         .shadow(color: .black.opacity(0.2), radius: 12, y: 8)
                         .frame(width: 84, height: 84)
                         .overlay(Image(systemName: "chevron.right").font(.system(size: 44, weight: .bold)).foregroundStyle(chrome.accent.color))
-                    Text("TabbyMac").font(ChromeFont.largeTitle).tracking(-0.5)
+                    Text(verbatim: "TabbyMac").font(ChromeFont.largeTitle).tracking(-0.5)
                 }
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(r.actions.enumerated()), id: \.offset) { i, row in item(row, index: i) }
                     if !r.recent.isEmpty {
-                        Text("Recent").font(.system(size: 11, weight: .semibold)).foregroundStyle(chrome.textFaint.color)
+                        Text(L("Recent")).font(.system(size: 11, weight: .semibold)).foregroundStyle(chrome.textFaint.color)
                             .padding(.horizontal, 10).padding(.top, 10).padding(.bottom, 4)
                         ForEach(Array(r.recent.enumerated()), id: \.offset) { i, row in item(row, index: r.actions.count + i) }
                     }
@@ -154,7 +154,7 @@ private struct StartPageContent: View {
                     Text(subtitle).font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color).lineLimit(1).truncationMode(.middle)
                 }
                 Spacer(minLength: 8)
-                if selected { Keycap("↩ open") }
+                if selected { Keycap(L("↩ open")) }
                 if let shortcut = row.shortcut {
                     Text(shortcut).font(ChromeFont.caption).foregroundStyle(chrome.textFaint.color)
                 }
@@ -171,13 +171,13 @@ private struct StartPageContent: View {
     private var footer: some View {
         HStack(spacing: 20) {
             Link(destination: StartPageView.repositoryURL) {
-                Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+                Label(L("GitHub"), systemImage: "chevron.left.forwardslash.chevron.right")
             }
             Link(destination: StartPageView.repositoryURL.appendingPathComponent("issues/new")) {
-                Label("Report a problem", systemImage: "ladybug")
+                Label(L("Report a problem"), systemImage: "ladybug")
             }
             Spacer()
-            Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "development build")")
+            Text(L("Version {version}", ["version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? L("development build")]))
                 .font(.custom("Menlo", size: 11)).foregroundStyle(chrome.textFaint.color)
         }
         .font(ChromeFont.caption)

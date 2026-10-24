@@ -28,6 +28,21 @@ final class SettingsLayoutTests: XCTestCase {
         }
     }
 
+    /// Phase 5: longer German and Vietnamese labels must not widen a page either.
+    func testEveryPageFitsANarrowWindowInGermanAndVietnamese() {
+        defer { AppServices.shared.config.set("language", .null) }
+        for language in ["de-DE", "vi-VN"] {
+            AppServices.shared.config.set("language", .string(language))
+            XCTAssertEqual(L10n.language, language)
+            for section in SettingsSection.allCases {
+                XCTAssertLessThanOrEqual(width(of: section, proposed: 640), 640.5, "\(language): \(section.rawValue) is wider than the window")
+            }
+            let card = SignedOutAccountCard(createAccount: {}, signIn: {}).chromeEnvironment()
+            let size = NSHostingController(rootView: card).sizeThatFits(in: CGSize(width: 419 - 56, height: 800))
+            XCTAssertLessThanOrEqual(size.height, 240, "\(language): the signed-out card is not squeezed")
+        }
+    }
+
     /// Found in the M6 walk at 706 pt: the Config file header squeezed "Show defaults" into a
     /// column of letters (eight rows tall) and cut the YAML error to "Not…".
     func testTheConfigFileHeaderStaysReadableWhenNarrow() {

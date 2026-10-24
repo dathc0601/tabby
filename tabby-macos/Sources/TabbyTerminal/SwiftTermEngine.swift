@@ -139,14 +139,14 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
 
     public func clearBuffer() {
         clearScrollback()
-        feed(text: "\u{1b}[H\u{1b}[2J")
+        feed(text: "\u{1b}[H\u{1b}[2J") // l10n-ignore: an escape sequence
         // Ask the program to repaint (the shell redraws its prompt).
         engineDelegate?.engine(self, send: Data([0x0c]))
     }
 
     public func clearScreen() {
         clearScrollback()
-        feed(text: "\u{1b}[H\u{1b}[2J")
+        feed(text: "\u{1b}[H\u{1b}[2J") // l10n-ignore: an escape sequence
     }
 
     public func snapshotText(maxLines: Int) -> String {
@@ -283,9 +283,16 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
         }
     }
 
+    /// SwiftTerm reports the bell to its delegate only in audible mode; TabbyMac needs it in
+    /// every mode (tab activity, the Dock bounce). `super` still beeps or flashes.
+    public override func bell(source: Terminal) {
+        super.bell(source: source)
+        engineDelegate?.engineBell(self)
+    }
+
+    /// The audible bell (SwiftTerm calls this from `bell(source: Terminal)` in `.sound` mode).
     public func bell(source: TerminalView) {
         NSSound.beep()
-        engineDelegate?.engineBell(self)
     }
 
     public func clipboardCopy(source: TerminalView, content: Data) {

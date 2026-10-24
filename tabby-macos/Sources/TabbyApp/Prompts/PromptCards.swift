@@ -99,8 +99,8 @@ struct PasteWarningCard: View {
         let count = lines.split(separator: "\n", omittingEmptySubsequences: true).count
         let preview = lines.count > 2000 ? String(lines.prefix(2000)) + "…" : lines
         VStack(alignment: .leading, spacing: 14) {
-            CardHeader(symbol: "doc.on.clipboard", tint: chrome.warning, title: "Paste multiple lines?",
-                       message: "The clipboard holds \(count) lines. Each line runs as soon as it reaches the shell.")
+            CardHeader(symbol: "doc.on.clipboard", tint: chrome.warning, title: L("Paste multiple lines?"),
+                       message: L("The clipboard holds {count} lines. Each line runs as soon as it reaches the shell.", ["count": count]))
             ScrollView {
                 Text(preview).font(.custom("Menlo", size: 12)).textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading).padding(10)
@@ -109,8 +109,8 @@ struct PasteWarningCard: View {
             .fixedSize(horizontal: false, vertical: true)
             .background(RoundedRectangle(cornerRadius: 7).fill(chrome.surface.color))
             .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(chrome.border.color, lineWidth: 0.5))
-            Toggle("Don't ask again", isOn: $dontAsk).toggleStyle(.checkbox)
-            CardButtons(cancel: "Cancel", confirm: "Paste", onCancel: { finish(false, false) }, onConfirm: { finish(true, dontAsk) })
+            Toggle(L("Don't ask again"), isOn: $dontAsk).toggleStyle(.checkbox)
+            CardButtons(cancel: L("Cancel"), confirm: L("Paste"), onCancel: { finish(false, false) }, onConfirm: { finish(true, dontAsk) })
         }
         .padding(20)
         .frame(width: 460)
@@ -150,7 +150,7 @@ struct TextPromptCard: View {
             if let remember {
                 Toggle(remember, isOn: $rememberOn).toggleStyle(.checkbox)
             }
-            CardButtons(cancel: "Cancel", confirm: confirm, onCancel: { finish(nil, false) },
+            CardButtons(cancel: L("Cancel"), confirm: confirm, onCancel: { finish(nil, false) },
                         onConfirm: { finish(value, remember != nil && rememberOn) })
         }
         .padding(20)
@@ -174,14 +174,14 @@ struct HostKeyPromptCard: View {
 
         init(host: String, changed: Bool) {
             if changed {
-                title = "Warning: remote host's key has suddenly changed!"
-                message = "You could be under a man-in-the-middle attack right now, or the host key of \(host) could have just been changed."
-                confirm = "Accept new key"
+                title = L("Warning: remote host's key has suddenly changed!")
+                message = L("You could be under a man-in-the-middle attack right now, or the host key of {host} could have just been changed.", ["host": host])
+                confirm = L("Accept new key")
                 rejectIsDefault = true
             } else {
-                title = "Verify host key"
-                message = "This is the first connection to \(host). Compare the fingerprint with the one your administrator gave you before accepting."
-                confirm = "Accept"
+                title = L("Verify host key")
+                message = L("This is the first connection to {host}. Compare the fingerprint with the one your administrator gave you before accepting.", ["host": host])
+                confirm = L("Accept")
                 rejectIsDefault = false
             }
         }
@@ -228,21 +228,21 @@ struct HostKeyPromptCard: View {
                        title: texts.title, message: texts.message)
             Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 8) {
                 GridRow {
-                    Text("Host").foregroundStyle(chrome.textMuted.color)
+                    Text(L("Host")).foregroundStyle(chrome.textMuted.color)
                     Text(host).font(.custom("Menlo", size: 12)).textSelection(.enabled)
                 }
                 GridRow {
-                    Text("Key type").foregroundStyle(chrome.textMuted.color)
+                    Text(L("Key type")).foregroundStyle(chrome.textMuted.color)
                     Text(keyType ?? "unknown").font(.custom("Menlo", size: 12))
                 }
                 if let previousFingerprint {
                     GridRow(alignment: .top) {
-                        Text("Last known").foregroundStyle(chrome.textMuted.color)
+                        Text(L("Last known")).foregroundStyle(chrome.textMuted.color)
                         FingerprintField(text: previousFingerprint, color: chrome.textMuted).frame(width: 300)
                     }
                 }
                 GridRow(alignment: .top) {
-                    Text(changed ? "Current" : "Fingerprint").foregroundStyle(chrome.textMuted.color)
+                    Text(changed ? L("Current") : L("Fingerprint")).foregroundStyle(chrome.textMuted.color)
                     FingerprintField(text: fingerprint ?? "unknown", color: chrome.text).frame(width: 300)
                 }
             }
@@ -251,22 +251,22 @@ struct HostKeyPromptCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(RoundedRectangle(cornerRadius: 8).fill(chrome.surface.color))
             if offersRemember {
-                Toggle("Remember in known_hosts", isOn: $remember).toggleStyle(.checkbox).font(ChromeFont.callout)
+                Toggle(L("Remember in known_hosts"), isOn: $remember).toggleStyle(.checkbox).font(ChromeFont.callout)
             } else {
-                Text("Accepting saves the key in known_hosts.").font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
+                Text(L("Accepting saves the key in known_hosts.")).font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
             }
             if texts.rejectIsDefault {
                 HStack {
                     Spacer()
                     Button { decide(Self.decision(accept: true, remember: remember)) } label: { Text(texts.confirm) }
                         .buttonStyle(ChromeButtonStyle(kind: .destructive, large: true))
-                    Button { decide(.reject) } label: { Text("Reject") }
+                    Button { decide(.reject) } label: { Text(L("Reject")) }
                         .buttonStyle(ChromeButtonStyle(kind: .primary, large: true))
                         .keyboardShortcut(.defaultAction)
                 }
                 .onExitCommand { decide(.reject) }
             } else {
-                CardButtons(cancel: "Reject", confirm: texts.confirm, onCancel: { decide(.reject) },
+                CardButtons(cancel: L("Reject"), confirm: texts.confirm, onCancel: { decide(.reject) },
                             onConfirm: { decide(Self.decision(accept: true, remember: remember)) })
             }
         }

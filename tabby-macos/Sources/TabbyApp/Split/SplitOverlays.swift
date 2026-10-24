@@ -89,11 +89,11 @@ private struct MaximizedChipContent: View {
                     }
                 }
                 .frame(width: map.width, height: map.height, alignment: .topLeading)
-                Text("Pane \(index) of \(panes.count) maximised").font(ChromeFont.caption)
+                Text(L("Pane {index} of {total} maximised", ["index": index, "total": panes.count])).font(ChromeFont.caption)
                 Button(action: restore) {
                     HStack(spacing: 4) {
                         Image(systemName: "arrow.down.right.and.arrow.up.left")
-                        Text("Restore")
+                        Text(L("Restore"))
                         if let key = StartPageView.shortcut("pane-maximize") {
                             Text(key).foregroundStyle(chrome.textFaint.color)
                         }

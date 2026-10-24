@@ -32,7 +32,7 @@ enum SerialChip {
         } catch {
             let controller = WindowManager.shared.controllers.first { c in c.model.tabs.contains { $0.panes[pane.id] != nil } }
             controller?.toasts.show(ToastCenter.Toast(symbol: "exclamationmark.circle.fill", tint: .danger,
-                                                      title: "Could not change the baud rate",
+                                                      title: L("Could not change the baud rate"),
                                                       detail: (error as? LocalizedError)?.errorDescription ?? error.localizedDescription))
         }
     }
@@ -83,16 +83,16 @@ enum SerialSelectors {
     static func portSelector(ports: [SerialPortInfo], chosen: @escaping (String) -> Void) -> SelectorConfig {
         let ordered = ports.filter { !$0.isInternal } + ports.filter(\.isInternal)
         let items = ordered.map { port in
-            SelectorItem(id: port.path, title: port.deviceName, group: port.isInternal ? "Built in" : "Ports",
+            SelectorItem(id: port.path, title: port.deviceName, group: port.isInternal ? L("Built in") : L("Ports"),
                          subtitle: port.description ?? port.path, icon: "cable.connector", isDimmed: port.isInternal) { chosen(port.path) }
         }
-        return SelectorConfig(placeholder: "Serial port or a device path", items: items, dynamicItems: { query in
+        return SelectorConfig(placeholder: L("Serial port or a device path"), items: items, dynamicItems: { query in
             // A path typed by hand: a device the list doesn't show, a link to one.
             guard query.hasPrefix("/") || query.hasPrefix("~") else { return [] }
             let path = (query as NSString).expandingTildeInPath
-            return [SelectorItem(id: "path", title: "Use \(path)", icon: "pencil") { chosen(path) }]
+            return [SelectorItem(id: "path", title: L("Use {path}", ["path": path]), icon: "pencil") { chosen(path) }]
         }, dynamicItemsFirst: true,
-           emptyState: SelectorEmptyState(icon: "cable.connector", title: "No ports found", subtitle: "Connect a device, or type its path"),
+           emptyState: SelectorEmptyState(icon: "cable.connector", title: L("No ports found"), subtitle: L("Connect a device, or type its path")),
            trailingHint: nil)
     }
 
@@ -102,10 +102,10 @@ enum SerialSelectors {
             SelectorItem(id: "\(rate)", title: "\(rate)", icon: "speedometer") { chosen(rate) }
         }
         let preselected = BaudRates.standard.firstIndex(of: BaudRates.quickConnectDefault) ?? 0
-        return SelectorConfig(placeholder: "Baud rate", items: items, initialSelection: preselected, dynamicItems: { query in
+        return SelectorConfig(placeholder: L("Baud rate"), items: items, initialSelection: preselected, dynamicItems: { query in
             guard let rate = Int(query.trimmingCharacters(in: .whitespaces)), rate > 0,
                   !BaudRates.standard.contains(rate) else { return [] }
-            return [SelectorItem(id: "custom", title: "Use custom rate \u{201C}\(rate)\u{201D}", icon: "pencil") { chosen(rate) }]
+            return [SelectorItem(id: "custom", title: L("Use custom rate \u{201C}{rate}\u{201D}", ["rate": rate]), icon: "pencil") { chosen(rate) }]
         }, trailingHint: nil)
     }
 
@@ -118,20 +118,20 @@ enum SerialSelectors {
         let ports = profiles.filter { $0.isBuiltin && !$0.isTemplate }
         // Ids carry the position: a hand-edited config can have profiles without an id.
         let items = saved.enumerated().map { index, p in
-            SelectorItem(id: "saved-\(index)-\(p.id)", title: p.name, group: "Saved profiles", subtitle: provider.description(for: p),
+            SelectorItem(id: "saved-\(index)-\(p.id)", title: p.name, group: L("Saved profiles"), subtitle: provider.description(for: p),
                          icon: ProfileIcons.symbol(for: p.icon ?? ProfileIcons.defaultIcon(forType: "serial")), color: p.color) { open(p) }
         } + templates.enumerated().map { index, p in
-            SelectorItem(id: "template-\(index)-\(p.id)", title: p.name, subtitle: "Asks for the port and baud rate", icon: "plus") { open(p) }
+            SelectorItem(id: "template-\(index)-\(p.id)", title: p.name, subtitle: L("Asks for the port and baud rate"), icon: "plus") { open(p) }
         } + ports.enumerated().map { index, p in
-            SelectorItem(id: "port-\(index)-\(p.id)", title: p.name, group: "Ports", subtitle: provider.description(for: p),
+            SelectorItem(id: "port-\(index)-\(p.id)", title: p.name, group: L("Ports"), subtitle: provider.description(for: p),
                          icon: ProfileIcons.symbol(for: p.icon ?? ProfileIcons.defaultIcon(forType: "serial")), color: p.color) { open(p) }
         }
-        return SelectorConfig(placeholder: "Serial port or profile", items: items, dynamicItems: { query in
+        return SelectorConfig(placeholder: L("Serial port or profile"), items: items, dynamicItems: { query in
             guard query.hasPrefix("/"), let profile = provider.quickConnect(query) else { return [] }
             let o = SerialOptions(profile.options)
-            let target = o.port.map { port in o.baudrate.map { "\(port) at \($0) baud" } ?? port } ?? query
-            return [SelectorItem(id: "qc", title: "Quick connect", subtitle: target, icon: "bolt") { open(profile) }]
-        }, dynamicItemsFirst: true, trailingHint: StartPageView.shortcut("serial").map { "\($0) serial" })
+            let target = o.port.map { port in o.baudrate.map { L("{port} at {rate} baud", ["port": port, "rate": $0]) } ?? port } ?? query
+            return [SelectorItem(id: "qc", title: L("Quick connect"), subtitle: target, icon: "bolt") { open(profile) }]
+        }, dynamicItemsFirst: true, trailingHint: StartPageView.shortcut("serial").map { L("{shortcut} serial", ["shortcut": $0]) })
     }
 }
 #endif

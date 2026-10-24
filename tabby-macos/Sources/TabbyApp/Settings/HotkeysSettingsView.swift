@@ -27,25 +27,25 @@ struct HotkeysSettingsView: View {
             let q = filter.trimmingCharacters(in: .whitespaces).lowercased()
             guard !q.isEmpty else { return true }
             let keys = HotkeyBinding.bindings(from: config.value("hotkeys.\(entry.id)")).map { $0.symbolicDescription.lowercased() }
-            return "\(entry.group) \(entry.name) \(entry.id)".lowercased().contains(q) || keys.contains { $0.contains(q) }
+            return "\(entry.group) \(entry.name) \(entry.id) \(entry.groupTitle) \(entry.title)".lowercased().contains(q) || keys.contains { $0.contains(q) }
         }
         let groups = Dictionary(grouping: entries, by: \.group)
         let order = HotkeyCatalog.entries.map(\.group).reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
-        SettingsPage("Hotkeys") {
+        SettingsPage(L("Hotkeys")) {
             HStack(spacing: 10) {
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass").foregroundStyle(chrome.textMuted.color)
-                    TextField("Filter by name or keys", text: $filter).textFieldStyle(.plain)
+                    TextField(L("Filter by name or keys"), text: $filter).textFieldStyle(.plain)
                 }
                 .padding(.horizontal, 8)
                 .frame(height: 26)
                 .background(RoundedRectangle(cornerRadius: 6).fill(chrome.fill.color))
                 RowPicker(selection: $onlyChanged) {
-                    Text("All").tag(false)
-                    Text("Changed").tag(true)
+                    Text(L("All")).tag(false)
+                    Text(L("Changed")).tag(true)
                 }
                 Spacer()
-                Button("Restore defaults") {
+                Button(L("Restore defaults")) {
                     for entry in HotkeyCatalog.entries where config.user.value(at: "hotkeys.\(entry.id)") != nil {
                         config.set("hotkeys.\(entry.id)", config.defaultValue("hotkeys.\(entry.id)"))
                     }
@@ -53,12 +53,12 @@ struct HotkeysSettingsView: View {
                 .buttonStyle(ChromeButtonStyle())
             }
             ForEach(order.filter { groups[$0] != nil }, id: \.self) { group in
-                SettingsGroup(group) {
+                SettingsGroup(L(group)) {
                     ForEach(groups[group] ?? [], id: \.id) { entry in row(entry) }
                 }
             }
             if entries.isEmpty {
-                Text("No hotkeys match “\(filter)”").foregroundStyle(chrome.textMuted.color)
+                Text(L("No hotkeys match “{filter}”", ["filter": filter])).foregroundStyle(chrome.textMuted.color)
             }
         }
         .sheet(item: $capturing) { entry in
@@ -77,10 +77,10 @@ struct HotkeysSettingsView: View {
         let config = AppServices.shared.config
         let bindings = HotkeyBinding.bindings(from: config.value("hotkeys.\(entry.id)"))
         let changed = config.user.value(at: "hotkeys.\(entry.id)") != nil
-        return SettingsRow(entry.name) {
+        return SettingsRow(entry.title) {
             HStack(spacing: 6) {
                 if entry.id == "toggle-window" {
-                    Text("global").font(.system(size: 10, weight: .semibold)).padding(.horizontal, 5).frame(height: 16)
+                    Text(L("global")).font(.system(size: 10, weight: .semibold)).padding(.horizontal, 5).frame(height: 16)
                         .foregroundStyle(chrome.accent.color).background(Capsule().fill(chrome.accentFill.color))
                 }
                 ForEach(Array(bindings.enumerated()), id: \.offset) { index, b in
@@ -90,9 +90,9 @@ struct HotkeysSettingsView: View {
                         config.set("hotkeys.\(entry.id)", HotkeyBinding.configValue(for: list))
                     }
                 }
-                IconButton(symbol: "plus", help: "Add a shortcut", size: 22) { capturing = entry }
+                IconButton(symbol: "plus", help: L("Add a shortcut"), size: 22) { capturing = entry }
                 if changed {
-                    IconButton(symbol: "arrow.uturn.backward", help: "Reset to the default", size: 22) {
+                    IconButton(symbol: "arrow.uturn.backward", help: L("Reset to the default"), size: 22) {
                         config.set("hotkeys.\(entry.id)", config.defaultValue("hotkeys.\(entry.id)"))
                     }
                 }
@@ -114,10 +114,10 @@ struct HotkeyCaptureSheet: View {
         let binding = strokes.isEmpty ? nil : HotkeyBinding(strokes)
         let conflicts = binding.map { HotkeyCatalog.conflicts(with: $0, excluding: entry.id, config: AppServices.shared.config) } ?? []
         VStack(alignment: .leading, spacing: 14) {
-            Text("\(entry.name) · press a key combination").font(ChromeFont.headline)
+            Text(L("{name} · press a key combination", ["name": entry.title])).font(ChromeFont.headline)
             HStack(spacing: 6) {
                 if strokes.isEmpty {
-                    Text("Waiting for keys…").foregroundStyle(chrome.textMuted.color)
+                    Text(L("Waiting for keys…")).foregroundStyle(chrome.textMuted.color)
                 }
                 ForEach(Array(strokes.enumerated()), id: \.offset) { _, s in
                     Text(s.symbolicDescription).font(.system(size: 20, weight: .medium)).padding(.horizontal, 10).frame(minHeight: 36)
@@ -128,17 +128,18 @@ struct HotkeyCaptureSheet: View {
             .background(RoundedRectangle(cornerRadius: 10).fill(chrome.surface.color))
             .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(chrome.accent.color, lineWidth: 1.5))
             if let first = conflicts.first {
-                Label("Also used by “\(first.name)”" + (conflicts.count > 1 ? " and \(conflicts.count - 1) more" : ""),
+                Label(conflicts.count > 1 ? L("Also used by “{name}” and {count} more", ["name": first.title, "count": conflicts.count - 1])
+                                           : L("Also used by “{name}”", ["name": first.title]),
                       systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(chrome.warning.color)
             } else {
-                Text("Press up to three keys in a row for a chord.").font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
+                Text(L("Press up to three keys in a row for a chord.")).font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
             }
             HStack {
-                Button("Clear") { strokes = [] }.buttonStyle(ChromeButtonStyle()).disabled(strokes.isEmpty)
+                Button(L("Clear")) { strokes = [] }.buttonStyle(ChromeButtonStyle()).disabled(strokes.isEmpty)
                 Spacer()
-                Button("Cancel") { finish(nil) }.buttonStyle(ChromeButtonStyle())
-                Button("Save") { finish(binding) }.buttonStyle(ChromeButtonStyle(kind: .primary)).disabled(binding == nil)
+                Button(L("Cancel")) { finish(nil) }.buttonStyle(ChromeButtonStyle())
+                Button(L("Save")) { finish(binding) }.buttonStyle(ChromeButtonStyle(kind: .primary)).disabled(binding == nil)
             }
         }
         .padding(20)
@@ -153,7 +154,7 @@ struct HotkeyCaptureSheet: View {
         HotkeyCapture.manager?.isSuspended = true
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
             if let stroke = KeyMapping.keystroke(for: event), strokes.count < 3 {
-                if stroke.key == "Escape" && stroke.modifiers.isEmpty && strokes.isEmpty {
+                if stroke.key == "Escape" && stroke.modifiers.isEmpty && strokes.isEmpty { // l10n-ignore: a key name
                     finish(nil)
                 } else {
                     strokes.append(stroke)

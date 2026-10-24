@@ -17,8 +17,8 @@ public final class TelnetSession: TerminalSession, ServiceOutputSource, LocalEch
 
         public var errorDescription: String? {
             switch self {
-            case .noHost: return "No host to connect to"
-            case .badPort(let port): return "Invalid port \(port)"
+            case .noHost: return L("No host to connect to")
+            case .badPort(let port): return L("Invalid port {port}", ["port": port])
             }
         }
     }
@@ -55,7 +55,7 @@ public final class TelnetSession: TerminalSession, ServiceOutputSource, LocalEch
             throw Failure.badPort(options.port)
         }
         telnet.resize(cols: cols, rows: rows)
-        service(ServiceMessage.line("Connecting to \(options.host)", badge: .telnet))
+        service(ServiceMessage.line(L("Connecting to {host}", ["host": options.host]), badge: .telnet))
         onStatus?(.connecting(options.host))
         let connection = NWConnection(host: NWEndpoint.Host(options.host), port: port, using: .tcp)
         self.connection = connection
@@ -67,7 +67,7 @@ public final class TelnetSession: TerminalSession, ServiceOutputSource, LocalEch
         let timeout = connectTimeout
         DispatchQueue.main.asyncAfter(deadline: .now() + timeout) { [weak self] in
             guard let self, !self.opened, !self.ended else { return }
-            self.fail("Connection timed out")
+            self.fail(L("Connection timed out"))
         }
     }
 
@@ -98,7 +98,7 @@ public final class TelnetSession: TerminalSession, ServiceOutputSource, LocalEch
         switch state {
         case .ready:
             opened = true
-            service(ServiceMessage.line("Connected", badge: .telnet))
+            service(ServiceMessage.line(L("Connected"), badge: .telnet))
             onStatus?(.connected)
             if !earlyInput.isEmpty {
                 send(telnet.send(earlyInput))
@@ -107,7 +107,7 @@ public final class TelnetSession: TerminalSession, ServiceOutputSource, LocalEch
             receive()
         case .waiting(let error), .failed(let error):
             // `.waiting` is a refused or unreachable connect that Network would retry.
-            fail("Socket error: \(Self.describe(error))")
+            fail(L("Socket error: {reason}", ["reason": Self.describe(error)]))
         default:
             break
         }
@@ -119,9 +119,9 @@ public final class TelnetSession: TerminalSession, ServiceOutputSource, LocalEch
                 guard let self, !self.ended else { return }
                 if let data, !data.isEmpty { self.process(data) }
                 if let error {
-                    self.fail("Socket error: \(Self.describe(error))")
+                    self.fail(L("Socket error: {reason}", ["reason": Self.describe(error)]))
                 } else if isComplete {
-                    self.service(ServiceMessage.line("Connection closed", badge: .telnet))
+                    self.service(ServiceMessage.line(L("Connection closed"), badge: .telnet))
                     self.end()
                 } else {
                     self.receive()
@@ -143,7 +143,7 @@ public final class TelnetSession: TerminalSession, ServiceOutputSource, LocalEch
             guard let error else { return }
             DispatchQueue.main.async {
                 guard let self, !self.ended else { return }
-                self.fail("Socket error: \(Self.describe(error))")
+                self.fail(L("Socket error: {reason}", ["reason": Self.describe(error)]))
             }
         })
     }
@@ -158,7 +158,7 @@ public final class TelnetSession: TerminalSession, ServiceOutputSource, LocalEch
 
     /// The connection ended normally (peer closed, or the pane let go of it).
     private func end() {
-        service(ServiceMessage.line("\(options.host): session closed", badge: .telnet))
+        service(ServiceMessage.line(L("{host}: session closed", ["host": options.host]), badge: .telnet))
         finish()
     }
 
@@ -182,7 +182,7 @@ public final class TelnetSession: TerminalSession, ServiceOutputSource, LocalEch
         case .posix(let code):
             return String(cString: strerror(code.rawValue))
         case .dns:
-            return "Host not found"
+            return L("Host not found")
         default:
             return error.localizedDescription
         }

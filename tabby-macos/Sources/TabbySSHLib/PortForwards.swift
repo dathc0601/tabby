@@ -47,7 +47,7 @@ extension SSHConnection {
                     runtime.boundPort = bound > 0 ? Int(bound) : forward.port
                 }
             } catch let ForwardError.failed(reason) {
-                throw SSHConnectionError.channelFailed("Failed to forward port \(forward.summary): \(reason)")
+                throw SSHConnectionError.forwardFailed(summary: forward.summary, reason: reason)
             }
             forwardRuntimes[runtime.id] = runtime
             publishForwards()
@@ -193,12 +193,12 @@ extension SSHConnection {
     fileprivate func acceptForwarded(destinationAddress: String, destinationPort: Int, originator: String) -> ssh_channel? {
         guard let session else { return nil }
         guard let runtime = forwardRuntimes.values.first(where: { $0.forward.type == .remote && $0.boundPort == destinationPort }) else {
-            say("Rejected incoming forwarded connection for unrecognized port \(destinationAddress):\(destinationPort)")
+            say(L("Rejected incoming forwarded connection for unrecognized port {destinationAddress}:{destinationPort}", ["destinationAddress": destinationAddress, "destinationPort": destinationPort]))
             return nil
         }
         // Not waited for here (inside a libssh callback): the bridge waits for the connect.
         guard let fd = LocalSocket.startTCP(host: runtime.forward.targetAddress, port: runtime.forward.targetPort) else {
-            say("Could not connect to \(runtime.forward.targetAddress):\(runtime.forward.targetPort) for \(runtime.forward.summary)")
+            say(L("Could not connect to {targetAddress}:{targetPort} for {summary}", ["targetAddress": runtime.forward.targetAddress, "targetPort": runtime.forward.targetPort, "summary": runtime.forward.summary]))
             return nil
         }
         return acceptBridged(session, fd: fd, connecting: true)
@@ -211,7 +211,7 @@ extension SSHConnection {
                              ai_addrlen: 0, ai_canonname: nil, ai_addr: nil, ai_next: nil)
         var list: UnsafeMutablePointer<addrinfo>?
         guard getaddrinfo(host.isEmpty ? nil : host, String(port), &hints, &list) == 0, let info = list else {
-            throw ForwardError.failed("cannot resolve \(host)")
+            throw ForwardError.failed(L("cannot resolve {host}", ["host": host]))
         }
         defer { freeaddrinfo(list) }
         let fd = socket(info.pointee.ai_family, info.pointee.ai_socktype, info.pointee.ai_protocol)

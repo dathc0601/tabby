@@ -43,6 +43,11 @@ targets:
         link: false
         copy:
           destination: executables
+      - target: tabby
+        embed: true
+        link: false
+        copy:
+          destination: executables
     settings:
       base:
         PRODUCT_NAME: TabbyMac
@@ -70,12 +75,27 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) ASKPASS_STANDALONE"
         SKIP_INSTALL: YES
+  # The command-line helper (phase 5), compiled from the package sources and copied to
+  # TabbyMac.app/Contents/MacOS/tabby.
+  tabby:
+    type: tool
+    platform: macOS
+    sources:
+      - path: ../Sources/TabbyCLI
+      - path: ../Sources/TabbyCLIKit
+    settings:
+      base:
+        PRODUCT_NAME: tabby
+        ENABLE_HARDENED_RUNTIME: YES
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) TABBY_CLI_STANDALONE"
+        SKIP_INSTALL: YES
 schemes:
   TabbyMac:
     build:
       targets:
         TabbyMac: all
         tabby-askpass: all
+        tabby: all
     run:
       config: Debug
     test:

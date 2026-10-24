@@ -51,7 +51,7 @@ struct BaudRatePopover: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 8) {
-                Text("Baud rate").font(ChromeFont.bodyEmphasised)
+                Text(L("Baud rate")).font(ChromeFont.bodyEmphasised)
                 Spacer(minLength: 8)
                 Text(verbatim: model.device).font(.custom("Menlo", size: 11.5)).foregroundStyle(chrome.textMuted.color).lineLimit(1)
             }
@@ -62,7 +62,7 @@ struct BaudRatePopover: View {
             separator
             HStack(spacing: 8) {
                 Color.clear.frame(width: 16, height: 1)
-                Text("Custom")
+                Text(L("Custom"))
                 Spacer(minLength: 8)
                 TextField("", text: $model.custom)
                     .multilineTextAlignment(.trailing)
@@ -71,15 +71,15 @@ struct BaudRatePopover: View {
                     .frame(width: 120)
                     .focused($customFocused)
                     .onSubmit { model.submit() }
-                    .accessibilityLabel("Custom baud rate")
+                    .accessibilityLabel(L("Custom baud rate"))
             }
             .frame(height: 32)
             .padding(.horizontal, 8)
             separator
             HStack(spacing: 8) {
                 Spacer()
-                Keycap("↩ apply")
-                Keycap("esc close")
+                Keycap(L("↩ apply"))
+                Keycap(L("esc close"))
             }
             .padding(EdgeInsets(top: 1, leading: 8, bottom: 2, trailing: 8))
         }
@@ -108,7 +108,7 @@ struct BaudRatePopover: View {
                     .fontWeight(current ? .semibold : .regular)
                 Spacer(minLength: 8)
                 if current {
-                    Text("In use").font(.system(size: 11)).foregroundStyle(chrome.textMuted.color)
+                    Text(L("In use")).font(.system(size: 11)).foregroundStyle(chrome.textMuted.color)
                 }
             }
             .padding(.horizontal, 8)
@@ -133,7 +133,7 @@ struct BaudRateButton: View {
 
     var body: some View {
         Button { model = makeModel() } label: {
-            Label("Baud rate", systemImage: "speedometer")
+            Label(L("Baud rate"), systemImage: "speedometer")
                 .font(ChromeFont.caption)
                 .padding(.horizontal, 6)
                 .frame(height: 22)

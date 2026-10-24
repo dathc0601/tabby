@@ -122,7 +122,7 @@ struct Keycap: View {
                 Button(action: removable) { Image(systemName: "xmark").font(.system(size: 8, weight: .bold)) }
                     .buttonStyle(.plain)
                     .foregroundStyle(chrome.textMuted.color)
-                    .help("Remove")
+                    .help(L("Remove"))
             }
         }
         .padding(.horizontal, 6)

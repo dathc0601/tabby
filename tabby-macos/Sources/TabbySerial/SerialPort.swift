@@ -38,10 +38,10 @@ public final class SerialPort {
 
         public var errorDescription: String? {
             switch self {
-            case .cannotOpen(let path, let code): return "Cannot open \(path): \(String(cString: strerror(code)))"
-            case .busy(let path): return "\(path) is busy: another program has it open"
-            case .cannotConfigure(let code): return "Cannot configure the port: \(String(cString: strerror(code)))"
-            case .unsupportedBaudRate(let rate): return "Unsupported baud rate \(rate)"
+            case .cannotOpen(let path, let code): return L("Cannot open {path}: {reason}", ["path": path, "reason": String(cString: strerror(code))])
+            case .busy(let path): return L("{path} is busy: another program has it open", ["path": path])
+            case .cannotConfigure(let code): return L("Cannot configure the port: {reason}", ["reason": String(cString: strerror(code))])
+            case .unsupportedBaudRate(let rate): return L("Unsupported baud rate {rate}", ["rate": rate])
             }
         }
     }

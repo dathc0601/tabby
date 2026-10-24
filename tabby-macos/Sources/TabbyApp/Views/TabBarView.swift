@@ -84,13 +84,13 @@ struct HorizontalTabBar: View {
                 strip(layout)
                     .frame(width: CGFloat(layout.stripWidth))
                 if layout.overflows { overflowMenu(layout) }
-                IconButton(symbol: "plus", help: "New tab", action: actions.newTab)
+                IconButton(symbol: "plus", help: L("New tab"), action: actions.newTab)
                     .frame(width: Self.newTabWidth)
                 WindowDragArea().frame(minWidth: Self.dragMinimum, maxWidth: .infinity)
                 HStack(spacing: 2) {
                     TransfersToolbarButton()
-                    IconButton(symbol: "rectangle.stack", help: "Profiles & connections", action: actions.showProfiles)
-                    IconButton(symbol: "gearshape", help: "Settings", action: actions.showSettings)
+                    IconButton(symbol: "rectangle.stack", help: L("Profiles & connections"), action: actions.showProfiles)
+                    IconButton(symbol: "gearshape", help: L("Settings"), action: actions.showSettings)
                     AccountToolbarButton(openSettings: { WindowManager.shared.openSettings(section: .account) })
                 }
                 .padding(.trailing, 8)
@@ -161,7 +161,7 @@ struct HorizontalTabBar: View {
         .fixedSize()
         .frame(width: CGFloat(TabStripLayout.overflowButton))
         .opacity(hidden.isEmpty ? 0 : 1)
-        .help("Tabs out of view")
+        .help(L("Tabs out of view"))
     }
 }
 
@@ -198,8 +198,8 @@ struct VerticalTabBar: View {
             }
             Rectangle().fill(chrome.separator.color).frame(height: 1)
             HStack(spacing: 2) {
-                IconButton(symbol: "rectangle.stack", help: "Profiles & connections", action: actions.showProfiles)
-                IconButton(symbol: "gearshape", help: "Settings", action: actions.showSettings)
+                IconButton(symbol: "rectangle.stack", help: L("Profiles & connections"), action: actions.showProfiles)
+                IconButton(symbol: "gearshape", help: L("Settings"), action: actions.showSettings)
                 TransfersToolbarButton()
                 Spacer(minLength: 0)
                 AccountToolbarButton(openSettings: { WindowManager.shared.openSettings(section: .account) })
@@ -225,7 +225,7 @@ private struct NewTabRow: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: "plus").font(.system(size: 12))
-                Text("New tab").font(ChromeFont.body)
+                Text(L("New tab")).font(ChromeFont.body)
                 Spacer(minLength: 0)
                 if let key = StartPageView.shortcut("new-tab") {
                     Text(key).font(ChromeFont.caption).foregroundStyle(chrome.textFaint.color)
@@ -325,7 +325,7 @@ struct TabHeaderView: View {
             }
             if tab.isPinned {
                 Image(systemName: "pin.fill").font(.system(size: 10)).foregroundStyle(chrome.textMuted.color)
-                    .help("Pinned")
+                    .help(L("Pinned"))
             } else {
                 if hovering && !compact {
                     Menu {
@@ -336,7 +336,7 @@ struct TabHeaderView: View {
                     .menuStyle(.borderlessButton)
                     .menuIndicator(.hidden)
                     .frame(width: 18, height: 18)
-                    .help("Tab options")
+                    .help(L("Tab options"))
                 }
                 if !hideClose {
                     Button { actions.close(tab) } label: {
@@ -348,7 +348,7 @@ struct TabHeaderView: View {
                     .buttonStyle(.plain)
                     .foregroundStyle(chrome.textMuted.color)
                     .opacity(hovering || isActive ? 1 : 0)
-                    .help("Close tab")
+                    .help(L("Close tab"))
                 }
             }
         }
@@ -396,19 +396,30 @@ struct TabContextMenu: View {
     let actions: TabBarActions
 
     var body: some View {
-        Button("Close Tab") { actions.close(tab) }
-        Button("Close Other Tabs") { actions.command("close-other-tabs", tab) }
-        Button("Close Tabs to the Left") { actions.command("close-tabs-left", tab) }
-        Button("Close Tabs to the Right") { actions.command("close-tabs-right", tab) }
+        Button(L("Close Tab")) { actions.close(tab) }
+        Button(L("Close Other Tabs")) { actions.command("close-other-tabs", tab) }
+        Button(L("Close Tabs to the Left")) { actions.command("close-tabs-left", tab) }
+        Button(L("Close Tabs to the Right")) { actions.command("close-tabs-right", tab) }
         Divider()
         if tab.content == nil {
-            Button("Rename Tab…") { actions.command("rename-tab", tab) }
-            Button("Duplicate Tab") { actions.command("duplicate-tab", tab) }
+            Button(L("Rename Tab…")) { actions.command("rename-tab", tab) }
+            Button(L("Duplicate Tab")) { actions.command("duplicate-tab", tab) }
+            let notify = NotifyMenu.items(for: tab.focusedPane)
+            if !notify.isEmpty {
+                Divider()
+                ForEach(notify) { entry in
+                    if let command = entry.command {
+                        Toggle(entry.title, isOn: Binding(get: { entry.checked }, set: { _ in actions.command(command, tab) }))
+                    } else {
+                        Text(entry.title)
+                    }
+                }
+            }
         }
-        Button(tab.isPinned ? "Unpin Tab" : "Pin Tab") { actions.command("pin-tab", tab) }
-        Menu("Colour") {
+        Button(tab.isPinned ? L("Unpin Tab") : L("Pin Tab")) { actions.command("pin-tab", tab) }
+        Menu(L("Colour")) {
             Button { actions.setColor(tab, nil) } label: {
-                if tab.color == nil { Label("None", systemImage: "checkmark") } else { Text("None") }
+                if tab.color == nil { Label(L("None"), systemImage: "checkmark") } else { Text(L("None")) }
             }
             Divider()
             ForEach(TabColors.current()) { c in
@@ -419,14 +430,14 @@ struct TabContextMenu: View {
         }
         if tab.content == nil {
             Divider()
-            Menu("Split") {
-                Button("Split Up") { actions.command("split-top", tab) }
-                Button("Split Right") { actions.command("split-right", tab) }
-                Button("Split Down") { actions.command("split-bottom", tab) }
-                Button("Split Left") { actions.command("split-left", tab) }
+            Menu(L("Split")) {
+                Button(L("Split Up")) { actions.command("split-top", tab) }
+                Button(L("Split Right")) { actions.command("split-right", tab) }
+                Button(L("Split Down")) { actions.command("split-bottom", tab) }
+                Button(L("Split Left")) { actions.command("split-left", tab) }
             }
-            Button("Save Layout as Profile…") { actions.command("save-layout-as-profile", tab) }
-            Button("Switch Profile…") { actions.command("switch-profile", tab) }
+            Button(L("Save Layout as Profile…")) { actions.command("save-layout-as-profile", tab) }
+            Button(L("Switch Profile…")) { actions.command("switch-profile", tab) }
         }
     }
 }
@@ -441,7 +452,7 @@ struct TabColors: Identifiable {
     @MainActor
     static func current() -> [TabColors] {
         let p = AppServices.shared.theme.scheme.paletteRGB
-        return [("Red", 1), ("Yellow", 3), ("Green", 2), ("Cyan", 6), ("Blue", 4), ("Magenta", 5)].map {
+        return [(L("Red"), 1), (L("Yellow"), 3), (L("Green"), 2), (L("Cyan"), 6), (L("Blue"), 4), (L("Magenta"), 5)].map {
             TabColors(name: $0.0, hex: p[$0.1].hex)
         }
     }
@@ -468,7 +479,7 @@ struct TabColors: Identifiable {
 /// Maps Tabby's Font Awesome icon names to SF Symbols, falling back to a terminal glyph.
 enum ProfileIcons {
     static func symbol(for icon: String) -> String {
-        let name = icon.replacingOccurrences(of: "fas fa-", with: "").replacingOccurrences(of: "fab fa-", with: "")
+        let name = icon.replacingOccurrences(of: "fas fa-", with: "").replacingOccurrences(of: "fab fa-", with: "") // l10n-ignore: Font Awesome icon names
         let map = ["terminal": "terminal", "network": "network", "server": "server.rack", "desktop": "desktopcomputer",
                    "laptop": "laptopcomputer", "globe": "globe", "bolt": "bolt", "cloud": "cloud", "database": "cylinder",
                    "linux": "terminal", "apple": "apple.logo", "docker": "shippingbox", "code": "chevron.left.forwardslash.chevron.right",
@@ -480,8 +491,8 @@ enum ProfileIcons {
     static func defaultIcon(forType type: String) -> String {
         switch type {
         case "ssh": return "server"
-        case "serial": return "fas fa-microchip"
-        case "telnet": return "fas fa-network-wired"
+        case "serial": return "fas fa-microchip" // l10n-ignore: Font Awesome icon names
+        case "telnet": return "fas fa-network-wired" // l10n-ignore: Font Awesome icon names
         default: return "terminal"
         }
     }

@@ -1,4 +1,5 @@
 import Foundation
+// l10n-ignore-file: key and modifier names are Tabby's hotkey syntax (`Ctrl-Shift-T`).
 
 /// A single keystroke in Tabby's notation, e.g. `⌘-Shift-D`, `Ctrl-Tab`, `⌥-Left`, `⌘--`.
 ///

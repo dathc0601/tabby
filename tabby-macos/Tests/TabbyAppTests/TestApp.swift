@@ -18,6 +18,8 @@ enum TestApp {
         setenv("TABBYMAC_SYNC_URL", "memory:", 1)
         setenv("TABBYMAC_KEYCHAIN", "memory", 1)
         setenv("TABBYMAC_SYNC_HOME", dir + "/home", 1)
+        // Tests assert English text: never follow a developer Mac set to another language.
+        setenv("TABBYMAC_PREFERRED_LANGUAGES", "en-US", 1)
         _ = NSApplication.shared
         NSApp.setActivationPolicy(.accessory)
         AppServices.shared.start()

@@ -30,7 +30,7 @@ final class KeyboardInteractiveModel {
     }
 
     var promptText: String { prompt.text }
-    var counter: String { "keyboard-interactive · prompt \(index + 1) of \(round.prompts.count)" }
+    var counter: String { L("keyboard-interactive · prompt {number} of {total}", ["number": index + 1, "total": round.prompts.count]) }
     var isSecure: Bool { !prompt.echo }
     var showsRemember: Bool { prompt.isPasswordLike }
     var canGoBack: Bool { index > 0 }
@@ -99,9 +99,9 @@ private struct KeyboardInteractiveContent: View {
                 Text(model.promptText).font(ChromeFont.body)
                 Group {
                     if model.isSecure {
-                        SecureField("Response", text: $model.answer)
+                        SecureField(L("Response"), text: $model.answer)
                     } else {
-                        TextField("Response", text: $model.answer)
+                        TextField(L("Response"), text: $model.answer)
                     }
                 }
                 .font(.custom("Menlo", size: 12))
@@ -109,14 +109,14 @@ private struct KeyboardInteractiveContent: View {
                 .frame(maxWidth: 280)
                 .onSubmit { model.proceed() }
                 if model.showsRemember {
-                    Toggle("Remember", isOn: $model.remember).toggleStyle(.switch).controlSize(.mini)
+                    Toggle(L("Remember"), isOn: $model.remember).toggleStyle(.switch).controlSize(.mini)
                 }
                 Spacer()
                 if model.canGoBack {
-                    Button("Back") { model.goBack() }.buttonStyle(ChromeButtonStyle())
+                    Button(L("Back")) { model.goBack() }.buttonStyle(ChromeButtonStyle())
                 }
-                Button("Cancel") { model.cancel() }.buttonStyle(ChromeButtonStyle()).keyboardShortcut(.cancelAction)
-                Button("Continue") { model.proceed() }.buttonStyle(ChromeButtonStyle(kind: .primary))
+                Button(L("Cancel")) { model.cancel() }.buttonStyle(ChromeButtonStyle()).keyboardShortcut(.cancelAction)
+                Button(L("Continue")) { model.proceed() }.buttonStyle(ChromeButtonStyle(kind: .primary))
             }
         }
         .padding(.horizontal, 14)

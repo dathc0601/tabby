@@ -4,6 +4,7 @@ import Carbon.HIToolbox
 import TabbyCore
 
 /// Converts between AppKit key events, Tabby keystrokes and menu key equivalents.
+/// l10n-ignore-file: the key names are Tabby's config syntax (`Ctrl-Shift-Left`), never translated.
 enum KeyMapping {
     /// Virtual key codes for keys whose names don't come from characters.
     static let specialKeys: [Int: String] = [

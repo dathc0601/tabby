@@ -1,4 +1,5 @@
 import Foundation
+import TabbyCore
 #if canImport(Darwin)
 import Darwin
 #elseif canImport(Glibc)
@@ -79,7 +80,7 @@ public final class PTYProcess {
     public func start(cols: Int, rows: Int) throws {
         guard !isRunning else { return }
         guard let path = Self.resolveExecutable(executable, path: environment["PATH"]) else {
-            throw LaunchError(message: "Command not found: \(executable)")
+            throw LaunchError(message: L("Command not found: {executable}", ["executable": executable]))
         }
         var size = winsize(ws_row: UInt16(clamping: max(rows, 1)), ws_col: UInt16(clamping: max(cols, 1)), ws_xpixel: 0, ws_ypixel: 0)
 
@@ -89,7 +90,7 @@ public final class PTYProcess {
         let envp = environment.map { "\($0.key)=\($0.value)" }
         let cArgv = makeCStringArray(argv)
         let cEnvp = makeCStringArray(envp)
-        guard let cPath = strdup(path) else { throw LaunchError(message: "Out of memory") }
+        guard let cPath = strdup(path) else { throw LaunchError(message: L("Out of memory")) }
         let cCwd = workingDirectory.flatMap { FileManager.default.fileExists(atPath: $0) ? strdup($0) : nil }
         defer {
             freeCStringArray(cArgv, count: argv.count)
@@ -103,7 +104,7 @@ public final class PTYProcess {
         // errno first. Until then proc_pidinfo on the child still reports the parent's cwd.
         var execPipe: [Int32] = [-1, -1]
         guard pipe(&execPipe) == 0 else {
-            throw LaunchError(message: "pipe failed: \(String(cString: strerror(errno)))")
+            throw LaunchError(message: L("pipe failed: {reason}", ["reason": String(cString: strerror(errno))]))
         }
         _ = fcntl(execPipe[1], F_SETFD, FD_CLOEXEC)
 
@@ -111,7 +112,7 @@ public final class PTYProcess {
         let child = forkpty(&master, nil, nil, &size)
         if child < 0 {
             close(execPipe[0]); close(execPipe[1])
-            throw LaunchError(message: "forkpty failed: \(String(cString: strerror(errno)))")
+            throw LaunchError(message: L("forkpty failed: {reason}", ["reason": String(cString: strerror(errno))]))
         }
         if child == 0 {
             // Child. Restore default signal handling: dispositions set to SIG_IGN in the app

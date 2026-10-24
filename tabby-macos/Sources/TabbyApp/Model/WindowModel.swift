@@ -10,12 +10,24 @@ public protocol WindowModelUI: AnyObject {
     func confirmMultilinePaste(_ text: String, completion: @escaping (Bool) -> Void)
     func paneDidRequestFocus(_ pane: TerminalPane)
     func notifyProcessEnded(_ pane: TerminalPane, code: Int32?)
+    /// "Notify when done" fired for `pane` (phase 5).
+    func notifyProcessCompleted(_ pane: TerminalPane, processName: String)
+    /// "Notify on activity" fired for `pane` (phase 5).
+    func notifyActivity(_ pane: TerminalPane)
+    /// The terminal bell rang in `pane` (phase 5: the Dock bounce).
+    func paneRang(_ pane: TerminalPane)
     func modelDidBecomeEmpty()
     /// Asks which port and baud rate a serial profile without them should use (Tabby asks
     /// the rate in `getNewTabParameters`); the completion gets the profile with the answers.
     /// When the user cancels, it may never be called (or gets nil): nothing opens either way.
     func completeSerialProfile(_ profile: Profile, missing: [SerialProfileProvider.Parameter],
                                completion: @escaping (Profile?) -> Void)
+}
+
+public extension WindowModelUI {
+    func notifyProcessCompleted(_ pane: TerminalPane, processName: String) {}
+    func notifyActivity(_ pane: TerminalPane) {}
+    func paneRang(_ pane: TerminalPane) {}
 }
 
 /// Tabs of one window (Tabby's `AppService` for a window).
@@ -77,6 +89,15 @@ public final class WindowModel {
         }
         pane.onProcessEnded = { [weak self] p, code in
             MainActor.assumeIsolated { self?.ui?.notifyProcessEnded(p, code: code) }
+        }
+        pane.onProcessCompleted = { [weak self] p, name in
+            MainActor.assumeIsolated { self?.ui?.notifyProcessCompleted(p, processName: name) }
+        }
+        pane.onBell = { [weak self] p in
+            MainActor.assumeIsolated { self?.ui?.paneRang(p) }
+        }
+        pane.onActivityNotification = { [weak self] p in
+            MainActor.assumeIsolated { self?.ui?.notifyActivity(p) }
         }
         pane.onUserInput = { [weak self] p, data in
             MainActor.assumeIsolated {

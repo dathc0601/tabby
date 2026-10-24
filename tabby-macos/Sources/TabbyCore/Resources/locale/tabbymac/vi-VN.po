@@ -1,0 +1,2727 @@
+# Vietnamese for TabbyMac: every string the app uses, Tabby's and its own (phase 5).
+# Keep it complete: CatalogTests.testVietnameseCoversEveryKeyTheAppUses checks it.
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: vi_VN\n"
+
+msgid "1 Mac"
+msgstr "1 máy Mac"
+
+msgid "1 character"
+msgstr "1 ký tự"
+
+msgid "1 key"
+msgstr "1 khoá"
+
+msgid "1 key file is waiting for your answer"
+msgstr "1 tệp khoá đang chờ bạn trả lời"
+
+msgid "1 password"
+msgstr "1 mật khẩu"
+
+msgid "1 profile"
+msgstr "1 hồ sơ"
+
+msgid "A few choices before you start. All of them can be changed later in Settings."
+msgstr "Một vài lựa chọn trước khi bắt đầu. Bạn có thể thay đổi tất cả sau trong Cài đặt."
+
+msgid "A folder name cannot be empty or contain “/”."
+msgstr "Tên thư mục không được để trống hoặc chứa “/”."
+
+msgid "A socket path; empty uses the system agent (SSH_AUTH_SOCK)"
+msgstr "Đường dẫn socket; để trống sẽ dùng agent của hệ thống (SSH_AUTH_SOCK)"
+
+msgid "Abort all"
+msgstr "Huỷ tất cả"
+
+msgid "About TabbyMac"
+msgstr "Giới thiệu TabbyMac"
+
+msgid "Accept"
+msgstr "Chấp nhận"
+
+msgid "Accept new key"
+msgstr "Chấp nhận khoá mới"
+
+msgid "Accepting saves the key in known_hosts."
+msgstr "Khi chấp nhận, khoá sẽ được lưu vào known_hosts."
+
+msgid "Accessibility"
+msgstr "Trợ năng"
+
+msgid "Account & sync"
+msgstr "Tài khoản & đồng bộ"
+
+msgid "Account & sync settings…"
+msgstr "Cài đặt tài khoản & đồng bộ…"
+
+msgid "Actual Size"
+msgstr "Kích thước thực"
+
+msgid "Add a port forward"
+msgstr "Thêm chuyển tiếp cổng"
+
+msgid "Add a shortcut"
+msgstr "Thêm phím tắt"
+
+msgid "Add another"
+msgstr "Thêm mục khác"
+
+msgid "Add another key"
+msgstr "Thêm khoá khác"
+
+msgid "Add forward"
+msgstr "Thêm chuyển tiếp"
+
+msgid "Add key…"
+msgstr "Thêm khoá…"
+
+msgid "Add script"
+msgstr "Thêm kịch bản"
+
+msgid "Address"
+msgstr "Địa chỉ"
+
+msgid "Advanced"
+msgstr "Nâng cao"
+
+msgid "Agent"
+msgstr "Agent"
+
+msgid "Agent and X11"
+msgstr "Agent và X11"
+
+msgid "Agent forwarding"
+msgstr "Chuyển tiếp agent"
+
+msgid "Agent forwarding was refused"
+msgstr "Chuyển tiếp agent đã bị từ chối"
+
+msgid "All"
+msgstr "Tất cả"
+
+msgid "Already exists"
+msgstr "Đã tồn tại"
+
+msgid "Also used by “{name}”"
+msgstr "Cũng được dùng bởi “{name}”"
+
+msgid "Also used by “{name}” and {count} more"
+msgstr "Cũng được dùng bởi “{name}” và {count} mục khác"
+
+msgid "Always on top when docked"
+msgstr "Luôn ở trên cùng khi được neo"
+
+msgid "Another Mac kept changing the account while this one synced. Try again in a moment."
+msgstr "Một máy Mac khác liên tục thay đổi tài khoản trong lúc máy này đồng bộ. Hãy thử lại sau giây lát."
+
+msgid "Another Mac synced with a newer TabbyMac. Update TabbyMac to keep syncing on this Mac."
+msgstr "Một máy Mac khác đã đồng bộ bằng TabbyMac mới hơn. Hãy cập nhật TabbyMac để tiếp tục đồng bộ trên máy Mac này."
+
+msgid "Appearance"
+msgstr "Giao diện"
+
+msgid "Application"
+msgstr "Ứng dụng"
+
+msgid "Arguments"
+msgstr "Đối số"
+
+msgid "Ask again"
+msgstr "Hỏi lại"
+
+msgid "Ask before connecting to a host whose key is unknown or changed"
+msgstr "Hỏi trước khi kết nối tới máy chủ có khoá lạ hoặc đã thay đổi"
+
+msgid "Ask every time"
+msgstr "Hỏi mỗi lần"
+
+msgid "Asked for when connecting"
+msgstr "Được hỏi khi kết nối"
+
+msgid "Asks for the port and baud rate"
+msgstr "Hỏi cổng và tốc độ baud"
+
+msgid "At least 8 characters."
+msgstr "Ít nhất 8 ký tự."
+
+msgid "At least 8 characters; a password manager suggestion is fine."
+msgstr "Ít nhất 8 ký tự; dùng mật khẩu do trình quản lý mật khẩu gợi ý cũng được."
+
+msgid "Audible"
+msgstr "Có âm thanh"
+
+msgid "Authentication"
+msgstr "Xác thực"
+
+msgid "Authentication cancelled"
+msgstr "Đã huỷ xác thực"
+
+msgid "Authentication rejected"
+msgstr "Xác thực bị từ chối"
+
+msgid "Auto"
+msgstr "Tự động"
+
+msgid "Automatic"
+msgstr "Tự động"
+
+msgid "Automatic follows the system language"
+msgstr "Tự động theo ngôn ngữ của hệ thống"
+
+msgid "Back"
+msgstr "Quay lại"
+
+msgid "Back to sign in"
+msgstr "Quay lại đăng nhập"
+
+msgid "Background"
+msgstr "Nền"
+
+msgid "Backspace (DEL)"
+msgstr "Backspace (DEL)"
+
+msgid "Backspace sends"
+msgstr "Backspace gửi"
+
+msgid "Baud rate"
+msgstr "Tốc độ baud"
+
+msgid "Beam"
+msgstr "Thanh dọc"
+
+msgid "Beginning of the line"
+msgstr "Đầu dòng"
+
+msgid "Bell"
+msgstr "Chuông"
+
+msgid "Blink"
+msgstr "Nhấp nháy"
+
+msgid "Block"
+msgstr "Khối"
+
+msgid "Blue"
+msgstr "Xanh dương"
+
+msgid "Bottom"
+msgstr "Dưới"
+
+msgid "Bracketed paste"
+msgstr "Dán có bao (bracketed paste)"
+
+msgid "Bring All to Front"
+msgstr "Đưa tất cả ra trước"
+
+msgid "Broadcast Input to All Panes"
+msgstr "Gửi dữ liệu nhập tới mọi khung"
+
+msgid "Built in"
+msgstr "Có sẵn"
+
+msgid "Built-in"
+msgstr "Có sẵn"
+
+msgid "Cancel"
+msgstr "Huỷ"
+
+msgid "Cancelled"
+msgstr "Đã huỷ"
+
+msgid "Cannot change"
+msgstr "Không thể thay đổi"
+
+msgid "Cannot configure the port: {reason}"
+msgstr "Không thể cấu hình cổng: {reason}"
+
+msgid "Cannot create"
+msgstr "Không thể tạo"
+
+msgid "Cannot delete"
+msgstr "Không thể xoá"
+
+msgid "Cannot handle scripts of this type"
+msgstr "Không thể xử lý loại kịch bản này"
+
+msgid "Cannot open"
+msgstr "Không thể mở"
+
+msgid "Cannot open {path}: {reason}"
+msgstr "Không thể mở {path}: {reason}"
+
+msgid "Cannot open “{query}” with {provider}"
+msgstr "Không thể mở “{query}” bằng {provider}"
+
+msgid "Cannot read"
+msgstr "Không thể đọc"
+
+msgid "Cannot read the link"
+msgstr "Không thể đọc liên kết"
+
+msgid "Cannot read {path}"
+msgstr "Không thể đọc {path}"
+
+msgid "Cannot rename"
+msgstr "Không thể đổi tên"
+
+msgid "Cannot replace"
+msgstr "Không thể thay thế"
+
+msgid "Cannot resolve"
+msgstr "Không thể phân giải"
+
+msgid "Cannot write"
+msgstr "Không thể ghi"
+
+msgid "Cannot write {path}"
+msgstr "Không thể ghi {path}"
+
+msgid "Change"
+msgstr "Thay đổi"
+
+msgid "Changed"
+msgstr "Đã thay đổi"
+
+msgid "Changes from your other Macs are here."
+msgstr "Các thay đổi từ những máy Mac khác của bạn đã có ở đây."
+
+msgid "Change…"
+msgstr "Thay đổi…"
+
+msgid "Ciphers"
+msgstr "Thuật toán mã hoá"
+
+msgid "Clear"
+msgstr "Xoá"
+
+msgid "Clear Buffer"
+msgstr "Xoá bộ đệm"
+
+msgid "Clear finished"
+msgstr "Xoá mục đã xong"
+
+msgid "Clear recent profiles"
+msgstr "Xoá hồ sơ gần đây"
+
+msgid "Clear terminal"
+msgstr "Xoá terminal"
+
+msgid "Clear terminal after connection"
+msgstr "Xoá terminal sau khi kết nối"
+
+msgid "Clipboard"
+msgstr "Bảng nhớ tạm"
+
+msgid "Close"
+msgstr "Đóng"
+
+msgid "Close Other Tabs"
+msgstr "Đóng các tab khác"
+
+msgid "Close Pane"
+msgstr "Đóng khung"
+
+msgid "Close Tab"
+msgstr "Đóng tab"
+
+msgid "Close Tabs to the Left"
+msgstr "Đóng các tab bên trái"
+
+msgid "Close Tabs to the Right"
+msgstr "Đóng các tab bên phải"
+
+msgid "Close and never show again"
+msgstr "Đóng và không hiện lại"
+
+msgid "Close focused pane"
+msgstr "Đóng khung đang chọn"
+
+msgid "Close search (esc)"
+msgstr "Đóng tìm kiếm (esc)"
+
+msgid "Close tab"
+msgstr "Đóng tab"
+
+msgid "Close this pane?"
+msgstr "Đóng khung này?"
+
+msgid "Close this tab?"
+msgstr "Đóng tab này?"
+
+msgid "Close this window?"
+msgstr "Đóng cửa sổ này?"
+
+msgid "Close {busyCount} tabs?"
+msgstr "Đóng {busyCount} tab?"
+
+msgid "Closing the last tab closes the window"
+msgstr "Đóng tab cuối cùng sẽ đóng cửa sổ"
+
+msgid "Color scheme"
+msgstr "Bảng màu"
+
+msgid "Colour"
+msgstr "Màu"
+
+msgid "Colour scheme"
+msgstr "Bảng màu"
+
+msgid "Colours"
+msgstr "Màu sắc"
+
+msgid "Combine tabs into the current tab"
+msgstr "Gộp các tab vào tab hiện tại"
+
+msgid "Comma-separated, most preferred first. Empty uses the defaults."
+msgstr "Phân tách bằng dấu phẩy, ưu tiên nhất đứng trước. Để trống sẽ dùng mặc định."
+
+msgid "Command"
+msgstr "Lệnh"
+
+msgid "Command Palette…"
+msgstr "Bảng lệnh…"
+
+msgid "Command not found: {executable}"
+msgstr "Không tìm thấy lệnh: {executable}"
+
+msgid "Command-line tool"
+msgstr "Công cụ dòng lệnh"
+
+msgid "Compression"
+msgstr "Nén"
+
+msgid "Config file"
+msgstr "Tệp cấu hình"
+
+msgid "Configuration"
+msgstr "Cấu hình"
+
+msgid "Confirm new password"
+msgstr "Xác nhận mật khẩu mới"
+
+msgid "Confirm password"
+msgstr "Xác nhận mật khẩu"
+
+msgid "Connect a device, or type its path"
+msgstr "Kết nối một thiết bị, hoặc nhập đường dẫn của nó"
+
+msgid "Connected"
+msgstr "Đã kết nối"
+
+msgid "Connected as {resolvedUser} · {hostKeyType} {hostKeyFingerprint}"
+msgstr "Đã kết nối với tư cách {resolvedUser} · {hostKeyType} {hostKeyFingerprint}"
+
+msgid "Connecting to {host}"
+msgstr "Đang kết nối tới {host}"
+
+msgid "Connecting to {name}"
+msgstr "Đang kết nối tới {name}"
+
+msgid "Connecting…"
+msgstr "Đang kết nối…"
+
+msgid "Connection closed"
+msgstr "Đã đóng kết nối"
+
+msgid "Connection failed"
+msgstr "Kết nối thất bại"
+
+msgid "Connection timed out"
+msgstr "Hết thời gian kết nối"
+
+msgid "Connections"
+msgstr "Kết nối"
+
+msgid "Connects and logs in with these values; no shell is opened"
+msgstr "Kết nối và đăng nhập bằng các giá trị này; không mở shell"
+
+msgid "Context menu"
+msgstr "Menu ngữ cảnh"
+
+msgid "Continue"
+msgstr "Tiếp tục"
+
+msgid "Copy"
+msgstr "Sao chép"
+
+msgid "Copy Current Path"
+msgstr "Sao chép đường dẫn hiện tại"
+
+msgid "Copy current path"
+msgstr "Sao chép đường dẫn hiện tại"
+
+msgid "Copy full path"
+msgstr "Sao chép đường dẫn đầy đủ"
+
+msgid "Copy install command"
+msgstr "Sao chép lệnh cài đặt"
+
+msgid "Copy on select"
+msgstr "Sao chép khi chọn"
+
+msgid "Copy to clipboard"
+msgstr "Sao chép vào bảng nhớ tạm"
+
+msgid "Copy, or paste when nothing is selected"
+msgstr "Sao chép, hoặc dán khi không có gì được chọn"
+
+msgid "Could not change the baud rate"
+msgstr "Không thể đổi tốc độ baud"
+
+msgid "Could not connect to the X server: {display}"
+msgstr "Không thể kết nối tới X server: {display}"
+
+msgid "Could not connect to {targetAddress}:{targetPort} for {summary}"
+msgstr "Không thể kết nối tới {targetAddress}:{targetPort} cho {summary}"
+
+msgid "Could not delete"
+msgstr "Không thể xoá"
+
+msgid "Could not load private key {path}: no such file"
+msgstr "Không thể nạp khoá riêng {path}: không có tệp này"
+
+msgid "Could not open a channel to {host}:{port}: {message}"
+msgstr "Không thể mở kênh tới {host}:{port}: {message}"
+
+msgid "Could not save the host key: {reason}"
+msgstr "Không thể lưu khoá máy chủ: {reason}"
+
+msgid "Could not start SFTP: {message}"
+msgstr "Không thể khởi động SFTP: {message}"
+
+msgid "Couldn't read config.yaml"
+msgstr "Không đọc được config.yaml"
+
+msgid "Create"
+msgstr "Tạo"
+
+msgid "Create account"
+msgstr "Tạo tài khoản"
+
+msgid "Create directory"
+msgstr "Tạo thư mục"
+
+msgid "Create your account"
+msgstr "Tạo tài khoản của bạn"
+
+msgid "Ctrl-?"
+msgstr "Ctrl-?"
+
+msgid "Ctrl-H"
+msgstr "Ctrl-H"
+
+msgid "Current"
+msgstr "Hiện tại"
+
+msgid "Current password"
+msgstr "Mật khẩu hiện tại"
+
+msgid "Current process: {name}"
+msgstr "Tiến trình hiện tại: {name}"
+
+msgid "Cursor"
+msgstr "Con trỏ"
+
+msgid "Custom"
+msgstr "Tuỳ chỉnh"
+
+msgid "Custom baud rate"
+msgstr "Tốc độ baud tuỳ chỉnh"
+
+msgid "Custom scheme · “{name} (edited)”"
+msgstr "Bảng màu tuỳ chỉnh · “{name} (đã sửa)”"
+
+msgid "Cyan"
+msgstr "Xanh lơ"
+
+msgid "Cycle through tabs"
+msgstr "Xoay vòng qua các tab"
+
+msgid "Dark"
+msgstr "Tối"
+
+msgid "Dark appearance"
+msgstr "Giao diện tối"
+
+msgid "Data bits"
+msgstr "Số bit dữ liệu"
+
+msgid "Decrease horizontal pane size"
+msgstr "Giảm kích thước khung theo chiều ngang"
+
+msgid "Decrease vertical pane size"
+msgstr "Giảm kích thước khung theo chiều dọc"
+
+msgid "Default"
+msgstr "Mặc định"
+
+msgid "Default profile"
+msgstr "Hồ sơ mặc định"
+
+msgid "Default profile for new tabs"
+msgstr "Hồ sơ mặc định cho tab mới"
+
+msgid "Defaults (read only)"
+msgstr "Mặc định (chỉ đọc)"
+
+msgid "Delete"
+msgstr "Xoá"
+
+msgid "Delete (ESC [3~)"
+msgstr "Delete (ESC [3~)"
+
+msgid "Delete account"
+msgstr "Xoá tài khoản"
+
+msgid "Delete account…"
+msgstr "Xoá tài khoản…"
+
+msgid "Delete entire line"
+msgstr "Xoá cả dòng"
+
+msgid "Delete next word"
+msgstr "Xoá từ kế tiếp"
+
+msgid "Delete previous word"
+msgstr "Xoá từ phía trước"
+
+msgid "Delete profile"
+msgstr "Xoá hồ sơ"
+
+msgid "Delete your account?"
+msgstr "Xoá tài khoản của bạn?"
+
+msgid "Delete {path}?"
+msgstr "Xoá {path}?"
+
+msgid "Delete “{name}”?"
+msgstr "Xoá “{name}”?"
+
+msgid "Deletes the {profiles}, {passwords} and {keys} that came from your account; what was made on this Mac stays"
+msgstr "Xoá {profiles}, {passwords} và {keys} lấy từ tài khoản của bạn; những gì tạo trên máy Mac này được giữ lại"
+
+msgid "Delete…"
+msgstr "Xoá…"
+
+msgid "Description"
+msgstr "Mô tả"
+
+msgid "Detect progress in output"
+msgstr "Nhận diện tiến độ trong đầu ra"
+
+msgid "Device"
+msgstr "Thiết bị"
+
+msgid "Device name"
+msgstr "Tên thiết bị"
+
+msgid "Devices"
+msgstr "Thiết bị"
+
+msgid "Disconnect"
+msgstr "Ngắt kết nối"
+
+msgid "Disconnect from {host}?"
+msgstr "Ngắt kết nối khỏi {host}?"
+
+msgid "Disconnect tab"
+msgstr "Ngắt kết nối tab"
+
+msgid "Disconnected"
+msgstr "Đã ngắt kết nối"
+
+msgid "Dismiss"
+msgstr "Bỏ qua"
+
+msgid "Do not abort"
+msgstr "Không huỷ"
+
+msgid "Dock"
+msgstr "Neo"
+
+msgid "Dock to screen edge"
+msgstr "Neo vào cạnh màn hình"
+
+msgid "Docked size"
+msgstr "Kích thước khi neo"
+
+msgid "Docked width"
+msgstr "Độ rộng khi neo"
+
+msgid "Docked windows slide in and out with the global hotkey, like a Quake console."
+msgstr "Cửa sổ được neo sẽ trượt vào và ra bằng phím tắt toàn cục, giống bảng điều khiển của Quake."
+
+msgid "Don't ask again"
+msgstr "Không hỏi lại"
+
+msgid "Don't upload"
+msgstr "Không tải lên"
+
+msgid "Done"
+msgstr "Xong"
+
+msgid "Download"
+msgstr "Tải xuống"
+
+msgid "Download directory"
+msgstr "Tải xuống thư mục"
+
+msgid "Download here"
+msgstr "Tải xuống vào đây"
+
+msgid "Draw bold text in bright colours"
+msgstr "Vẽ chữ đậm bằng màu sáng"
+
+msgid "Drop to upload to {path}"
+msgstr "Thả vào để tải lên {path}"
+
+msgid "Duplicate"
+msgstr "Nhân bản"
+
+msgid "Duplicate Tab"
+msgstr "Nhân bản tab"
+
+msgid "Duplicate tab"
+msgstr "Nhân bản tab"
+
+msgid "Duplicate…"
+msgstr "Nhân bản…"
+
+msgid "Dynamic"
+msgstr "Động"
+
+msgid "Edit"
+msgstr "Sửa"
+
+msgid "Edit locally"
+msgstr "Sửa trên máy"
+
+msgid "Edit this appearance"
+msgstr "Sửa giao diện này"
+
+msgid "Edit “{name}”"
+msgstr "Sửa “{name}”"
+
+msgid "Edit…"
+msgstr "Sửa…"
+
+msgid "Email"
+msgstr "Email"
+
+msgid "End of the line"
+msgstr "Cuối dòng"
+
+msgid "End-to-end encrypted"
+msgstr "Mã hoá đầu cuối"
+
+msgid "Enter Full Screen"
+msgstr "Vào chế độ toàn màn hình"
+
+msgid "Enter the address to forward to."
+msgstr "Nhập địa chỉ cần chuyển tiếp tới."
+
+msgid "Enter the recovery key you saved when you created the account, then choose a new password."
+msgstr "Nhập khoá khôi phục bạn đã lưu khi tạo tài khoản, rồi chọn mật khẩu mới."
+
+msgid "Even"
+msgstr "Chẵn"
+
+msgid "Every Mac is signed out and the synced data is deleted from the server."
+msgstr "Mọi máy Mac đều bị đăng xuất và dữ liệu đồng bộ bị xoá khỏi máy chủ."
+
+msgid "Everything in it is deleted too."
+msgstr "Mọi thứ bên trong cũng bị xoá."
+
+msgid "Expect"
+msgstr "Chờ"
+
+msgid "Expected a private key, but {path} appears to be a public key. Skipping it for private key authentication."
+msgstr "Cần một khoá riêng, nhưng {path} có vẻ là khoá công khai. Bỏ qua nó khi xác thực bằng khoá riêng."
+
+msgid "Failed to authenticate using agent"
+msgstr "Không xác thực được bằng agent"
+
+msgid "Failed to forward port"
+msgstr "Không thể chuyển tiếp cổng"
+
+msgid "Failed to forward port {summary}: {reason}"
+msgstr "Không thể chuyển tiếp cổng {summary}: {reason}"
+
+msgid "Failed to load private key {name}: wrong passphrase"
+msgstr "Không nạp được khoá riêng {name}: sai cụm mật khẩu"
+
+msgid "Failed: {text}"
+msgstr "Thất bại: {text}"
+
+msgid "Fair"
+msgstr "Tạm được"
+
+msgid "Fallback font"
+msgstr "Phông chữ dự phòng"
+
+msgid "Filter"
+msgstr "Lọc"
+
+msgid "Filter by name or keys"
+msgstr "Lọc theo tên hoặc phím"
+
+msgid "Filter profiles"
+msgstr "Lọc hồ sơ"
+
+msgid "Filter {allCount} schemes"
+msgstr "Lọc {allCount} bảng màu"
+
+msgid "Filter…"
+msgstr "Lọc…"
+
+msgid "Find…"
+msgstr "Tìm…"
+
+msgid "Fingerprint"
+msgstr "Dấu vân tay"
+
+msgid "Flash the Dock icon"
+msgstr "Nhấp nháy biểu tượng trên Dock"
+
+msgid "Flex tabs"
+msgstr "Tab co giãn"
+
+msgid "Focus all panes at once (broadcast)"
+msgstr "Chọn tất cả khung cùng lúc (phát chung)"
+
+msgid "Focus all tabs at once"
+msgstr "Chọn tất cả tab cùng lúc"
+
+msgid "Focus next pane"
+msgstr "Chuyển tới khung kế tiếp"
+
+msgid "Focus pane {number}"
+msgstr "Chuyển tới khung {number}"
+
+msgid "Focus previous pane"
+msgstr "Chuyển tới khung trước"
+
+msgid "Focus the pane above"
+msgstr "Chuyển tới khung phía trên"
+
+msgid "Focus the pane below"
+msgstr "Chuyển tới khung phía dưới"
+
+msgid "Focus the pane on the left"
+msgstr "Chuyển tới khung bên trái"
+
+msgid "Focus the pane on the right"
+msgstr "Chuyển tới khung bên phải"
+
+msgid "Font"
+msgstr "Phông chữ"
+
+msgid "Force CR"
+msgstr "Buộc CR"
+
+msgid "Force CRLF"
+msgstr "Buộc CRLF"
+
+msgid "Force LF"
+msgstr "Buộc LF"
+
+msgid "Foreground"
+msgstr "Màu chữ"
+
+msgid "Forget"
+msgstr "Quên"
+
+msgid "Forget the password for {user}@{host}?"
+msgstr "Quên mật khẩu của {user}@{host}?"
+
+msgid "Forgot password?"
+msgstr "Quên mật khẩu?"
+
+msgid "Forward port"
+msgstr "Chuyển tiếp cổng"
+
+msgid "Forwarded ports"
+msgstr "Các cổng được chuyển tiếp"
+
+msgid "Forwards start with the session"
+msgstr "Chuyển tiếp bắt đầu cùng phiên"
+
+msgid "Frame"
+msgstr "Khung cửa sổ"
+
+msgid "From {host}"
+msgstr "Từ {host}"
+
+msgid "General"
+msgstr "Chung"
+
+msgid "GitHub"
+msgstr "GitHub"
+
+msgid "Global hotkey"
+msgstr "Phím tắt toàn cục"
+
+msgid "Go up"
+msgstr "Lên trên"
+
+msgid "Good"
+msgstr "Tốt"
+
+msgid "Green"
+msgstr "Xanh lá"
+
+msgid "Group"
+msgstr "Nhóm"
+
+msgid "Have an account? Sign in"
+msgstr "Đã có tài khoản? Đăng nhập"
+
+msgid "Hexadecimal"
+msgstr "Thập lục phân"
+
+msgid "Hidden title bar"
+msgstr "Ẩn thanh tiêu đề"
+
+msgid "Hide"
+msgstr "Ẩn"
+
+msgid "Hide Others"
+msgstr "Ẩn các ứng dụng khác"
+
+msgid "Hide TabbyMac"
+msgstr "Ẩn TabbyMac"
+
+msgid "Home"
+msgstr "Thư mục chính"
+
+msgid "Host"
+msgstr "Máy chủ"
+
+msgid "Host key"
+msgstr "Khoá máy chủ"
+
+msgid "Host key fingerprint: {type} {fingerprint}"
+msgstr "Dấu vân tay khoá máy chủ: {type} {fingerprint}"
+
+msgid "Host key verification failed"
+msgstr "Xác minh khoá máy chủ thất bại"
+
+msgid "Host not found"
+msgstr "Không tìm thấy máy chủ"
+
+msgid "Hotkeys"
+msgstr "Phím tắt"
+
+msgid "I've stored the recovery key somewhere safe"
+msgstr "Tôi đã cất khoá khôi phục ở nơi an toàn"
+
+msgid "Icon & colour"
+msgstr "Biểu tượng & màu"
+
+msgid "If you forget your password, this key is the only way to decrypt your synced profiles and private keys. TabbyMac can't reset it for you."
+msgstr "Nếu bạn quên mật khẩu, khoá này là cách duy nhất để giải mã hồ sơ và khoá riêng đã đồng bộ. TabbyMac không thể đặt lại nó cho bạn."
+
+msgid "Ignore titles set by programs"
+msgstr "Bỏ qua tiêu đề do chương trình đặt"
+
+msgid "Immediately echoes your input locally"
+msgstr "Hiện ngay dữ liệu bạn nhập trên máy"
+
+msgid "Implicit CR in every LF"
+msgstr "Thêm CR vào mỗi LF"
+
+msgid "Implicit LF in every CR"
+msgstr "Thêm LF vào mỗi CR"
+
+msgid "Import"
+msgstr "Nhập"
+
+msgid "Import Tabby's configuration?"
+msgstr "Nhập cấu hình của Tabby?"
+
+msgid "Import from Tabby"
+msgstr "Nhập từ Tabby"
+
+msgid "Imported from .ssh/config"
+msgstr "Nhập từ .ssh/config"
+
+msgid "Imported. Some changes apply to new tabs only."
+msgstr "Đã nhập. Một số thay đổi chỉ áp dụng cho tab mới."
+
+msgid "Import…"
+msgstr "Nhập…"
+
+msgid "In use"
+msgstr "Đang dùng"
+
+msgid "Increase horizontal pane size"
+msgstr "Tăng kích thước khung theo chiều ngang"
+
+msgid "Increase vertical pane size"
+msgstr "Tăng kích thước khung theo chiều dọc"
+
+msgid "Inherit"
+msgstr "Kế thừa"
+
+msgid "Input"
+msgstr "Nhập liệu"
+
+msgid "Input is sent as you type"
+msgstr "Dữ liệu được gửi ngay khi bạn gõ"
+
+msgid "Input mode"
+msgstr "Chế độ nhập"
+
+msgid "Input newlines"
+msgstr "Xuống dòng khi nhập"
+
+msgid "Insert new line"
+msgstr "Chèn dòng mới"
+
+msgid "Intelligent Ctrl-C (copy/abort)"
+msgstr "Ctrl-C thông minh (sao chép/dừng)"
+
+msgid "Invalid hex: {token}"
+msgstr "Mã hex không hợp lệ: {token}"
+
+msgid "Invalid port {port}"
+msgstr "Cổng không hợp lệ {port}"
+
+msgid "It is deleted from the Keychain, and from your other Macs at the next sync."
+msgstr "Nó bị xoá khỏi Keychain, và khỏi các máy Mac khác của bạn ở lần đồng bộ tới."
+
+msgid "It is removed from the Keychain here and, when passwords sync, on your other Macs."
+msgstr "Nó bị xoá khỏi Keychain ở đây và, khi mật khẩu được đồng bộ, trên các máy Mac khác của bạn."
+
+msgid "Jump host"
+msgstr "Máy chủ trung gian"
+
+msgid "Jump host chain loops back to {id}."
+msgstr "Chuỗi máy chủ trung gian quay vòng về {id}."
+
+msgid "Jump host loop: {chain}"
+msgstr "Vòng lặp máy chủ trung gian: {chain}"
+
+msgid "Jump to next word"
+msgstr "Nhảy tới từ kế tiếp"
+
+msgid "Jump to previous word"
+msgstr "Nhảy tới từ phía trước"
+
+msgid "Keep"
+msgstr "Giữ"
+
+msgid "Keep a local copy"
+msgstr "Giữ một bản trên máy"
+
+msgid "Keep me signed in"
+msgstr "Giữ trạng thái đăng nhập"
+
+msgid "Keep the tab open after the process exits"
+msgstr "Giữ tab mở sau khi tiến trình kết thúc"
+
+msgid "Keep this somewhere safe. With your email address it unlocks your synced profiles, passwords and private keys if you forget your password."
+msgstr "Hãy cất khoá này ở nơi an toàn. Cùng với địa chỉ email, nó mở khoá hồ sơ, mật khẩu và khoá riêng đã đồng bộ nếu bạn quên mật khẩu."
+
+msgid "Keep-alive count"
+msgstr "Số lần keep-alive"
+
+msgid "Keep-alive interval"
+msgstr "Khoảng keep-alive"
+
+msgid "Key exchange"
+msgstr "Trao đổi khoá"
+
+msgid "Key passphrase {id}…"
+msgstr "Cụm mật khẩu khoá {id}…"
+
+msgid "Key type"
+msgstr "Loại khoá"
+
+msgid "Keyboard-interactive"
+msgstr "Tương tác bàn phím"
+
+msgid "Keyboard-interactive auth requested: {name}"
+msgstr "Máy chủ yêu cầu xác thực tương tác bàn phím: {name}"
+
+msgid "Known hosts"
+msgstr "Máy chủ đã biết"
+
+msgid "Known hosts file"
+msgstr "Tệp máy chủ đã biết"
+
+msgid "Language"
+msgstr "Ngôn ngữ"
+
+msgid "Last known"
+msgstr "Đã biết lần trước"
+
+msgid "Layout"
+msgstr "Bố cục"
+
+msgid "Left"
+msgstr "Trái"
+
+msgid "Light"
+msgstr "Sáng"
+
+msgid "Light appearance"
+msgstr "Giao diện sáng"
+
+msgid "Line by line"
+msgstr "Từng dòng"
+
+msgid "Line editor, input is sent after you press Enter"
+msgstr "Trình soạn dòng, dữ liệu được gửi sau khi bạn nhấn Enter"
+
+msgid "Links"
+msgstr "Liên kết"
+
+msgid "Loading"
+msgstr "Đang tải"
+
+msgid "Loading devices…"
+msgstr "Đang tải thiết bị…"
+
+msgid "Local"
+msgstr "Cục bộ"
+
+msgid "Local echo"
+msgstr "Hiện lại trên máy"
+
+msgid "Local terminal"
+msgstr "Terminal cục bộ"
+
+msgid "Log in"
+msgstr "Đăng nhập"
+
+msgid "Login scripts"
+msgstr "Kịch bản đăng nhập"
+
+msgid "MACs"
+msgstr "MAC"
+
+msgid "Mac"
+msgstr "Mac"
+
+msgid "Magenta"
+msgstr "Đỏ tươi"
+
+msgid "Make a new recovery key"
+msgstr "Tạo khoá khôi phục mới"
+
+msgid "Manage profiles"
+msgstr "Quản lý hồ sơ"
+
+msgid "Match case"
+msgstr "Phân biệt hoa thường"
+
+msgid "Maximize Pane"
+msgstr "Phóng to khung"
+
+msgid "Maximize the active pane"
+msgstr "Phóng to khung đang chọn"
+
+msgid "Milliseconds"
+msgstr "Mili giây"
+
+msgid "Milliseconds to wait for the connection; empty waits as long as the system does"
+msgstr "Số mili giây chờ kết nối; để trống sẽ chờ lâu như hệ thống"
+
+msgid "Minimize"
+msgstr "Thu nhỏ"
+
+msgid "Minimum contrast ratio"
+msgstr "Tỉ lệ tương phản tối thiểu"
+
+msgid "Move Tab Left"
+msgstr "Chuyển tab sang trái"
+
+msgid "Move Tab Right"
+msgstr "Chuyển tab sang phải"
+
+msgid "Move tab to the left"
+msgstr "Chuyển tab sang trái"
+
+msgid "Move tab to the right"
+msgstr "Chuyển tab sang phải"
+
+msgid "Name"
+msgstr "Tên"
+
+msgid "Name for the new directory"
+msgstr "Tên thư mục mới"
+
+msgid "Native"
+msgstr "Gốc của hệ thống"
+
+msgid "New"
+msgstr "Mới"
+
+msgid "New Tab"
+msgstr "Tab mới"
+
+msgid "New Window"
+msgstr "Cửa sổ mới"
+
+msgid "New group"
+msgstr "Nhóm mới"
+
+msgid "New local profile"
+msgstr "Hồ sơ cục bộ mới"
+
+msgid "New password"
+msgstr "Mật khẩu mới"
+
+msgid "New profile"
+msgstr "Hồ sơ mới"
+
+msgid "New tab"
+msgstr "Tab mới"
+
+msgid "New tabs"
+msgstr "Tab mới"
+
+msgid "New terminal"
+msgstr "Terminal mới"
+
+msgid "New to TabbyMac? Create account"
+msgstr "Mới dùng TabbyMac? Tạo tài khoản"
+
+msgid "New window"
+msgstr "Cửa sổ mới"
+
+msgid "Next Pane"
+msgstr "Khung kế tiếp"
+
+msgid "Next Tab"
+msgstr "Tab kế tiếp"
+
+msgid "Next match (↩)"
+msgstr "Kết quả kế tiếp (↩)"
+
+msgid "Next tab"
+msgstr "Tab kế tiếp"
+
+msgid "Next tab (MRU order)"
+msgstr "Tab kế tiếp (theo thứ tự dùng gần đây)"
+
+msgid "Next tab on the last tab goes back to the first"
+msgstr "Tab kế tiếp ở tab cuối sẽ quay về tab đầu"
+
+msgid "No"
+msgstr "Không"
+
+msgid "No Tabby config found at {path}."
+msgstr "Không tìm thấy cấu hình Tabby tại {path}."
+
+msgid "No app opens them yet"
+msgstr "Chưa có ứng dụng nào mở chúng"
+
+msgid "No colour"
+msgstr "Không màu"
+
+msgid "No files match the filter “{text}”"
+msgstr "Không có tệp nào khớp bộ lọc “{text}”"
+
+msgid "No forwarded ports"
+msgstr "Không có cổng chuyển tiếp"
+
+msgid "No host to connect to"
+msgstr "Không có máy chủ để kết nối"
+
+msgid "No hotkeys match “{filter}”"
+msgstr "Không có phím tắt nào khớp “{filter}”"
+
+msgid "No keys: ssh tries the agent and its default identities"
+msgstr "Không có khoá: ssh sẽ thử agent và các danh tính mặc định của nó"
+
+msgid "No login scripts"
+msgstr "Không có kịch bản đăng nhập"
+
+msgid "No matches for “{query}”"
+msgstr "Không có kết quả cho “{query}”"
+
+msgid "No ports found"
+msgstr "Không tìm thấy cổng nào"
+
+msgid "No profile named “{name}”"
+msgstr "Không có hồ sơ tên “{name}”"
+
+msgid "No profiles"
+msgstr "Không có hồ sơ"
+
+msgid "No profiles match “{filter}”"
+msgstr "Không có hồ sơ nào khớp “{filter}”"
+
+msgid "No recent profile {index}"
+msgstr "Không có hồ sơ gần đây số {index}"
+
+msgid "No results"
+msgstr "Không có kết quả"
+
+msgid "No saved passwords"
+msgstr "Không có mật khẩu đã lưu"
+
+msgid "No serial port selected"
+msgstr "Chưa chọn cổng serial"
+
+msgid "No serial ports found"
+msgstr "Không tìm thấy cổng serial nào"
+
+msgid "No such directory {path}"
+msgstr "Không có thư mục {path}"
+
+msgid "No such file or directory"
+msgstr "Không có tệp hoặc thư mục này"
+
+msgid "No username"
+msgstr "Không có tên người dùng"
+
+msgid "None"
+msgstr "Không"
+
+msgid "Normal"
+msgstr "Bình thường"
+
+msgid "Not now"
+msgstr "Để sau"
+
+msgid "Not on this Mac yet (it arrives with the next sync)"
+msgstr "Chưa có trên máy Mac này (sẽ đến ở lần đồng bộ tới)"
+
+msgid "Not saved: {reason}"
+msgstr "Chưa lưu: {reason}"
+
+msgid "Not set"
+msgstr "Chưa đặt"
+
+msgid "Not synced"
+msgstr "Chưa đồng bộ"
+
+msgid "Not valid YAML"
+msgstr "YAML không hợp lệ"
+
+msgid "Nothing"
+msgstr "Không làm gì"
+
+msgid "Nothing here yet"
+msgstr "Chưa có gì ở đây"
+
+msgid "Notify on activity"
+msgstr "Thông báo khi có hoạt động"
+
+msgid "Notify when done"
+msgstr "Thông báo khi xong"
+
+msgid "Now opened by {app}"
+msgstr "Hiện được mở bằng {app}"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "OS default ({name})"
+msgstr "Mặc định của hệ điều hành ({name})"
+
+msgid "Odd"
+msgstr "Lẻ"
+
+msgid "Off"
+msgstr "Tắt"
+
+msgid "On the active tab and on hover"
+msgstr "Trên tab đang mở và khi rê chuột"
+
+msgid "One per line"
+msgstr "Mỗi dòng một mục"
+
+msgid "Only the start is shown: {count} characters in all."
+msgstr "Chỉ hiện phần đầu: tổng cộng {count} ký tự."
+
+msgid "Open SFTP Panel"
+msgstr "Mở bảng SFTP"
+
+msgid "Open SFTP panel"
+msgstr "Mở bảng SFTP"
+
+msgid "Open Settings"
+msgstr "Mở Cài đặt"
+
+msgid "Open a new tab when the app starts"
+msgstr "Mở một tab mới khi ứng dụng khởi động"
+
+msgid "Open in a new tab"
+msgstr "Mở trong tab mới"
+
+msgid "Open profiles"
+msgstr "Mở hồ sơ"
+
+msgid "Open ssh:// and telnet:// links"
+msgstr "Mở liên kết ssh:// và telnet://"
+
+msgid "Option key acts as Meta"
+msgstr "Phím Option dùng làm Meta"
+
+msgid "Optional"
+msgstr "Tuỳ chọn"
+
+msgid "Out of memory"
+msgstr "Hết bộ nhớ"
+
+msgid "Output"
+msgstr "Đầu ra"
+
+msgid "Output is shown as a hexdump"
+msgstr "Đầu ra hiển thị dạng hexdump"
+
+msgid "Output is shown as it is received"
+msgstr "Đầu ra hiển thị đúng như nhận được"
+
+msgid "Output mode"
+msgstr "Chế độ đầu ra"
+
+msgid "Output newlines"
+msgstr "Xuống dòng ở đầu ra"
+
+msgid "Overrides the colour scheme for this profile's tabs."
+msgstr "Thay bảng màu cho các tab của hồ sơ này."
+
+msgid "Pane resize step"
+msgstr "Bước đổi kích thước khung"
+
+msgid "Pane {index} of {total} maximised"
+msgstr "Khung {index}/{total} đang phóng to"
+
+msgid "Panes"
+msgstr "Khung"
+
+msgid "Parity"
+msgstr "Bit chẵn lẻ"
+
+msgid "Passphrase for key"
+msgstr "Cụm mật khẩu của khoá"
+
+msgid "Password"
+msgstr "Mật khẩu"
+
+msgid "Password changed. Your other Macs stay signed in."
+msgstr "Đã đổi mật khẩu. Các máy Mac khác của bạn vẫn đăng nhập."
+
+msgid "Password for {user}@{host}"
+msgstr "Mật khẩu cho {user}@{host}"
+
+msgid "Passwords & private keys"
+msgstr "Mật khẩu & khoá riêng"
+
+msgid "Paste"
+msgstr "Dán"
+
+msgid "Paste \"{text}\"?"
+msgstr "Dán \"{text}\"?"
+
+msgid "Paste from clipboard"
+msgstr "Dán từ bảng nhớ tạm"
+
+msgid "Paste multiple lines?"
+msgstr "Dán nhiều dòng?"
+
+msgid "Paste on middle click"
+msgstr "Dán khi nhấp chuột giữa"
+
+msgid "Path"
+msgstr "Đường dẫn"
+
+msgid "Permission denied"
+msgstr "Không có quyền"
+
+msgid "Personal account"
+msgstr "Tài khoản cá nhân"
+
+msgid "Pin Tab"
+msgstr "Ghim tab"
+
+msgid "Pin tab"
+msgstr "Ghim tab"
+
+msgid "Pinned"
+msgstr "Đã ghim"
+
+msgid "Port"
+msgstr "Cổng"
+
+msgid "Port closed"
+msgstr "Đã đóng cổng"
+
+msgid "Port opened"
+msgstr "Đã mở cổng"
+
+msgid "Ports"
+msgstr "Cổng"
+
+msgid "Press up to three keys in a row for a chord."
+msgstr "Nhấn tối đa ba tổ hợp phím liên tiếp để tạo chuỗi phím."
+
+msgid "Previous Pane"
+msgstr "Khung trước"
+
+msgid "Previous Tab"
+msgstr "Tab trước"
+
+msgid "Previous match (⇧↩)"
+msgstr "Kết quả trước (⇧↩)"
+
+msgid "Previous tab"
+msgstr "Tab trước"
+
+msgid "Previous tab (MRU order)"
+msgstr "Tab trước (theo thứ tự dùng gần đây)"
+
+msgid "Print"
+msgstr "In"
+
+msgid "Private key files"
+msgstr "Tệp khoá riêng"
+
+msgid "Private key passphrase · ••••••••"
+msgstr "Cụm mật khẩu khoá riêng · ••••••••"
+
+msgid "Private keys"
+msgstr "Khoá riêng"
+
+msgid "Private keys from your account"
+msgstr "Khoá riêng từ tài khoản của bạn"
+
+msgid "Process completed"
+msgstr "Tiến trình đã xong"
+
+msgid "Process exited with code {code}"
+msgstr "Tiến trình đã thoát với mã {code}"
+
+msgid "Process exited with code {code}. Press any key to restart."
+msgstr "Tiến trình đã thoát với mã {code}. Nhấn phím bất kỳ để khởi động lại."
+
+msgid "Process terminated. Press any key to restart."
+msgstr "Tiến trình đã bị dừng. Nhấn phím bất kỳ để khởi động lại."
+
+msgid "Profiles & Connections…"
+msgstr "Hồ sơ & kết nối…"
+
+msgid "Profiles & connections"
+msgstr "Hồ sơ & kết nối"
+
+msgid "Profiles and keys stay usable here, unsynced"
+msgstr "Hồ sơ và khoá vẫn dùng được ở đây, nhưng không đồng bộ"
+
+msgid "Proxy command"
+msgstr "Lệnh proxy"
+
+msgid "Proxy: {text}"
+msgstr "Proxy: {text}"
+
+msgid "Public key"
+msgstr "Khoá công khai"
+
+msgid "Quick connect"
+msgstr "Kết nối nhanh"
+
+msgid "Quick connect uses"
+msgstr "Kết nối nhanh dùng"
+
+msgid "Quick connect · {type}"
+msgstr "Kết nối nhanh · {type}"
+
+msgid "Quit"
+msgstr "Thoát"
+
+msgid "Quit TabbyMac"
+msgstr "Thoát TabbyMac"
+
+msgid "Quit TabbyMac?"
+msgstr "Thoát TabbyMac?"
+
+msgid "RTS / CTS"
+msgstr "RTS / CTS"
+
+msgid "Raw socket connection"
+msgstr "Kết nối socket thô"
+
+msgid "Ready timeout"
+msgstr "Thời gian chờ sẵn sàng"
+
+msgid "Recent"
+msgstr "Gần đây"
+
+msgid "Reconnect"
+msgstr "Kết nối lại"
+
+msgid "Reconnect tab"
+msgstr "Kết nối lại tab"
+
+msgid "Reconnect to {address}?"
+msgstr "Kết nối lại tới {address}?"
+
+msgid "Reconnecting {attempt}/{total}"
+msgstr "Đang kết nối lại {attempt}/{total}"
+
+msgid "Recovery key"
+msgstr "Khoá khôi phục"
+
+msgid "Red"
+msgstr "Đỏ"
+
+msgid "Refresh"
+msgstr "Làm mới"
+
+msgid "Regenerate…"
+msgstr "Tạo lại…"
+
+msgid "Regex"
+msgstr "Regex"
+
+msgid "Regular expression"
+msgstr "Biểu thức chính quy"
+
+msgid "Reject"
+msgstr "Từ chối"
+
+msgid "Rejected incoming forwarded connection for unrecognized port {destinationAddress}:{destinationPort}"
+msgstr "Đã từ chối kết nối chuyển tiếp tới cho cổng lạ {destinationAddress}:{destinationPort}"
+
+msgid "Remember"
+msgstr "Ghi nhớ"
+
+msgid "Remember in Keychain"
+msgstr "Ghi nhớ trong Keychain"
+
+msgid "Remember in known_hosts"
+msgstr "Ghi nhớ trong known_hosts"
+
+msgid "Remote"
+msgstr "Từ xa"
+
+msgid "Remote rejected opening a shell channel: {reason}"
+msgstr "Máy chủ từ chối mở kênh shell: {reason}"
+
+msgid "Remote rejected the terminal: {reason}"
+msgstr "Máy chủ từ chối terminal: {reason}"
+
+msgid "Remove"
+msgstr "Gỡ bỏ"
+
+msgid "Remove from the list"
+msgstr "Gỡ khỏi danh sách"
+
+msgid "Remove synced data from this Mac"
+msgstr "Xoá dữ liệu đồng bộ khỏi máy Mac này"
+
+msgid "Remove {name}?"
+msgstr "Gỡ bỏ {name}?"
+
+msgid "Removes the account and its encrypted data from the server. This Mac keeps its copy."
+msgstr "Xoá tài khoản và dữ liệu mã hoá của nó khỏi máy chủ. Máy Mac này giữ lại bản sao của mình."
+
+msgid "Removes the connection messages once connected"
+msgstr "Xoá các thông báo kết nối khi đã kết nối"
+
+msgid "Removing a Mac signs it out; it stops receiving updates."
+msgstr "Gỡ một máy Mac sẽ đăng xuất nó; nó không nhận cập nhật nữa."
+
+msgid "Rename"
+msgstr "Đổi tên"
+
+msgid "Rename Tab…"
+msgstr "Đổi tên tab…"
+
+msgid "Rename tab"
+msgstr "Đổi tên tab"
+
+msgid "Reopen Closed Tab"
+msgstr "Mở lại tab đã đóng"
+
+msgid "Reopen in the last directory"
+msgstr "Mở lại ở thư mục cuối cùng"
+
+msgid "Reopen last tab"
+msgstr "Mở lại tab vừa đóng"
+
+msgid "Replace newlines with spaces"
+msgstr "Thay ký tự xuống dòng bằng dấu cách"
+
+msgid "Replaces these settings with {path}"
+msgstr "Thay các cài đặt này bằng {path}"
+
+msgid "Report a problem"
+msgstr "Báo lỗi"
+
+msgid "Reset"
+msgstr "Đặt lại"
+
+msgid "Reset password"
+msgstr "Đặt lại mật khẩu"
+
+msgid "Reset to the default"
+msgstr "Đặt lại về mặc định"
+
+msgid "Reset zoom"
+msgstr "Đặt lại thu phóng"
+
+msgid "Response"
+msgstr "Câu trả lời"
+
+msgid "Restart"
+msgstr "Khởi động lại"
+
+msgid "Restart Session"
+msgstr "Khởi động lại phiên"
+
+msgid "Restart current SSH session"
+msgstr "Khởi động lại phiên SSH hiện tại"
+
+msgid "Restart current Telnet session"
+msgstr "Khởi động lại phiên Telnet hiện tại"
+
+msgid "Restart current serial session"
+msgstr "Khởi động lại phiên serial hiện tại"
+
+msgid "Restart tab"
+msgstr "Khởi động lại tab"
+
+msgid "Restore"
+msgstr "Khôi phục"
+
+msgid "Restore defaults"
+msgstr "Khôi phục mặc định"
+
+msgid "Restore tabs on startup"
+msgstr "Khôi phục tab khi khởi động"
+
+msgid "Reuse the connection for new tabs"
+msgstr "Dùng lại kết nối cho tab mới"
+
+msgid "Revert"
+msgstr "Hoàn tác"
+
+msgid "Review…"
+msgstr "Xem lại…"
+
+msgid "Right"
+msgstr "Phải"
+
+msgid "Right click"
+msgstr "Nhấp chuột phải"
+
+msgid "Run"
+msgstr "Chạy"
+
+msgid "Run \"{command}\"?"
+msgstr "Chạy \"{command}\"?"
+
+msgid "SFTP"
+msgstr "SFTP"
+
+msgid "SOCKS proxy"
+msgstr "Proxy SOCKS"
+
+msgid "SSH"
+msgstr "SSH"
+
+msgid "SSH agent"
+msgstr "SSH agent"
+
+msgid "SSH passwords and key passphrases from the Keychain, and the key files you approve"
+msgstr "Mật khẩu SSH và cụm mật khẩu khoá trong Keychain, cùng các tệp khoá bạn đồng ý"
+
+msgid "Save"
+msgstr "Lưu"
+
+msgid "Save Layout as Profile…"
+msgstr "Lưu bố cục thành hồ sơ…"
+
+msgid "Save as file…"
+msgstr "Lưu thành tệp…"
+
+msgid "Save as…"
+msgstr "Lưu thành…"
+
+msgid "Save colour scheme as"
+msgstr "Lưu bảng màu thành"
+
+msgid "Save layout as profile"
+msgstr "Lưu bố cục thành hồ sơ"
+
+msgid "Save your recovery key"
+msgstr "Lưu khoá khôi phục của bạn"
+
+msgid "Saved in Keychain"
+msgstr "Đã lưu trong Keychain"
+
+msgid "Saved in the Keychain"
+msgstr "Đã lưu trong Keychain"
+
+msgid "Saved in the login keychain."
+msgstr "Đã lưu trong keychain đăng nhập."
+
+msgid "Saved profiles"
+msgstr "Hồ sơ đã lưu"
+
+msgid "Scales paddings and the tab bar height (38 pt at 1.0)"
+msgstr "Co giãn khoảng đệm và chiều cao thanh tab (38 pt ở mức 1.0)"
+
+msgid "Schemes"
+msgstr "Bảng màu"
+
+msgid "Scroll down one line"
+msgstr "Cuộn xuống một dòng"
+
+msgid "Scroll down one page"
+msgstr "Cuộn xuống một trang"
+
+msgid "Scroll to bottom"
+msgstr "Cuộn xuống cuối"
+
+msgid "Scroll to bottom on input"
+msgstr "Cuộn xuống cuối khi nhập"
+
+msgid "Scroll to top"
+msgstr "Cuộn lên đầu"
+
+msgid "Scroll up one line"
+msgstr "Cuộn lên một dòng"
+
+msgid "Scroll up one page"
+msgstr "Cuộn lên một trang"
+
+msgid "Scrollback"
+msgstr "Lịch sử cuộn"
+
+msgid "Search"
+msgstr "Tìm kiếm"
+
+msgid "Search profiles or user@host:port"
+msgstr "Tìm hồ sơ hoặc user@host:port"
+
+msgid "Search settings"
+msgstr "Tìm trong cài đặt"
+
+msgid "Security"
+msgstr "Bảo mật"
+
+msgid "Select All"
+msgstr "Chọn tất cả"
+
+msgid "Select all"
+msgstr "Chọn tất cả"
+
+msgid "Select destination folder for {name}"
+msgstr "Chọn thư mục đích cho {name}"
+
+msgid "Selection"
+msgstr "Vùng chọn"
+
+msgid "Send"
+msgstr "Gửi"
+
+msgid "Send bytes by typing in hex values"
+msgstr "Gửi byte bằng cách gõ giá trị hex"
+
+msgid "Sends data one byte at a time"
+msgstr "Gửi dữ liệu từng byte một"
+
+msgid "Serial"
+msgstr "Serial"
+
+msgid "Serial connection"
+msgstr "Kết nối serial"
+
+msgid "Serial port or a device path"
+msgstr "Cổng serial hoặc đường dẫn thiết bị"
+
+msgid "Serial port or profile"
+msgstr "Cổng serial hoặc hồ sơ"
+
+msgid "Serial: {description}"
+msgstr "Serial: {description}"
+
+msgid "Session closed. Press any key to reconnect."
+msgstr "Phiên đã đóng. Nhấn phím bất kỳ để kết nối lại."
+
+msgid "Session ended"
+msgstr "Phiên đã kết thúc"
+
+msgid "Settings"
+msgstr "Cài đặt"
+
+msgid "Settings, hotkeys & colour schemes"
+msgstr "Cài đặt, phím tắt & bảng màu"
+
+msgid "Settings…"
+msgstr "Cài đặt…"
+
+msgid "Set…"
+msgstr "Đặt…"
+
+msgid "Shape"
+msgstr "Hình dạng"
+
+msgid "Shell"
+msgstr "Shell"
+
+msgid "Show"
+msgstr "Hiện"
+
+msgid "Show / hide (global)"
+msgstr "Hiện / ẩn (toàn cục)"
+
+msgid "Show All"
+msgstr "Hiện tất cả"
+
+msgid "Show Serial connections"
+msgstr "Hiện các kết nối serial"
+
+msgid "Show and hide TabbyMac from any app with ⌃Space"
+msgstr "Hiện và ẩn TabbyMac từ bất kỳ ứng dụng nào bằng ⌃Space"
+
+msgid "Show close button"
+msgstr "Hiện nút đóng"
+
+msgid "Show command selector"
+msgstr "Hiện bộ chọn lệnh"
+
+msgid "Show defaults"
+msgstr "Hiện mặc định"
+
+msgid "Show hidden"
+msgstr "Hiện mục ẩn"
+
+msgid "Show in Finder"
+msgstr "Hiện trong Finder"
+
+msgid "Show pane labels (for rearranging)"
+msgstr "Hiện nhãn khung (để sắp xếp lại)"
+
+msgid "Show profile icon"
+msgstr "Hiện biểu tượng hồ sơ"
+
+msgid "Show profile selector"
+msgstr "Hiện bộ chọn hồ sơ"
+
+msgid "Show tab index"
+msgstr "Hiện số thứ tự tab"
+
+msgid "Show tabs in full screen"
+msgstr "Hiện tab khi toàn màn hình"
+
+msgid "Show the Welcome tab"
+msgstr "Hiện tab Chào mừng"
+
+msgid "Show the recovery key"
+msgstr "Hiện khoá khôi phục"
+
+msgid "Show/hide window (global)"
+msgstr "Hiện/ẩn cửa sổ (toàn cục)"
+
+msgid "Shows a percentage in the tab when a command prints one"
+msgstr "Hiện phần trăm trên tab khi lệnh in ra phần trăm"
+
+msgid "Sign in"
+msgstr "Đăng nhập"
+
+msgid "Sign in to TabbyMac"
+msgstr "Đăng nhập TabbyMac"
+
+msgid "Sign in to sync profiles and keys"
+msgstr "Đăng nhập để đồng bộ hồ sơ và khoá"
+
+msgid "Sign in to sync profiles, passwords, private keys and settings. Everything is encrypted on this Mac before it leaves it."
+msgstr "Đăng nhập để đồng bộ hồ sơ, mật khẩu, khoá riêng và cài đặt. Mọi thứ được mã hoá trên máy Mac này trước khi rời khỏi nó."
+
+msgid "Sign in…"
+msgstr "Đăng nhập…"
+
+msgid "Sign out"
+msgstr "Đăng xuất"
+
+msgid "Sign out of TabbyMac?"
+msgstr "Đăng xuất khỏi TabbyMac?"
+
+msgid "Sign out…"
+msgstr "Đăng xuất…"
+
+msgid "Signed out"
+msgstr "Đã đăng xuất"
+
+msgid "Size"
+msgstr "Cỡ chữ"
+
+msgid "Skip the login banner"
+msgstr "Bỏ qua banner đăng nhập"
+
+msgid "Slow feed"
+msgstr "Gửi chậm"
+
+msgid "Socket error: {reason}"
+msgstr "Lỗi socket: {reason}"
+
+msgid "Spaciness"
+msgstr "Độ thoáng"
+
+msgid "Split"
+msgstr "Chia"
+
+msgid "Split Down"
+msgstr "Chia xuống dưới"
+
+msgid "Split Left"
+msgstr "Chia sang trái"
+
+msgid "Split Right"
+msgstr "Chia sang phải"
+
+msgid "Split Up"
+msgstr "Chia lên trên"
+
+msgid "Split to the bottom"
+msgstr "Chia xuống dưới"
+
+msgid "Split to the left"
+msgstr "Chia sang trái"
+
+msgid "Split to the right"
+msgstr "Chia sang phải"
+
+msgid "Split to the top"
+msgstr "Chia lên trên"
+
+msgid "Start in directory"
+msgstr "Bắt đầu tại thư mục"
+
+msgid "Start syncing"
+msgstr "Bắt đầu đồng bộ"
+
+msgid "Startup"
+msgstr "Khởi động"
+
+msgid "Step 1 of 2"
+msgstr "Bước 1/2"
+
+msgid "Step 2 of 2"
+msgstr "Bước 2/2"
+
+msgid "Stop bits"
+msgstr "Số bit dừng"
+
+msgid "Stop forwarding (puts it back in the form)"
+msgstr "Dừng chuyển tiếp (đưa nó trở lại biểu mẫu)"
+
+msgid "Stream processing"
+msgstr "Xử lý luồng dữ liệu"
+
+msgid "Strip"
+msgstr "Lược bỏ"
+
+msgid "Strong"
+msgstr "Mạnh"
+
+msgid "Switch Profile…"
+msgstr "Đổi hồ sơ…"
+
+msgid "Switch profile"
+msgstr "Đổi hồ sơ"
+
+msgid "Switch profile in the active pane"
+msgstr "Đổi hồ sơ trong khung đang chọn"
+
+msgid "Sync account now"
+msgstr "Đồng bộ tài khoản ngay"
+
+msgid "Sync failed"
+msgstr "Đồng bộ thất bại"
+
+msgid "Sync now"
+msgstr "Đồng bộ ngay"
+
+msgid "Synced"
+msgstr "Đã đồng bộ"
+
+msgid "Synced just now"
+msgstr "Vừa đồng bộ"
+
+msgid "Syncing"
+msgstr "Đang đồng bộ"
+
+msgid "Syncing stops on this Mac. Your data stays in your account."
+msgstr "Máy Mac này ngừng đồng bộ. Dữ liệu của bạn vẫn còn trong tài khoản."
+
+msgid "Syncing…"
+msgstr "Đang đồng bộ…"
+
+msgid "System"
+msgstr "Hệ thống"
+
+msgid "System (SSH_AUTH_SOCK)"
+msgstr "Hệ thống (SSH_AUTH_SOCK)"
+
+msgid "Tab activity"
+msgstr "Hoạt động trên tab"
+
+msgid "Tab bar location"
+msgstr "Vị trí thanh tab"
+
+msgid "Tab options"
+msgstr "Tuỳ chọn tab"
+
+msgid "Tab {number}"
+msgstr "Tab {number}"
+
+msgid "Tabby's config is encrypted with a vault passphrase. Disable \"Encrypt config\" in Tabby first."
+msgstr "Cấu hình của Tabby được mã hoá bằng cụm mật khẩu kho bảo mật. Hãy tắt \"Encrypt config\" trong Tabby trước."
+
+msgid "TabbyMac"
+msgstr "TabbyMac"
+
+msgid "TabbyMac Recovery Key"
+msgstr "Khoá khôi phục TabbyMac"
+
+msgid "TabbyMac opens them"
+msgstr "TabbyMac đang mở chúng"
+
+msgid "TabbyMac recovery key"
+msgstr "Khoá khôi phục TabbyMac"
+
+msgid "TabbyMac saves these when you tick “Remember” at a password or passphrase prompt. Showing one may ask for your Mac password."
+msgstr "TabbyMac lưu những mục này khi bạn đánh dấu “Ghi nhớ” ở hộp hỏi mật khẩu hoặc cụm mật khẩu. Hiện một mục có thể cần mật khẩu máy Mac."
+
+msgid "Tabs"
+msgstr "Tab"
+
+msgid "Tabs out of view"
+msgstr "Các tab khuất khỏi tầm nhìn"
+
+msgid "Tabs stretch to fill the tab bar instead of using a fixed width"
+msgstr "Tab giãn ra lấp đầy thanh tab thay vì dùng độ rộng cố định"
+
+msgid "Telnet"
+msgstr "Telnet"
+
+msgid "Telnet connection"
+msgstr "Kết nối Telnet"
+
+msgid "Telnet session"
+msgstr "Phiên Telnet"
+
+msgid "Terminal"
+msgstr "Terminal"
+
+msgid "Terminal font"
+msgstr "Phông chữ terminal"
+
+msgid "Terminal type"
+msgstr "Loại terminal"
+
+msgid "Test connection"
+msgstr "Thử kết nối"
+
+msgid "Text that is harder to read than this is brightened or darkened"
+msgstr "Chữ khó đọc hơn mức này sẽ được làm sáng hoặc tối đi"
+
+msgid "The SSH profile has no host."
+msgstr "Hồ sơ SSH không có máy chủ."
+
+msgid "The bundled defaults.yaml is missing."
+msgstr "Thiếu tệp defaults.yaml đi kèm."
+
+msgid "The clipboard holds {count} lines. Each line runs as soon as it reaches the shell."
+msgstr "Bảng nhớ tạm có {count} dòng. Mỗi dòng sẽ chạy ngay khi tới shell."
+
+msgid "The configuration is not valid YAML: {msg}"
+msgstr "Cấu hình không phải YAML hợp lệ: {msg}"
+
+msgid "The configuration must be a map of settings (key: value)."
+msgstr "Cấu hình phải là một bảng cài đặt (khoá: giá trị)."
+
+msgid "The current key stops working. Your TabbyMac account password:"
+msgstr "Khoá hiện tại sẽ ngừng hoạt động. Mật khẩu tài khoản TabbyMac của bạn:"
+
+msgid "The directory could not be created"
+msgstr "Không thể tạo thư mục"
+
+msgid "The email or password is not right."
+msgstr "Email hoặc mật khẩu không đúng."
+
+msgid "The email or recovery key is not right."
+msgstr "Email hoặc khoá khôi phục không đúng."
+
+msgid "The host key changed. If this is expected, remove the old key with:"
+msgstr "Khoá máy chủ đã thay đổi. Nếu điều này là đúng, hãy xoá khoá cũ bằng:"
+
+msgid "The new password is too short."
+msgstr "Mật khẩu mới quá ngắn."
+
+msgid "The old key no longer works. Keep this one somewhere safe: with your email it unlocks your synced data if you forget your password."
+msgstr "Khoá cũ không còn dùng được. Hãy cất khoá này ở nơi an toàn: cùng với email, nó mở khoá dữ liệu đồng bộ nếu bạn quên mật khẩu."
+
+msgid "The passwords don't match."
+msgstr "Mật khẩu không khớp."
+
+msgid "The passwords don't match; nothing was changed."
+msgstr "Mật khẩu không khớp; không có gì thay đổi."
+
+msgid "The port must be a number from 1 to 65535."
+msgstr "Cổng phải là số từ 1 đến 65535."
+
+msgid "The profile is removed here and, when profiles sync, on your other Macs. A password saved for it stays in the Keychain (Settings › Vault)."
+msgstr "Hồ sơ bị xoá ở đây và, khi hồ sơ được đồng bộ, trên các máy Mac khác của bạn. Mật khẩu đã lưu cho nó vẫn còn trong Keychain (Cài đặt › Kho bảo mật)."
+
+msgid "The recovery key is not on this Mac yet."
+msgstr "Khoá khôi phục chưa có trên máy Mac này."
+
+msgid "The scheme grid and editor change this appearance"
+msgstr "Lưới bảng màu và trình chỉnh sửa sẽ thay đổi giao diện này"
+
+msgid "The server refused"
+msgstr "Máy chủ từ chối"
+
+msgid "The server stores ciphertext only; your password never leaves this Mac."
+msgstr "Máy chủ chỉ lưu dữ liệu đã mã hoá; mật khẩu của bạn không bao giờ rời khỏi máy Mac này."
+
+msgid "The server tried to open an X11 connection without X11 forwarding; refused"
+msgstr "Máy chủ định mở kết nối X11 khi không bật chuyển tiếp X11; đã từ chối"
+
+msgid "The server tried to use your SSH agent without agent forwarding; refused"
+msgstr "Máy chủ định dùng SSH agent của bạn khi không bật chuyển tiếp agent; đã từ chối"
+
+msgid "The session is restarted; anything running in it ends."
+msgstr "Phiên sẽ được khởi động lại; mọi thứ đang chạy trong đó sẽ kết thúc."
+
+msgid "The sync server answered {status}."
+msgstr "Máy chủ đồng bộ trả lời {status}."
+
+msgid "The sync server sent something unexpected."
+msgstr "Máy chủ đồng bộ gửi về dữ liệu không mong đợi."
+
+msgid "The target port must be a number from 1 to 65535."
+msgstr "Cổng đích phải là số từ 1 đến 65535."
+
+msgid "The top level must be a mapping"
+msgstr "Cấp ngoài cùng phải là một bảng ánh xạ"
+
+msgid "The window takes its colours from the active colour scheme"
+msgstr "Cửa sổ lấy màu từ bảng màu đang dùng"
+
+msgid "Theme"
+msgstr "Chủ đề"
+
+msgid "There are active file transfers"
+msgstr "Đang có tệp được truyền"
+
+msgid "There is already an account with this email."
+msgstr "Đã có tài khoản dùng email này."
+
+msgid "This Mac"
+msgstr "Máy Mac này"
+
+msgid "This Mac was signed out of the account."
+msgstr "Máy Mac này đã bị đăng xuất khỏi tài khoản."
+
+msgid "This is the first connection to {host}. Compare the fingerprint with the one your administrator gave you before accepting."
+msgstr "Đây là lần đầu kết nối tới {host}. Hãy so sánh dấu vân tay với dấu do quản trị viên cung cấp trước khi chấp nhận."
+
+msgid "To {host}"
+msgstr "Tới {host}"
+
+msgid "Toggle Option as Meta key"
+msgstr "Bật/tắt Option làm phím Meta"
+
+msgid "Toggle fullscreen mode"
+msgstr "Bật/tắt chế độ toàn màn hình"
+
+msgid "Toggle last tab"
+msgstr "Chuyển về tab trước đó"
+
+msgid "Too many attempts. Wait a minute and try again."
+msgstr "Thử quá nhiều lần. Hãy đợi một phút rồi thử lại."
+
+msgid "Too short"
+msgstr "Quá ngắn"
+
+msgid "Top"
+msgstr "Trên"
+
+msgid "Transfers"
+msgstr "Truyền tệp"
+
+msgid "Translucent, blurred window background"
+msgstr "Nền cửa sổ trong mờ, làm nhoè"
+
+msgid "Transparency"
+msgstr "Độ trong suốt"
+
+msgid "Trim whitespace when pasting"
+msgstr "Cắt khoảng trắng khi dán"
+
+msgid "Trying private key: {name}"
+msgstr "Đang thử khoá riêng: {name}"
+
+msgid "Turn panes into tabs"
+msgstr "Biến các khung thành tab"
+
+msgid "Type a command"
+msgstr "Nhập một lệnh"
+
+msgid "Type the new password again"
+msgstr "Nhập lại mật khẩu mới"
+
+msgid "Unanswered keep-alives before the connection counts as lost"
+msgstr "Số lần keep-alive không được trả lời trước khi coi là mất kết nối"
+
+msgid "Underline"
+msgstr "Gạch chân"
+
+msgid "Ungrouped"
+msgstr "Chưa nhóm"
+
+msgid "Unhide"
+msgstr "Bỏ ẩn"
+
+msgid "Unlock"
+msgstr "Mở khoá"
+
+msgid "Unlocks the account if you forget the password"
+msgstr "Mở khoá tài khoản nếu bạn quên mật khẩu"
+
+msgid "Unpin Tab"
+msgstr "Bỏ ghim tab"
+
+msgid "Unsupported baud rate {rate}"
+msgstr "Tốc độ baud không được hỗ trợ {rate}"
+
+msgid "Up to date"
+msgstr "Đã cập nhật"
+
+msgid "Upload"
+msgstr "Tải lên"
+
+msgid "Upload files"
+msgstr "Tải lên tệp"
+
+msgid "Upload folder"
+msgstr "Tải lên thư mục"
+
+msgid "Upload private keys to your account?"
+msgstr "Tải khoá riêng lên tài khoản của bạn?"
+
+msgid "Upload {selectedCount}"
+msgstr "Tải lên {selectedCount}"
+
+msgid "Use TabbyMac"
+msgstr "Dùng TabbyMac"
+
+msgid "Use TabbyMac on every Mac"
+msgstr "Dùng TabbyMac trên mọi máy Mac"
+
+msgid "Use custom rate “{rate}”"
+msgstr "Dùng tốc độ tuỳ chỉnh “{rate}”"
+
+msgid "Use for new tabs"
+msgstr "Dùng cho tab mới"
+
+msgid "Use the global scheme"
+msgstr "Dùng bảng màu chung"
+
+msgid "Use your recovery key"
+msgstr "Dùng khoá khôi phục"
+
+msgid "Use {path}"
+msgstr "Dùng {path}"
+
+msgid "Used by SSH connections on the built-in client (ssh.backend: library, the default)."
+msgstr "Dùng cho các kết nối SSH trên trình khách có sẵn (ssh.backend: library, mặc định)."
+
+msgid "Used when the original key file is not on this Mac."
+msgstr "Dùng khi tệp khoá gốc không có trên máy Mac này."
+
+msgid "Username"
+msgstr "Tên người dùng"
+
+msgid "Username for {host}"
+msgstr "Tên người dùng cho {host}"
+
+msgid "Using saved password"
+msgstr "Đang dùng mật khẩu đã lưu"
+
+msgid "Valid YAML"
+msgstr "YAML hợp lệ"
+
+msgid "Vault"
+msgstr "Kho bảo mật"
+
+msgid "Verify host key"
+msgstr "Xác minh khoá máy chủ"
+
+msgid "Verify host keys"
+msgstr "Xác minh khoá máy chủ"
+
+msgid "Version {version}"
+msgstr "Phiên bản {version}"
+
+msgid "Vibrancy"
+msgstr "Hiệu ứng mờ"
+
+msgid "View"
+msgstr "Xem"
+
+msgid "View…"
+msgstr "Xem…"
+
+msgid "Visual"
+msgstr "Hình ảnh"
+
+msgid "Waiting for keys…"
+msgstr "Đang chờ phím…"
+
+msgid "Warn before pasting multiple lines"
+msgstr "Cảnh báo trước khi dán nhiều dòng"
+
+msgid "Warn when closing an open connection"
+msgstr "Cảnh báo khi đóng kết nối đang mở"
+
+msgid "Warning: remote host's key has suddenly changed!"
+msgstr "Cảnh báo: khoá của máy chủ từ xa đột nhiên thay đổi!"
+
+msgid "Weight"
+msgstr "Độ đậm"
+
+msgid "Welcome"
+msgstr "Chào mừng"
+
+msgid "Welcome back"
+msgstr "Chào mừng trở lại"
+
+msgid "Welcome to TabbyMac"
+msgstr "Chào mừng đến với TabbyMac"
+
+msgid "What to sync"
+msgstr "Đồng bộ những gì"
+
+msgid "When the bell rings while TabbyMac is in the background"
+msgstr "Khi chuông reo lúc TabbyMac đang chạy nền"
+
+msgid "When the output contains the text, TabbyMac types the reply and presses Return."
+msgstr "Khi đầu ra chứa đoạn chữ này, TabbyMac sẽ gõ câu trả lời và nhấn Return."
+
+msgid "When the session ends"
+msgstr "Khi phiên kết thúc"
+
+msgid "When the tab is restored; the remote shell must report it (OSC 7)"
+msgstr "Khi tab được khôi phục; shell ở máy chủ phải báo thư mục (OSC 7)"
+
+msgid "Where forwarded X11 connections go; empty uses $DISPLAY"
+msgstr "Nơi các kết nối X11 được chuyển tiếp tới; để trống sẽ dùng $DISPLAY"
+
+msgid "While connected, change them from Ports on the connection chip"
+msgstr "Khi đang kết nối, hãy đổi chúng từ mục Cổng trên nhãn kết nối"
+
+msgid "Whole word"
+msgstr "Nguyên từ"
+
+msgid "Window"
+msgstr "Cửa sổ"
+
+msgid "Window frame"
+msgstr "Khung cửa sổ"
+
+msgid "Window opacity"
+msgstr "Độ mờ đục của cửa sổ"
+
+msgid "With your email it unlocks your synced data if you forget your password."
+msgstr "Cùng với email, nó mở khoá dữ liệu đồng bộ nếu bạn quên mật khẩu."
+
+msgid "Without a device or a baud rate, Tabby asks each time the profile opens."
+msgstr "Khi không có thiết bị hoặc tốc độ baud, Tabby sẽ hỏi mỗi lần mở hồ sơ."
+
+msgid "Working directory"
+msgstr "Thư mục làm việc"
+
+msgid "X11 display"
+msgstr "Màn hình X11"
+
+msgid "X11 forwarding"
+msgstr "Chuyển tiếp X11"
+
+msgid "X11 forwarding was refused. Make sure `xauth` is installed on the remote side"
+msgstr "Chuyển tiếp X11 đã bị từ chối. Hãy chắc chắn `xauth` đã được cài trên máy từ xa"
+
+msgid "XOFF"
+msgstr "XOFF"
+
+msgid "XON"
+msgstr "XON"
+
+msgid "Xany"
+msgstr "Xany"
+
+msgid "Yellow"
+msgstr "Vàng"
+
+msgid "Yes"
+msgstr "Có"
+
+msgid "You can change this later in Settings › Account & sync."
+msgstr "Bạn có thể thay đổi điều này sau trong Cài đặt › Tài khoản & đồng bộ."
+
+msgid "You could be under a man-in-the-middle attack right now, or the host key of {host} could have just been changed."
+msgstr "Có thể bạn đang bị tấn công xen giữa (man-in-the-middle), hoặc khoá máy chủ của {host} vừa được thay đổi."
+
+msgid "Your TabbyMac account password."
+msgstr "Mật khẩu tài khoản TabbyMac của bạn."
+
+msgid "Your current TabbyMac settings, profiles and hotkeys will be replaced."
+msgstr "Cài đặt, hồ sơ và phím tắt TabbyMac hiện tại của bạn sẽ bị thay thế."
+
+msgid "Your new recovery key"
+msgstr "Khoá khôi phục mới của bạn"
+
+msgid "Your other Macs need these to connect without setup. They are encrypted on this Mac first; the server can't read them."
+msgstr "Các máy Mac khác của bạn cần chúng để kết nối mà không phải thiết lập. Chúng được mã hoá trên máy Mac này trước; máy chủ không thể đọc chúng."
+
+msgid "Your password also encrypts your synced data. TabbyMac never receives it, so it can't reset it for you."
+msgstr "Mật khẩu của bạn cũng dùng để mã hoá dữ liệu đồng bộ. TabbyMac không bao giờ nhận được nó, nên không thể đặt lại cho bạn."
+
+msgid "Your profiles, keys and settings follow you to every Mac. They are encrypted here before upload."
+msgstr "Hồ sơ, khoá và cài đặt đi theo bạn tới mọi máy Mac. Chúng được mã hoá ở đây trước khi tải lên."
+
+msgid "Your recovery key"
+msgstr "Khoá khôi phục của bạn"
+
+msgid "Your setup is restored from your account. Passwords and keys went into this Mac's Keychain, so your saved servers connect without asking again."
+msgstr "Thiết lập của bạn được khôi phục từ tài khoản. Mật khẩu và khoá đã được đưa vào Keychain của máy Mac này, nên các máy chủ đã lưu sẽ kết nối mà không hỏi lại."
+
+msgid "Zoom"
+msgstr "Thu phóng"
+
+msgid "Zoom In"
+msgstr "Phóng to"
+
+msgid "Zoom Out"
+msgstr "Thu nhỏ"
+
+msgid "Zoom in"
+msgstr "Phóng to"
+
+msgid "Zoom out"
+msgstr "Thu nhỏ"
+
+msgid "address type not supported"
+msgstr "loại địa chỉ không được hỗ trợ"
+
+msgid "cannot resolve {host}"
+msgstr "không thể phân giải {host}"
+
+msgid "close"
+msgstr "đóng"
+
+msgid "command not supported"
+msgstr "lệnh không được hỗ trợ"
+
+msgid "connection refused"
+msgstr "kết nối bị từ chối"
+
+msgid "could not connect to {host}:{port} ({lastError})"
+msgstr "không thể kết nối tới {host}:{port} ({lastError})"
+
+msgid "default identity"
+msgstr "danh tính mặc định"
+
+msgid "development build"
+msgstr "bản dựng phát triển"
+
+msgid "error {code}"
+msgstr "lỗi {code}"
+
+msgid "esc close"
+msgstr "esc đóng"
+
+msgid "for the dark appearance"
+msgstr "cho giao diện tối"
+
+msgid "for the light appearance"
+msgstr "cho giao diện sáng"
+
+msgid "forkpty failed: {reason}"
+msgstr "forkpty thất bại: {reason}"
+
+msgid "general failure"
+msgstr "lỗi chung"
+
+msgid "global"
+msgstr "toàn cục"
+
+msgid "host unreachable"
+msgstr "không tới được máy chủ"
+
+msgid "in tab {number}"
+msgstr "ở tab {number}"
+
+msgid "keyboard-interactive · prompt {number} of {total}"
+msgstr "keyboard-interactive · câu hỏi {number}/{total}"
+
+msgid "libssh could not poll"
+msgstr "libssh không thể thăm dò"
+
+msgid "libssh could not start a session"
+msgstr "libssh không thể bắt đầu phiên"
+
+msgid "network unreachable"
+msgstr "không tới được mạng"
+
+msgid "no answer from the proxy"
+msgstr "proxy không trả lời"
+
+msgid "no answer from the server"
+msgstr "máy chủ không trả lời"
+
+msgid "no pipe"
+msgstr "không có pipe"
+
+msgid "no socket pair"
+msgstr "không có cặp socket"
+
+msgid "not allowed by the proxy"
+msgstr "proxy không cho phép"
+
+msgid "only CONNECT is supported"
+msgstr "chỉ hỗ trợ CONNECT"
+
+msgid "open"
+msgstr "mở"
+
+msgid "pipe failed: {reason}"
+msgstr "pipe thất bại: {reason}"
+
+msgid "select"
+msgstr "chọn"
+
+msgid "ssh default identity"
+msgstr "danh tính mặc định của ssh"
+
+msgid "tabby open, run, profile, paste, recent and quickConnect, as in Tabby."
+msgstr "tabby open, run, profile, paste, recent và quickConnect, giống như Tabby."
+
+msgid "the HTTP proxy answered {answer}"
+msgstr "proxy HTTP trả lời {answer}"
+
+msgid "the HTTP proxy sent something unexpected"
+msgstr "proxy HTTP gửi về dữ liệu không mong đợi"
+
+msgid "the SOCKS proxy could not connect ({reason})"
+msgstr "proxy SOCKS không thể kết nối ({reason})"
+
+msgid "the SOCKS proxy does not speak SOCKS5"
+msgstr "proxy SOCKS không dùng SOCKS5"
+
+msgid "the SOCKS proxy sent an unknown address type"
+msgstr "proxy SOCKS gửi về loại địa chỉ không xác định"
+
+msgid "the SOCKS proxy wants authentication"
+msgstr "proxy SOCKS yêu cầu xác thực"
+
+msgid "the proxy closed the connection"
+msgstr "proxy đã đóng kết nối"
+
+msgid "unknown address type"
+msgstr "loại địa chỉ không xác định"
+
+msgid "unknown error"
+msgstr "lỗi không xác định"
+
+msgid "{approvedCount} approved, {declinedCount} kept on this Mac only"
+msgstr "{approvedCount} đã chấp thuận, {declinedCount} chỉ giữ trên máy Mac này"
+
+msgid "{count} lines"
+msgstr "{count} dòng"
+
+msgid "{done} of {size}"
+msgstr "{done} trên {size}"
+
+msgid "{error}\n\nDefaults are in use; your file was not modified."
+msgstr "{error}\n\nĐang dùng cài đặt mặc định; tệp của bạn không bị thay đổi."
+
+msgid "{host}: jump host \"{jumpID}\" not found in your config"
+msgstr "{host}: không tìm thấy máy chủ trung gian \"{jumpID}\" trong cấu hình của bạn"
+
+msgid "{host}: session closed"
+msgstr "{host}: phiên đã đóng"
+
+msgid "{hours}h {minutes}m"
+msgstr "{hours} giờ {minutes} phút"
+
+msgid "{minutes}m {seconds}s"
+msgstr "{minutes} phút {seconds} giây"
+
+msgid "{name} (custom)"
+msgstr "{name} (tuỳ chỉnh)"
+
+msgid "{name} is still running."
+msgstr "{name} vẫn đang chạy."
+
+msgid "{name} · press a key combination"
+msgstr "{name} · nhấn một tổ hợp phím"
+
+msgid "{n} Macs"
+msgstr "{n} máy Mac"
+
+msgid "{n} characters"
+msgstr "{n} ký tự"
+
+msgid "{n} key files are waiting for your answer"
+msgstr "{n} tệp khoá đang chờ bạn trả lời"
+
+msgid "{n} keys"
+msgstr "{n} khoá"
+
+msgid "{n} passwords"
+msgstr "{n} mật khẩu"
+
+msgid "{n} profiles"
+msgstr "{n} hồ sơ"
+
+msgid "{os} · last seen {time}"
+msgstr "{os} · thấy lần cuối {time}"
+
+msgid "{path} is busy: another program has it open"
+msgstr "{path} đang bận: một chương trình khác đang mở nó"
+
+msgid "{port} at {rate} baud"
+msgstr "{port} ở {rate} baud"
+
+msgid "{port}: session closed"
+msgstr "{port}: phiên đã đóng"
+
+msgid "{profiles} on this Mac will upload next"
+msgstr "{profiles} trên máy Mac này sẽ được tải lên tiếp theo"
+
+msgid "{profiles} profiles · {commands} commands"
+msgstr "{profiles} hồ sơ · {commands} lệnh"
+
+msgid "{shortcut} serial"
+msgstr "{shortcut} serial"
+
+msgid "{title} exited with code {code}"
+msgstr "{title} đã thoát với mã {code}"
+
+msgid "{title}: session ended"
+msgstr "{title}: phiên đã kết thúc"
+
+msgid "{url} is not an HTTPS address."
+msgstr "{url} không phải địa chỉ HTTPS."
+
+msgid "~/.ssh/known_hosts is read as well. Passwords you choose to remember are kept in the login keychain."
+msgstr "~/.ssh/known_hosts cũng được đọc. Mật khẩu bạn chọn ghi nhớ được lưu trong keychain đăng nhập."
+
+msgid "↩ apply"
+msgstr "↩ áp dụng"
+
+msgid "↩ open"
+msgstr "↩ mở"

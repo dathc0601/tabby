@@ -211,12 +211,12 @@ public final class ProfileRegistry {
         let recentLimit = config.int("terminal.showRecentProfiles") ?? 3
         let recent = Array(recents.load().prefix(recentLimit))
         for p in recent {
-            entries.append(SelectorEntry(kind: .profile(p), title: p.name, group: "Recent",
+            entries.append(SelectorEntry(kind: .profile(p), title: p.name, group: L("Recent"),
                                          description: provider(for: p.type)?.description(for: p) ?? "",
                                          icon: p.icon, color: p.color, isRecent: true))
         }
         if !recent.isEmpty {
-            entries.append(SelectorEntry(kind: .clearRecent, title: "Clear recent profiles", group: "Recent",
+            entries.append(SelectorEntry(kind: .clearRecent, title: L("Clear recent profiles"), group: L("Recent"),
                                          description: "", icon: "trash", color: nil, isRecent: true))
         }
         let showBuiltin = config.value("terminal.showBuiltinProfiles")?.boolValue ?? true
@@ -226,7 +226,7 @@ public final class ProfileRegistry {
                                          description: provider(for: p.type)?.description(for: p) ?? "",
                                          icon: p.icon, color: p.color, isRecent: false))
         }
-        entries.append(SelectorEntry(kind: .manageProfiles, title: "Manage profiles", group: "",
+        entries.append(SelectorEntry(kind: .manageProfiles, title: L("Manage profiles"), group: "",
                                      description: "", icon: "gearshape", color: nil, isRecent: false))
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         if !trimmed.isEmpty {
@@ -234,7 +234,7 @@ public final class ProfileRegistry {
             for provider in providers.sorted(by: { ($0.id == defaultId ? 0 : 1) < ($1.id == defaultId ? 0 : 1) })
             where provider.supportsQuickConnect {
                 entries.append(SelectorEntry(kind: .quickConnect(providerId: provider.id, query: trimmed),
-                                             title: trimmed, group: "Quick connect",
+                                             title: trimmed, group: L("Quick connect"),
                                              description: provider.name, icon: "bolt", color: nil, isRecent: false))
             }
         }

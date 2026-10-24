@@ -66,6 +66,11 @@ public final class TerminalPane: TerminalEngineDelegate {
             return reconnectAttempt > 0 ? reconnecting : .disconnected
         }
     }
+    /// Tabby's "Notify when done" (`TaskCompletionContextMenu`): armed while a foreground
+    /// process runs, fires `onProcessCompleted` once when it is gone. Not saved.
+    public private(set) var notifyWhenDone = false
+    /// Tabby's "Notify on activity": fires `onActivityNotification` on the next output, once.
+    public private(set) var notifyOnActivity = false
     public var isFocused = false {
         didSet { if isFocused { hasActivity = false } }
     }
@@ -102,6 +107,14 @@ public final class TerminalPane: TerminalEngineDelegate {
     /// (it does when it is not the active app).
     @ObservationIgnored public var onProcessEnded: ((TerminalPane, Int32?) -> Void)?
     @ObservationIgnored public var onRecoveryStateChanged: (() -> Void)?
+    /// "Notify when done" fired: the pane and the name of the process it waited for.
+    @ObservationIgnored public var onProcessCompleted: ((TerminalPane, String) -> Void)?
+    /// "Notify on activity" fired.
+    @ObservationIgnored public var onActivityNotification: ((TerminalPane) -> Void)?
+    /// How often "Notify when done" looks at the foreground process (Tabby: every second).
+    @ObservationIgnored public var completionPollInterval: TimeInterval = 1
+    @ObservationIgnored private var watchedProcess: String?
+    @ObservationIgnored private var completionGeneration = 0
     /// Sees keyboard input before it is sent (used for broadcasting to other panes).
     @ObservationIgnored public var onUserInput: ((TerminalPane, Data) -> Void)?
     /// Sees a paste once it is prepared and confirmed (used for broadcasting to other panes).
@@ -213,6 +226,8 @@ public final class TerminalPane: TerminalEngineDelegate {
     /// Ends the session on purpose (closing the pane).
     public func close() {
         userClosed = true
+        setNotifyWhenDone(false)
+        notifyOnActivity = false
         reconnectAttempt = 0
         progressClearWork?.cancel()
         session?.onClosed = nil
@@ -239,17 +254,49 @@ public final class TerminalPane: TerminalEngineDelegate {
     /// `ssh.warnOnClose`) is on, as in Tabby's `SSHTabComponent.canClose`; an open telnet
     /// connection always asks (`TelnetTabComponent.canClose`).
     public func closeWarning(sshWarnOnClose: Bool) -> String? {
-        if let name = activeProcessName { return "\(name) is still running." }
+        if let name = activeProcessName { return L("{name} is still running.", ["name": name]) }
         guard isRunning, session != nil else { return nil }
         switch profile.type {
         case "ssh":
             let options = SSHOptions(profile.options)
             guard options.warnOnClose ?? sshWarnOnClose else { return nil }
-            return "Disconnect from \(options.host)?"
+            return L("Disconnect from {host}?", ["host": options.host])
         case "telnet":
-            return "Disconnect from \(TelnetOptions(profile.options).host)?"
+            return L("Disconnect from {host}?", ["host": TelnetOptions(profile.options).host])
         default:
             return nil
+        }
+    }
+
+    // MARK: Notify when done / on activity
+
+    /// Arms or disarms "Notify when done"; arming needs a running foreground process.
+    public func setNotifyWhenDone(_ on: Bool) {
+        completionGeneration += 1
+        guard on, let name = activeProcessName else {
+            notifyWhenDone = false
+            watchedProcess = nil
+            return
+        }
+        notifyWhenDone = true
+        watchedProcess = name
+        scheduleCompletionCheck(completionGeneration)
+    }
+
+    public func setNotifyOnActivity(_ on: Bool) {
+        notifyOnActivity = on
+    }
+
+    private func scheduleCompletionCheck(_ generation: Int) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + completionPollInterval) { [weak self] in
+            guard let self, self.notifyWhenDone, generation == self.completionGeneration else { return }
+            if self.activeProcessName != nil {
+                self.scheduleCompletionCheck(generation)
+                return
+            }
+            let name = self.watchedProcess ?? ""
+            self.setNotifyWhenDone(false)
+            self.onProcessCompleted?(self, name)
         }
     }
 
@@ -257,6 +304,10 @@ public final class TerminalPane: TerminalEngineDelegate {
 
     private func handleOutput(_ data: Data) {
         engine?.feed(data)
+        if notifyOnActivity {
+            notifyOnActivity = false
+            onActivityNotification?(self)
+        }
         if !isFocused && !hasActivity { hasActivity = true }
         let needsText = settings.detectProgress || loginScripts?.isDone == false
         guard needsText else { return }
@@ -284,6 +335,8 @@ public final class TerminalPane: TerminalEngineDelegate {
         let behaviour = profile.behaviorOnSessionEnd
         let isLocal = profile.type == "local"
         let pause = isLocal && LocalOptions(profile.options).pauseAfterExit
+        // ★ The session-ended notice below covers it; the arm just goes.
+        if notifyWhenDone { setNotifyWhenDone(false) }
         // Closing a pane by hand ends its process too; that is not news worth a toast.
         if !userClosed { onProcessEnded?(self, code) }
 
@@ -312,9 +365,10 @@ public final class TerminalPane: TerminalEngineDelegate {
         // A shell restarts; a connection reconnects (design C9).
         let message: String
         if isLocal {
-            message = (code.map { "Process exited with code \($0)" } ?? "Process terminated") + ". Press any key to restart."
+            message = code.map { L("Process exited with code {code}. Press any key to restart.", ["code": $0]) }
+                    ?? L("Process terminated. Press any key to restart.")
         } else {
-            message = "Session closed. Press any key to reconnect."
+            message = L("Session closed. Press any key to reconnect.")
         }
         engine?.feed(Data("\r\n\u{1b}[2m\(message)\u{1b}[0m\r\n".utf8))
         state = .ended(code: code, canRestart: true)
@@ -489,6 +543,8 @@ public final class TerminalPane: TerminalEngineDelegate {
     }
 
     public func engineBell(_ engine: TerminalEngine) {
+        // Tabby: `if (!this.hasFocus) this.displayActivity()`.
+        if !isFocused { hasActivity = true }
         onBell?(self)
     }
 

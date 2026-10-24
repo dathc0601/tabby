@@ -460,6 +460,41 @@ app's process where possible and clicks only after re-reading the window's posit
 Mac's own serial port (an LG monitor) was listed, never opened. Three fixes came out of it
 (Findings). Left for the owner: the items in M9 still marked open, and real hardware.
 
+## M10 Localization, notifications, links and the command line (phase 5)
+
+Run the app built by Xcode with its own config folder (as in M9), a busybox telnetd on
+127.0.0.1:2323 and, for the helper, `TabbyMac.app/Contents/MacOS/tabby`. Links are opened
+with `open -a <the built TabbyMac.app> <link>`, so the Mac's default ssh:// and telnet://
+apps stay as they are.
+
+- [ ] Settings › Application › Language: Deutsch changes the menu bar ("Einstellungen…"),
+      the settings sidebar and pages, and the start page at once; Tiếng Việt translates every
+      screen; Automatic goes back to the system language. No label is cut off.
+- [ ] Notify when done: run `sleep 8` in a tab; the tab's menu and the pane's menu show
+      "Current process: sleep" and "Notify when done"; tick it, switch to another tab; when
+      `sleep` ends a "Process completed" toast names it, and Show focuses the pane. A banner
+      also appears where macOS allows this build to post them.
+- [ ] Notify on activity: tick it on an idle tab, then `sleep 3; echo done` there: a "Tab
+      activity" toast appears once.
+- [ ] Bell: Settings › Terminal › Flash the Dock icon on; `sleep 3; printf '\a'` in a tab,
+      switch to another app: the Dock icon bounces once. A bell in a background tab marks it.
+- [ ] Links: `open -a TabbyMac.app "telnet://127.0.0.1:2323"` opens a telnet tab that
+      connects; `"ssh://me@127.0.0.1:2222"` opens an SSH tab for me@127.0.0.1:2222;
+      `"tabbymac://open?directory=/tmp"` opens a shell in /tmp. Settings › Application ›
+      Links names the app that opens ssh:// links now.
+- [ ] The default-handler button: "Use TabbyMac" makes macOS ask, and afterwards ssh://
+      links open in TabbyMac. *Left to the owner: it changes a system-wide default.*
+- [ ] Command line: `tabby open <dir>`, `tabby run ls -la` (after the "Run …?" alert),
+      `tabby profile "<name>"`, `echo hi | tabby paste` (after "Paste …?"),
+      `tabby quickConnect telnet 127.0.0.1:2323` and `tabby <dir>/script.sh` each open the
+      tab in the running app and bring it to the front; `tabby --help` prints the commands;
+      `tabby recent x` exits with status 2. Settings › Application › Command-line tool
+      copies the install command.
+
+M10 is not walked yet: the Mac stayed locked through the 2026-10-24 session. The unit and
+process tests cover the logic (catalogs, menus, notifications, router, helper); the walk
+covers what only shows on screen.
+
 ## Findings
 
 | Date | Milestone | Finding | Fix |

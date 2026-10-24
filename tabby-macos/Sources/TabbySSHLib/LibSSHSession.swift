@@ -93,8 +93,8 @@ public final class LibSSHSession: TerminalSession {
         cancelled = false
         ended = false
         let name = profile.name.isEmpty ? options.suggestedName : profile.name
-        onStatus?(.connecting("Connecting to \(name)"))
-        serviceMessage("Connecting to \(name)")
+        onStatus?(.connecting(L("Connecting to {name}", ["name": name])))
+        serviceMessage(L("Connecting to {name}", ["name": name]))
         let connector = MainActor.assumeIsolated { self.connector ?? SSHConnector(environment: environment) }
         self.connector = connector
         let profile = profile
@@ -175,7 +175,9 @@ public final class LibSSHSession: TerminalSession {
             } catch {
                 let text = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                 serviceMessage(text)
-                ui?.notify(title: "Failed to forward port", detail: text.replacingOccurrences(of: "Failed to forward port ", with: ""),
+                var detail = text
+                if case let SSHConnectionError.forwardFailed(summary, reason) = error { detail = "\(summary): \(reason)" }
+                ui?.notify(title: L("Failed to forward port"), detail: detail,
                            isError: true, for: self)
             }
         }
@@ -222,7 +224,7 @@ public final class LibSSHSession: TerminalSession {
 
     private func shellClosed(status: Int32?) {
         guard !ended else { return }
-        serviceMessage("\(options.host): session closed")
+        serviceMessage(L("{host}: session closed", ["host": options.host]))
         end(status)
         releaseConnection()
     }

@@ -109,7 +109,7 @@ private struct ChipContent: View {
                 Text(Self.label(state)).font(ChromeFont.caption).foregroundStyle(chrome.textMuted.color)
                 if state == .disconnected || state == .connected {
                     Button { reconnect(state, address) } label: {
-                        Label("Reconnect", systemImage: "arrow.clockwise").font(ChromeFont.caption)
+                        Label(L("Reconnect"), systemImage: "arrow.clockwise").font(ChromeFont.caption)
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle((state == .disconnected ? chrome.accent : chrome.textMuted).color)
@@ -118,7 +118,7 @@ private struct ChipContent: View {
                     Rectangle().fill(chrome.separator.color).frame(width: 1, height: 14)
                     PortsButton(enabled: state == .connected, makeModel: { Self.portsModel(session) }, isOpen: $overlay.popoverOpen)
                     Button { SFTPPanels.shared.toggle(for: pane) } label: {
-                        Label("SFTP", systemImage: "folder").font(ChromeFont.caption)
+                        Label(L("SFTP"), systemImage: "folder").font(ChromeFont.caption)
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle((state == .connected ? chrome.textMuted : chrome.textFaint).color)
@@ -151,8 +151,8 @@ private struct ChipContent: View {
     /// A live session is restarted only after asking: whatever runs in it ends.
     private func reconnect(_ state: TerminalPane.ConnectionState, _ address: String) {
         guard state == .connected else { return pane.restart() }
-        Prompts.confirm(in: NSApp.keyWindow, title: "Reconnect to \(address)?",
-                        message: "The session is restarted; anything running in it ends.", confirm: "Reconnect") { ok in
+        Prompts.confirm(in: NSApp.keyWindow, title: L("Reconnect to {address}?", ["address": address]),
+                        message: L("The session is restarted; anything running in it ends."), confirm: L("Reconnect")) { ok in
             if ok { pane.restart() }
         }
     }
@@ -167,10 +167,10 @@ private struct ChipContent: View {
 
     static func label(_ state: TerminalPane.ConnectionState) -> String {
         switch state {
-        case .connecting: return "Connecting…"
-        case .connected: return "Connected"
-        case .disconnected: return "Disconnected"
-        case let .reconnecting(attempt, total): return "Reconnecting \(attempt)/\(total)"
+        case .connecting: return L("Connecting…")
+        case .connected: return L("Connected")
+        case .disconnected: return L("Disconnected")
+        case let .reconnecting(attempt, total): return L("Reconnecting {attempt}/{total}", ["attempt": attempt, "total": total])
         }
     }
 }
@@ -210,7 +210,7 @@ struct PortsButton: View {
 
     var body: some View {
         Button { model = makeModel() } label: {
-            Label("Ports", systemImage: "point.3.connected.trianglepath.dotted").font(ChromeFont.caption)
+            Label(L("Ports"), systemImage: "point.3.connected.trianglepath.dotted").font(ChromeFont.caption)
         }
         .buttonStyle(.plain)
         .foregroundStyle((enabled ? chrome.textMuted : chrome.textFaint).color)
@@ -221,4 +221,9 @@ struct PortsButton: View {
 }
 
 extension PortForwardsModel: Identifiable {}
+
+extension ConnectionChip {
+    /// The chip's state text ("Connecting…", "Reconnecting 2/5").
+    static func label(_ state: TerminalPane.ConnectionState) -> String { ChipContent.label(state) }
+}
 #endif

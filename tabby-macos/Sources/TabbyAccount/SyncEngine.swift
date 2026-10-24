@@ -22,9 +22,9 @@ public enum SyncEngineError: Error, LocalizedError, Equatable {
     public var errorDescription: String? {
         switch self {
         case .tooManyConflicts:
-            return "Another Mac kept changing the account while this one synced. Try again in a moment."
+            return L("Another Mac kept changing the account while this one synced. Try again in a moment.")
         case .newerVaultFormat:
-            return "Another Mac synced with a newer TabbyMac. Update TabbyMac to keep syncing on this Mac."
+            return L("Another Mac synced with a newer TabbyMac. Update TabbyMac to keep syncing on this Mac.")
         }
     }
 }

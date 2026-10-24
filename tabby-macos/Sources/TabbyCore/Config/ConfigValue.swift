@@ -198,7 +198,7 @@ extension ConfigValue: Codable {
         } else if let o = try? c.decode([String: ConfigValue].self) {
             self = .object(o)
         } else {
-            throw DecodingError.dataCorruptedError(in: c, debugDescription: "Unsupported value")
+            throw DecodingError.dataCorruptedError(in: c, debugDescription: "Unsupported value") // l10n-ignore: a decoder debug message
         }
     }
 

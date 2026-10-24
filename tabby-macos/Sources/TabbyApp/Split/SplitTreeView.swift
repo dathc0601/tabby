@@ -371,7 +371,7 @@ final class PaneContainerView: NSView {
         let paneID = pane.id
         if let controller = SFTPPanels.shared.controllers[paneID] {
             if let sftpHost, sftpHost.rootView.controller === controller {
-                if controller.model.isEditingPath { focusField(in: sftpHost, placeholder: "Path") }
+                if controller.model.isEditingPath { focusField(in: sftpHost, placeholder: L("Path")) }
                 return
             }
             sftpHost?.removeFromSuperview()

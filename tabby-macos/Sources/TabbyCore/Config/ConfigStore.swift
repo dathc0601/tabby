@@ -198,9 +198,9 @@ public enum ConfigError: Error, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .missingDefaults: return "The bundled defaults.yaml is missing."
-        case .invalidYAML(let msg): return "The configuration is not valid YAML: \(msg)"
-        case .notAMap: return "The configuration must be a map of settings (key: value)."
+        case .missingDefaults: return L("The bundled defaults.yaml is missing.")
+        case .invalidYAML(let msg): return L("The configuration is not valid YAML: {msg}", ["msg": msg])
+        case .notAMap: return L("The configuration must be a map of settings (key: value).")
         }
     }
 }
