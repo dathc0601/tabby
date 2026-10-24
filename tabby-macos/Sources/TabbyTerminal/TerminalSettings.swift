@@ -19,6 +19,10 @@ public struct TerminalSettings: Equatable {
     /// the background (Electron's `flashFrame`).
     public var bellFlashFrame: Bool
     public var copyOnSelect: Bool
+    /// Tabby's `terminal.copyAsHTML` ("Copy with formatting"): copies carry HTML too.
+    public var copyAsHTML: Bool
+    /// Tabby's `terminal.wordSeparator`: where a double-click selection stops.
+    public var wordSeparator: String
     public var rightClick: RightClick
     public var pasteOnMiddleClick: Bool
     public var altIsMeta: Bool
@@ -44,6 +48,8 @@ public struct TerminalSettings: Equatable {
         bell = BellMode(rawValue: c.string("terminal.bell") ?? "off") ?? .off
         bellFlashFrame = c.bool("terminal.bellFlashFrame")
         copyOnSelect = c.bool("terminal.copyOnSelect")
+        copyAsHTML = c.value("terminal.copyAsHTML")?.boolValue ?? true
+        wordSeparator = c.string("terminal.wordSeparator") ?? TerminalTextDefaults.wordSeparator
         rightClick = RightClick(rawValue: c.string("terminal.rightClick") ?? "menu") ?? .menu
         pasteOnMiddleClick = c.value("terminal.pasteOnMiddleClick")?.boolValue ?? true
         altIsMeta = c.bool("terminal.altIsMeta")

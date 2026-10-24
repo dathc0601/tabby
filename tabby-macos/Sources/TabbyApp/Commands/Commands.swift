@@ -115,6 +115,7 @@ extension MainWindowController {
         case "scroll-down": pane?.engine?.scroll(.lineDown)
         case "scroll-page-down": pane?.engine?.scroll(.pageDown)
         case "scroll-to-bottom": pane?.engine?.scroll(.bottom)
+        case "export-buffer": exportBuffer()
         case "copy-current-path":
             guard let cwd = pane?.currentDirectory() else { return true }
             NSPasteboard.general.clearContents()
@@ -247,6 +248,40 @@ extension MainWindowController {
         }
     }
 
+    // MARK: Export to file
+
+    typealias ExportChooser = (_ window: NSWindow?, _ suggestedName: String, _ directory: URL?, _ done: @escaping (URL?) -> Void) -> Void
+
+    static let defaultChooseExportURL: ExportChooser = { window, name, directory, done in
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = name
+        if let directory { panel.directoryURL = directory }
+        if let window {
+            panel.beginSheetModal(for: window) { done($0 == .OK ? panel.url : nil) }
+        } else {
+            done(panel.runModal() == .OK ? panel.url : nil)
+        }
+    }
+    /// Asks where to save (tests answer).
+    static var chooseExportURL: ExportChooser = defaultChooseExportURL
+
+    /// Tabby's "Export to file": the whole buffer, scrollback included, as text.
+    /// ★ The selection is left alone, and a failed write says so.
+    func exportBuffer() {
+        guard let pane = model.activeTab?.focusedPane, pane.engine != nil else { return }
+        let directory = pane.profile.type == "local" ? pane.currentDirectory().map { URL(fileURLWithPath: $0) } : nil
+        Self.chooseExportURL(window, "terminal.txt", directory) { [weak self, weak pane] url in // l10n-ignore: a file name
+            guard let self, let url, let engine = pane?.engine else { return }
+            do {
+                try Data(engine.bufferText().utf8).write(to: url)
+                toasts.show(ToastCenter.Toast(symbol: "checkmark.circle", tint: .success, title: L("Saved to {path}", ["path": url.path]), detail: ""))
+            } catch {
+                toasts.show(ToastCenter.Toast(symbol: "exclamationmark.triangle", tint: .warning, title: L("Could not save the file"),
+                                              detail: error.localizedDescription))
+            }
+        }
+    }
+
     // MARK: Context menus
 
     /// The pane's context menu in the design's order: clipboard, Split submenu, broadcast and
@@ -281,6 +316,7 @@ extension MainWindowController {
         item(L("Broadcast Input to All Panes"), "pane-focus-all", checked: model.activeTab?.broadcastInput == true)
         item(L("Select All"), "select-all")
         item(L("Clear"), "clear")
+        item(L("Export to file"), "export-buffer")
         let notify = NotifyMenu.items(for: pane)
         if !notify.isEmpty { menu.addItem(.separator()) }
         for entry in notify {

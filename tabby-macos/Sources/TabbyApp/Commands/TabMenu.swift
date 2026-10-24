@@ -76,6 +76,7 @@ enum TabMenu {
             command(L("Split Left"), "split-left", to: split)
             submenu(L("Split"), split, in: menu)
             command(L("Save Layout as Profile…"), "save-layout-as-profile")
+            command(L("Export to file"), "export-buffer")
             command(L("Switch Profile…"), "switch-profile")
         }
         return menu

@@ -23,6 +23,8 @@ public protocol TerminalEngine: AnyObject {
     func clearScreen()
     /// Plain-text snapshot of scrollback + screen, used for tab recovery.
     func snapshotText(maxLines: Int) -> String
+    /// The whole buffer, scrollback included, as text ("Export to file").
+    func bufferText() -> String
     func scroll(_ action: TerminalScrollAction)
     func apply(settings: TerminalSettings, scheme: ColorScheme, fontSize: Double)
     func focus()

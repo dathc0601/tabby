@@ -541,12 +541,16 @@ struct TerminalSettingsView: View {
                 SettingsRow(L("Paste on middle click"), isOn: ConfigBinding.bool("terminal.pasteOnMiddleClick"))
                 SettingsRow(L("Option key acts as Meta"), isOn: ConfigBinding.bool("terminal.altIsMeta"))
                 SettingsRow(L("Scroll to bottom on input"), isOn: ConfigBinding.bool("terminal.scrollOnInput"))
+                SettingsRow(L("Word separators"), subtitle: L("Double-click selection will stop at these characters")) {
+                    RowField(placeholder: TerminalTextDefaults.wordSeparator, text: ConfigBinding.optionalString("terminal.wordSeparator"), width: 140)
+                }
             }
             SettingsGroup(L("Clipboard")) {
                 SettingsRow(L("Warn before pasting multiple lines"), isOn: ConfigBinding.bool("terminal.warnOnMultilinePaste"))
                 SettingsRow(L("Bracketed paste"), isOn: ConfigBinding.bool("terminal.bracketedPaste"))
                 SettingsRow(L("Trim whitespace when pasting"), isOn: ConfigBinding.bool("terminal.trimWhitespaceOnPaste"))
                 SettingsRow(L("Replace newlines with spaces"), isOn: ConfigBinding.bool("terminal.replaceNewlinesWithSpacesOnPaste"))
+                SettingsRow(L("Copy with formatting"), isOn: ConfigBinding.bool("terminal.copyAsHTML"))
             }
             SettingsGroup(L("Output")) {
                 SettingsRow(L("Bell")) {

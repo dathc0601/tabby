@@ -464,6 +464,9 @@ msgstr "Sao chép khi chọn"
 msgid "Copy to clipboard"
 msgstr "Sao chép vào bảng nhớ tạm"
 
+msgid "Copy with formatting"
+msgstr "Sao chép kèm định dạng"
+
 msgid "Copy, or paste when nothing is selected"
 msgstr "Sao chép, hoặc dán khi không có gì được chọn"
 
@@ -484,6 +487,9 @@ msgstr "Không thể nạp khoá riêng {path}: không có tệp này"
 
 msgid "Could not open a channel to {host}:{port}: {message}"
 msgstr "Không thể mở kênh tới {host}:{port}: {message}"
+
+msgid "Could not save the file"
+msgstr "Không lưu được tệp"
 
 msgid "Could not save the host key: {reason}"
 msgstr "Không thể lưu khoá máy chủ: {reason}"
@@ -662,6 +668,9 @@ msgstr "Không tải lên"
 msgid "Done"
 msgstr "Xong"
 
+msgid "Double-click selection will stop at these characters"
+msgstr "Nhấp đúp để chọn sẽ dừng ở các ký tự này"
+
 msgid "Download"
 msgstr "Tải xuống"
 
@@ -739,6 +748,9 @@ msgstr "Chờ"
 
 msgid "Expected a private key, but {path} appears to be a public key. Skipping it for private key authentication."
 msgstr "Cần một khoá riêng, nhưng {path} có vẻ là khoá công khai. Bỏ qua nó khi xác thực bằng khoá riêng."
+
+msgid "Export to file"
+msgstr "Xuất ra tệp"
 
 msgid "Failed to authenticate using agent"
 msgstr "Không xác thực được bằng agent"
@@ -1766,6 +1778,9 @@ msgstr "Đã lưu trong keychain đăng nhập."
 msgid "Saved profiles"
 msgstr "Hồ sơ đã lưu"
 
+msgid "Saved to {path}"
+msgstr "Đã lưu vào {path}"
+
 msgid "Scales paddings and the tab bar height (38 pt at 1.0)"
 msgstr "Co giãn khoảng đệm và chiều cao thanh tab (38 pt ở mức 1.0)"
 
@@ -2440,6 +2455,9 @@ msgstr "Cùng với email, nó mở khoá dữ liệu đồng bộ nếu bạn q
 
 msgid "Without a device or a baud rate, Tabby asks each time the profile opens."
 msgstr "Khi không có thiết bị hoặc tốc độ baud, Tabby sẽ hỏi mỗi lần mở hồ sơ."
+
+msgid "Word separators"
+msgstr "Ký tự ngăn cách từ"
 
 msgid "Working directory"
 msgstr "Thư mục làm việc"

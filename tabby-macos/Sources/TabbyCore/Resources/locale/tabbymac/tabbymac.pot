@@ -358,6 +358,9 @@ msgstr ""
 msgid "Could not open a channel to {host}:{port}: {message}"
 msgstr ""
 
+msgid "Could not save the file"
+msgstr ""
+
 msgid "Could not save the host key: {reason}"
 msgstr ""
 
@@ -536,6 +539,9 @@ msgid "Expect"
 msgstr ""
 
 msgid "Expected a private key, but {path} appears to be a public key. Skipping it for private key authentication."
+msgstr ""
+
+msgid "Export to file"
 msgstr ""
 
 msgid "Failed to authenticate using agent"
@@ -1205,6 +1211,9 @@ msgid "Saved in the login keychain."
 msgstr ""
 
 msgid "Saved profiles"
+msgstr ""
+
+msgid "Saved to {path}"
 msgstr ""
 
 msgid "Scales paddings and the tab bar height (38 pt at 1.0)"

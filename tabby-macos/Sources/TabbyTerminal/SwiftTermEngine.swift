@@ -18,8 +18,13 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
         didSet { if oldValue != transparentBackground, let s = lastApplied { apply(settings: s.0, scheme: s.1, fontSize: s.2) } }
     }
 
+    /// Where copies go (tests use a private pasteboard).
+    public var pasteboard: NSPasteboard = .general
+
     private var rightClickAction: TerminalSettings.RightClick = .menu
     private var copyOnSelect = false
+    private var copyAsHTML = true
+    private var wordSeparator = TerminalTextDefaults.wordSeparator
     private var pasteOnMiddleClick = true
     private var appliedScrollback = 0
     private var lastApplied: (TerminalSettings, ColorScheme, Double)?
@@ -96,6 +101,8 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
         }
         rightClickAction = settings.rightClick
         copyOnSelect = settings.copyOnSelect
+        copyAsHTML = settings.copyAsHTML
+        wordSeparator = settings.wordSeparator
         pasteOnMiddleClick = settings.pasteOnMiddleClick
         needsDisplay = true
     }
@@ -157,6 +164,12 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
         return lines.suffix(maxLines).joined(separator: "\n")
     }
 
+    public func bufferText() -> String {
+        var lines = String(decoding: getTerminal().getBufferAsData(kind: .normal), as: UTF8.self).components(separatedBy: "\n")
+        while let last = lines.last, last.trimmingCharacters(in: .whitespaces).isEmpty { lines.removeLast() }
+        return lines.joined(separator: "\n") + "\n"
+    }
+
     public func scroll(_ action: TerminalScrollAction) {
         switch action {
         case .top: scroll(toPosition: 0)
@@ -187,14 +200,44 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
     public override func mouseDown(with event: NSEvent) {
         super.mouseDown(with: event)
         engineDelegate?.engineDidFocus(self)
+        // SwiftTerm's double-click word is fixed (letters, digits, "._-"); Tabby's stops at
+        // `terminal.wordSeparator`.
+        if event.clickCount == 2, let (column, row) = cell(at: convert(event.locationInWindow, from: nil)) {
+            selectWord(column: column, row: row)
+        }
     }
 
     public override func mouseUp(with event: NSEvent) {
         super.mouseUp(with: event)
-        if copyOnSelect, let text = selectedText() {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(text, forType: .string)
+        if copyOnSelect { _ = copySelection() }
+    }
+
+    /// The visible cell under `point` (column, row from the top of the screen).
+    private func cell(at point: CGPoint) -> (Int, Int)? {
+        let t = getTerminal()
+        guard t.cols > 0, t.rows > 0 else { return nil }
+        let height = getOptimalFrameSize().height / CGFloat(t.rows)
+        let glyph = font.glyph(withName: "W")
+        let scale = window?.backingScaleFactor ?? 2
+        let width = max(1, (font.advancement(forGlyph: glyph).width * scale).rounded() / scale)
+        guard height > 0 else { return nil }
+        return (min(max(Int(point.x / width), 0), t.cols - 1), min(max(Int((frame.height - point.y) / height), 0), t.rows - 1))
+    }
+
+    /// Selects the word around a visible cell, stopping at `terminal.wordSeparator`.
+    func selectWord(column: Int, row: Int) {
+        let t = getTerminal()
+        let bufferRow = row + t.buffer.yDisp
+        guard let line = t.getScrollInvariantLine(row: bufferRow + t.buffer.totalLinesTrimmed) else { return }
+        let cells: [Character?] = (0..<min(line.count, t.cols)).map { i in
+            let cd = line[i]
+            return cd.width == 0 ? nil : t.getCharacter(for: cd)
         }
+        guard let range = WordSelection.range(in: cells, at: column, separators: wordSeparator) else { return }
+        // SwiftTerm's selection end is one past the last column.
+        selection.setSelection(start: Position(col: range.lowerBound, row: bufferRow),
+                               end: Position(col: range.upperBound + 1, row: bufferRow))
+        needsDisplay = true
     }
 
     public override func rightMouseDown(with event: NSEvent) {
@@ -206,9 +249,7 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
         case .paste:
             pasteFromClipboard()
         case .clipboard:
-            if let text = selectedText() {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(text, forType: .string)
+            if copySelection() {
                 selectNone()
             } else {
                 pasteFromClipboard()
@@ -244,15 +285,80 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
     }
 
     public func pasteFromClipboard() {
-        guard let text = NSPasteboard.general.string(forType: .string), !text.isEmpty else { return }
+        guard let text = pasteboard.string(forType: .string), !text.isEmpty else { return }
         engineDelegate?.engine(self, paste: text)
     }
 
+    /// Copies the selection as text and, with "Copy with formatting", as HTML too (Tabby's
+    /// `copySelection`: below 32 KiB only).
     public func copySelection() -> Bool {
-        guard let text = selectedText() else { return false }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+        guard let text = selectedText(), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        let html = copyAsHTML && TerminalHTML.shouldInclude(textLength: text.count) ? selectionHTML() : nil
+        pasteboard.clearContents()
+        pasteboard.declareTypes(html == nil ? [.string] : [.string, .html], owner: nil)
+        pasteboard.setString(text, forType: .string)
+        if let html { pasteboard.setString(html, forType: .html) }
         return true
+    }
+
+    private func selectionHTML() -> String? {
+        guard let (scheme, _) = lastApplied.map({ ($0.1, $0.2) }) else { return nil }
+        let lines = styledSelection()
+        guard !lines.isEmpty else { return nil }
+        return TerminalHTML.render(lines: lines, scheme: scheme, fontFamily: font.familyName ?? font.fontName,
+                                   brightBold: lastApplied?.0.drawBoldTextInBrightColors ?? true)
+    }
+
+    /// The selected cells with their attributes, one array per line (wrapped rows joined).
+    func styledSelection() -> [[StyledCell]] {
+        guard selectionActive, let selection else { return [] }
+        let t = getTerminal()
+        var (start, end) = (selection.start, selection.end)
+        if Position.compare(start, end) == .after { swap(&start, &end) }
+        var lines: [[StyledCell]] = []
+        for row in start.row...max(start.row, end.row) {
+            guard let line = t.getScrollInvariantLine(row: row + t.buffer.totalLinesTrimmed) else { continue }
+            let from = row == start.row ? start.col : 0
+            let to = row == end.row ? min(end.col, line.count) : min(t.cols, line.count)
+            var cells: [StyledCell] = []
+            if from < to {
+                for i in from..<to {
+                    let cd = line[i]
+                    if cd.width == 0 { continue }
+                    cells.append(Self.styledCell(cd, character: t.getCharacter(for: cd)))
+                }
+            }
+            if line.isWrapped, row != start.row, !lines.isEmpty {
+                lines[lines.count - 1] += cells
+            } else {
+                lines.append(cells)
+            }
+        }
+        while let last = lines.last, last.allSatisfy({ $0.text.trimmingCharacters(in: .whitespaces).isEmpty || $0.text == "\0" }) {
+            lines.removeLast()
+        }
+        return lines
+    }
+
+    static func styledCell(_ cd: CharData, character: Character) -> StyledCell {
+        func color(_ c: Attribute.Color) -> CellColor {
+            switch c {
+            case .ansi256(let code): return .ansi(Int(code))
+            case let .trueColor(r, g, b): return .rgb(r, g, b)
+            case .defaultColor, .defaultInvertedColor: return .default
+            }
+        }
+        let a = cd.attribute
+        var cell = StyledCell(text: a.style.contains(.invisible) || character == "\0" ? " " : String(character))
+        cell.foreground = color(a.fg)
+        cell.background = color(a.bg)
+        cell.bold = a.style.contains(.bold)
+        cell.italic = a.style.contains(.italic)
+        cell.underline = a.style.contains(.underline)
+        cell.strikethrough = a.style.contains(.crossedOut)
+        cell.dim = a.style.contains(.dim)
+        cell.inverse = a.style.contains(.inverse)
+        return cell
     }
 
     // MARK: TerminalViewDelegate
@@ -297,8 +403,8 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
 
     public func clipboardCopy(source: TerminalView, content: Data) {
         guard let text = String(data: content, encoding: .utf8) else { return }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
     }
 
     public func rangeChanged(source: TerminalView, startY: Int, endY: Int) {}
