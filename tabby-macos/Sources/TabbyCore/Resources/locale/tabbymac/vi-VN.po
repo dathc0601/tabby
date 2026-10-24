@@ -140,6 +140,9 @@ msgstr "Hỏi trước khi kết nối tới máy chủ có khoá lạ hoặc đ
 msgid "Ask every time"
 msgstr "Hỏi mỗi lần"
 
+msgid "Asked by the tab “{title}”."
+msgstr "Tab “{title}” hỏi."
+
 msgid "Asked for when connecting"
 msgstr "Được hỏi khi kết nối"
 

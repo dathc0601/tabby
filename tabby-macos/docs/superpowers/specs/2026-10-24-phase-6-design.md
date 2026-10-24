@@ -142,7 +142,8 @@ What is a link: SwiftTerm's own detection (URLs with a scheme, paths starting wi
 `~`-expanded, resolved against the pane's directory, stripped of a `:line:col` suffix, and
 opened in its default app if it exists on this Mac. OSC 8 links are followed only for
 `http:`, `https:` and `file:` without a host. ★ With ⌥ or Shift as the key, links are not
-underlined on hover (SwiftTerm only draws that for ⌘).
+underlined on hover (SwiftTerm only draws that for ⌘). ★ A click never runs anything: a
+program, script or app bundle is shown in Finder instead of opened.
 
 ## ZMODEM
 
@@ -152,7 +153,10 @@ hex and binary headers, ZDLE escaping, a receiver and a sender, and a detector t
 `**\x18B00` (the remote runs `sz`) and `**\x18B01` (the remote runs `rz`) in the output.
 
 On detection the app asks "Accept a ZMODEM session?" / "If you have not requested it, it
-could be a sign of malicious activity." / Accept / Reject. Receiving: one save panel per
+could be a sign of malicious activity." / Accept / Reject. ★ The question names the tab that
+asks and doesn't switch to it; after a refusal further requests are ignored for 2 s, then 4 s,
+doubling up to a minute; more than 1 MiB of output while the question is up refuses the
+session. Receiving: one save panel per
 offered file (cancel skips the file), written with mode 0644. Sending: an open panel that
 takes several files. Progress lines are written into the terminal in Tabby's style
 (` ZMODEM `, ` Offered `, ` NN% `, ` Received `, ` Sent `, ` Canceled `, ` Rejected `,
@@ -160,7 +164,10 @@ takes several files. Progress lines are written into the terminal in Tabby's sty
 the remote; a lone Ctrl-C cancels. The shell prompt that `sz` leaves is held until
 " Complete " is written. ★ The popover's × cancels the ZMODEM transfer (Tabby only closes
 the file). ★ The status words are translated (Tabby leaves them English). There is no
-setting: ZMODEM works in every session type.
+setting: ZMODEM works in every session type. Over telnet, binary data relies on the server:
+like Tabby, TabbyMac doesn't negotiate telnet's binary mode. ★ When sending, TabbyMac asks for
+an acknowledgement every 64 KiB and keeps at most 256 KiB ahead of it (lrzsz's window), so a
+big file never piles up in memory and cancelling takes effect at once.
 
 ## Small settings
 

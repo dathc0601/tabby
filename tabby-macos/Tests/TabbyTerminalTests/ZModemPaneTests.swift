@@ -39,4 +39,26 @@ final class ZModemPaneTests: XCTestCase {
         session.onOutput?(Data(ZModemEncoder().hexHeader(ZModemHeader(type: .rqinit))))
         XCTAssertTrue(session.written.contains(Data(ZModem.abortSequence)))
     }
+
+    final class AcceptingHost: ZModemHost {
+        func zmodemAsk(_ direction: ZModemDirection, in pane: TerminalPane, answer: @escaping (Bool) -> Void) { answer(true) }
+        func zmodemSave(_ info: ZModemFileInfo, in pane: TerminalPane, answer: @escaping (ZModemFileSink?) -> Void) {}
+        func zmodemChooseFiles(in pane: TerminalPane, answer: @escaping ([ZModemUpload]) -> Void) {}
+    }
+
+    /// Review: Restart (and Switch profile) left the bridge in a session, so the new shell's
+    /// output disappeared into it.
+    func testRestartingEndsATransfer() throws {
+        let (pane, engine, factory) = try makeFakePane(type: "local")
+        defer { pane.close() }
+        let host = AcceptingHost()
+        pane.zmodemHost = host
+        pane.start()
+        try XCTUnwrap(factory.sessions.last).onOutput?(Data(ZModemEncoder().hexHeader(ZModemHeader(type: .rqinit))))
+        XCTAssertTrue(pane.zmodem.isActive)
+        pane.restart()
+        XCTAssertFalse(pane.zmodem.isActive)
+        try XCTUnwrap(factory.sessions.last).onOutput?(Data("new shell$ ".utf8))
+        XCTAssertTrue(engine.text.hasSuffix("new shell$ "), engine.text.suffix(30).debugDescription)
+    }
 }

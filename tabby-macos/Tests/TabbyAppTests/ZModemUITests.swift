@@ -16,7 +16,7 @@ final class ZModemUITests: XCTestCase {
         TestApp.boot()
         folder = FileManager.default.temporaryDirectory.appendingPathComponent("tabbymac-zmodem-\(UUID().uuidString.prefix(6))")
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        MainWindowController.zmodemAsk = { _, answer in answer(true) }
+        MainWindowController.zmodemAsk = { _, _, answer in answer(true) }
     }
 
     override func tearDown() {
@@ -117,6 +117,22 @@ final class ZModemUITests: XCTestCase {
         let row = try XCTUnwrap(TransferCenter.shared.transfers.last)
         XCTAssertEqual(row.direction, .upload)
         XCTAssertEqual(row.status, .done)
+    }
+
+    /// Review: the question switched to the asking pane's tab, so any host could pull the
+    /// user away from what they were typing. It now names the tab and leaves it where it is.
+    func testTheQuestionNamesTheTabAndDoesntSwitchToIt() throws {
+        let (c, pane) = try window()
+        defer { TestApp.dispose(c) }
+        let other = try XCTUnwrap(c.model.openTab(profile: TestApp.profile("busy here", "sleep 30")))
+        XCTAssertEqual(c.model.activeTab?.id, other.id)
+        var asked: String?
+        MainWindowController.zmodemAsk = { _, title, answer in asked = title; answer(false) }
+        pane.zmodem.toRemote = { _ in }
+        pane.zmodem.fromRemote(ZModemEncoder().hexHeader(ZModemHeader(type: .rqinit)))
+        XCTAssertEqual(asked, pane.title)
+        XCTAssertEqual(c.model.activeTab?.id, other.id, "the tab in front stays")
+        XCTAssertTrue(ZModemUI.message(for: "remote").contains("remote"))
     }
 }
 #endif

@@ -117,6 +117,49 @@ final class ZModemInteropTests: XCTestCase {
         XCTAssertEqual(received["small"], Array("small\n".utf8), "sz went on to the next file")
     }
 
+    /// Review: the user may take a while at the question and at each save panel. lrzsz's sz
+    /// repeats ZRQINIT and ZFILE meanwhile; a slow answer must still work. Slow (30 s): runs
+    /// with TABBYMAC_SLOW_TESTS=1.
+    func testASlowAnswerStillWorks() throws {
+        guard ProcessInfo.processInfo.environment["TABBYMAC_SLOW_TESTS"] == "1" else { throw XCTSkip("slow: TABBYMAC_SLOW_TESTS=1") }
+        var received: [UInt8] = []
+        var errors: [String] = []
+        let done = DispatchSemaphore(value: 0)
+        let sentry = ZModemSentry()
+        let receiver = ZModemReceiver()
+        var stdinHandle: FileHandle?
+        var detected = false
+        receiver.toRemote = { bytes in try? stdinHandle?.write(contentsOf: Data(bytes)) }
+        receiver.onOffer = { [queue] _ in queue.asyncAfter(deadline: .now() + 15) { receiver.accept() } }
+        receiver.onData = { received += $0 }
+        receiver.onFinished = { _ in done.signal() }
+        receiver.onError = { errors.append($0); done.signal() }
+        // As the bridge does: output is held while the question is up.
+        var held: [UInt8]?
+        let (process, stdin) = try run("seq 1 40000 > /tmp/n && sz /tmp/n") { [queue] bytes in
+            if held != nil { held! += bytes; return }
+            if detected { receiver.feed(bytes); return }
+            let r = sentry.feed(bytes)
+            if r.detection == .receive {
+                detected = true
+                held = r.protocolBytes
+                queue.asyncAfter(deadline: .now() + 15) {
+                    let bytes = held ?? []
+                    held = nil
+                    receiver.start()
+                    receiver.feed(bytes)
+                }
+            }
+        }
+        stdinHandle = stdin
+        XCTAssertEqual(done.wait(timeout: .now() + 90), .success)
+        queue.sync {}
+        try? stdin.close()
+        process.waitUntilExit()
+        XCTAssertEqual(errors, [])
+        XCTAssertTrue(received == Self.numbers, "\(received.count) of \(Self.numbers.count) bytes")
+    }
+
     func testSendingToRz() throws {
         let big = (0..<200_000).map { UInt8(truncatingIfNeeded: $0 &* 2654435761 >> 7) }
         let files: [(String, [UInt8])] = [("first file.txt", Array("hello\n".utf8)), ("data.bin", big)]

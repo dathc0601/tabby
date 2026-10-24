@@ -253,4 +253,57 @@ final class ZModemTests: XCTestCase {
         XCTAssertEqual(done[0], true, "the sender saw the skip")
         XCTAssertTrue(ended)
     }
+
+    // MARK: Review fixes
+
+    /// Review: the sender pushed a whole file at once (a 500 MB upload sat in memory and ignored
+    /// cancel). It now asks for an ack (ZCRCQ) every 64 KiB and keeps at most a window ahead.
+    func testTheSenderWaitsForAcksBeyondItsWindow() {
+        var queue: [() -> Void] = []
+        let data = (0..<1_000_000).map { UInt8($0 % 251) }
+        let sender = ZModemSender(files: [ZModemOutgoingFile(info: ZModemFileInfo(name: "big", size: UInt64(data.count), mtime: nil, mode: nil)) { o, n in
+            Array(data[Int(o)..<min(data.count, Int(o) + n)])
+        }])
+        sender.schedule = { queue.append($0) }
+        var sent = 0
+        var decoder = ZModemDecoder()
+        var progress: [UInt64] = []
+        sender.onProgress = { _, n in progress.append(n) }
+        sender.toRemote = { bytes in
+            for event in decoder.feed(bytes) { if case .data(let d, _) = event { sent += d.count } }
+        }
+        let encoder = ZModemEncoder()
+        sender.feed(encoder.hexHeader(ZModemHeader(type: .rinit, flags: ZModemReceiver.capabilities)))
+        sender.feed(encoder.hexHeader(ZModemHeader(type: .rpos, position: 0)))
+        while !queue.isEmpty { queue.removeFirst()() }
+        XCTAssertLessThanOrEqual(sent, ZModemSender.window + ZModemSender.blockSize, "no acks: no more than a window in flight")
+        XCTAssertGreaterThan(sent, 0)
+        sender.feed(encoder.hexHeader(ZModemHeader(type: .ack, position: UInt32(ZModemSender.window))))
+        while !queue.isEmpty { queue.removeFirst()() }
+        XCTAssertGreaterThan(sent, ZModemSender.window + ZModemSender.blockSize, "an ack lets the next window go")
+        XCTAssertLessThan(progress.last ?? 0, UInt64(sent), "progress is what the receiver confirmed, not what was queued")
+    }
+
+    /// Review: output full of '*' copied the rest of the chunk for every false start.
+    func testTheSentryIsQuickOnStars() {
+        let sentry = ZModemSentry()
+        let stars = [UInt8](repeating: UInt8(ascii: "*"), count: 256 * 1024) + Array(" end".utf8)
+        let start = Date()
+        let r = sentry.feed(stars)
+        XCTAssertLessThan(Date().timeIntervalSince(start), 0.25, "linear in the chunk")
+        XCTAssertEqual(r.toTerminal, stars)
+    }
+
+    /// Review: after an upload, the tail of the receiver's ZFIN header (CR and 0x8A) reached
+    /// the terminal as a stray glyph.
+    func testTheSenderGivesBackOnlyWhatFollowsOverAndOut() {
+        let sender = ZModemSender(files: [])
+        var rest: [UInt8]?
+        sender.toRemote = { _ in }
+        sender.onFinished = { rest = $0 }
+        let encoder = ZModemEncoder()
+        sender.feed(encoder.hexHeader(ZModemHeader(type: .rinit, flags: 0x23)))
+        sender.feed(encoder.hexHeader(ZModemHeader(type: .fin)) + Array("$ ".utf8))
+        XCTAssertEqual(rest, Array("$ ".utf8))
+    }
 }

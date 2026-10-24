@@ -12,6 +12,11 @@ enum ZModemUI {
         let reject: String
     }
 
+    /// Tabby's message, and which tab asks (the question no longer brings it to the front).
+    static func message(for tab: String) -> String {
+        question.message + "\n\n" + L("Asked by the tab “{title}”.", ["title": tab])
+    }
+
     static var question: Question {
         Question(title: L("Accept a ZMODEM session?"),
                  message: L("If you have not requested it, it could be a sign of malicious activity."),
@@ -124,13 +129,14 @@ final class ZModemFileReader: ZModemTransferHandle {
 }
 
 extension MainWindowController: ZModemHost {
-    typealias ZModemAsk = (_ window: NSWindow?, _ answer: @escaping (Bool) -> Void) -> Void
+    typealias ZModemAsk = (_ window: NSWindow?, _ tab: String, _ answer: @escaping (Bool) -> Void) -> Void
     typealias ZModemSavePanel = (_ window: NSWindow?, _ name: String, _ done: @escaping (URL?) -> Void) -> Void
     typealias ZModemOpenPanel = (_ window: NSWindow?, _ done: @escaping ([URL]) -> Void) -> Void
 
-    static let defaultZModemAsk: ZModemAsk = { window, answer in
+    static let defaultZModemAsk: ZModemAsk = { window, tab, answer in
         let q = ZModemUI.question
-        Prompts.confirm(in: window, title: q.title, message: q.message, confirm: q.accept, cancel: q.reject, completion: answer)
+        Prompts.confirm(in: window, title: q.title, message: ZModemUI.message(for: tab), confirm: q.accept, cancel: q.reject,
+                        completion: answer)
     }
     static let defaultZModemSavePanel: ZModemSavePanel = { window, name, done in
         let panel = NSSavePanel()
@@ -160,9 +166,8 @@ extension MainWindowController: ZModemHost {
     static var zmodemOpenPanel: ZModemOpenPanel = defaultZModemOpenPanel
 
     func zmodemAsk(_ direction: ZModemDirection, in pane: TerminalPane, answer: @escaping (Bool) -> Void) {
-        // The question is about this pane: bring it to the front first.
-        model.focus(paneID: pane.id)
-        Self.zmodemAsk(window, answer)
+        // ★ Names the tab instead of switching to it: any host can start a session at will.
+        Self.zmodemAsk(window, pane.title, answer)
     }
 
     func zmodemSave(_ info: ZModemFileInfo, in pane: TerminalPane, answer: @escaping (ZModemFileSink?) -> Void) {

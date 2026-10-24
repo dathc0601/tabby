@@ -206,4 +206,36 @@ final class ZModemBridgeTests: XCTestCase {
         later.forEach { $0() }
         XCTAssertEqual(h.terminal, bytes("progress **"))
     }
+
+    /// Review: while the question was up, output piled up without bound.
+    func testTooMuchOutputWhileAskingRefusesTheSession() {
+        let h = Harness()
+        var answer: ((Bool) -> Void)?
+        h.bridge.ask = { _, a in answer = a }
+        h.bridge.fromRemote(ZModemEncoder().hexHeader(ZModemHeader(type: .rqinit)))
+        h.bridge.fromRemote([UInt8](repeating: 0x41, count: 2 * 1024 * 1024))
+        XCTAssertFalse(h.bridge.isActive, "refused")
+        XCTAssertTrue(h.text.contains(" Rejected "))
+        answer?(true)
+        XCTAssertFalse(h.bridge.isActive, "a late answer changes nothing")
+    }
+
+    /// Review: a remote could ask again every 2 s; each refusal now doubles the quiet time.
+    func testRepeatedRefusalsQuietTheQuestionLonger() {
+        let h = Harness()
+        var clock = Date(timeIntervalSince1970: 1000)
+        h.bridge.now = { clock }
+        h.answer = false
+        let header = ZModemEncoder().hexHeader(ZModemHeader(type: .rqinit))
+        h.bridge.fromRemote(header)
+        clock += 3
+        h.bridge.fromRemote(header)
+        XCTAssertEqual(h.asked.count, 2, "after the first quiet time")
+        clock += 3
+        h.bridge.fromRemote(header)
+        XCTAssertEqual(h.asked.count, 2, "the second quiet time is 4 s")
+        clock += 2
+        h.bridge.fromRemote(header)
+        XCTAssertEqual(h.asked.count, 3)
+    }
 }

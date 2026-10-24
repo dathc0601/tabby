@@ -231,6 +231,8 @@ public final class TerminalPane: TerminalEngineDelegate {
     public var hasStarted: Bool { started }
 
     public func restart() {
+        // A transfer can't outlive its session (switchProfile restarts too).
+        zmodem.abandon()
         session?.onClosed = nil
         session?.kill()
         session = nil

@@ -352,6 +352,20 @@ extension MainWindowController {
     static let defaultOpenURL: (URL) -> Void = { NSWorkspace.shared.open($0) }
     /// Hands a URL to its app (tests record it).
     static var openURL: (URL) -> Void = defaultOpenURL
+    static let defaultRevealInFinder: (URL) -> Void = { NSWorkspace.shared.activateFileViewerSelecting([$0]) }
+    /// Shows a file in Finder (tests record it).
+    static var revealInFinder: (URL) -> Void = defaultRevealInFinder
+
+    /// ★ A click never runs anything: programs, scripts and app bundles are shown in Finder.
+    static func isProgram(_ path: String) -> Bool {
+        let url = URL(fileURLWithPath: path)
+        if ["app", "command", "tool", "sh", "pkg", "mpkg", "terminal", "workflow", "scpt", "applescript", "jar"] // l10n-ignore: file extensions
+            .contains(url.pathExtension.lowercased()) { return true }
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) else { return false }
+        if isDirectory.boolValue { return NSWorkspace.shared.isFilePackage(atPath: path) }
+        return FileManager.default.isExecutableFile(atPath: path)
+    }
 
     /// A clicked link (Tabby's linkifier): web links and addresses go to their app, `ssh://`
     /// and `telnet://` open a quick-connect tab, and a path that exists on this Mac (resolved
@@ -363,7 +377,7 @@ extension MainWindowController {
         case .web(let string)?:
             URL(string: string).map(Self.openURL)
         case .file(let path)?:
-            Self.openURL(URL(fileURLWithPath: path))
+            if Self.isProgram(path) { Self.revealInFinder(URL(fileURLWithPath: path)) } else { Self.openURL(URL(fileURLWithPath: path)) }
         case .quickConnect(let string)?:
             guard let url = URL(string: string), case let .quickConnect(provider, query)? = TabbyURL.parse(url),
                   let profile = AppServices.shared.profiles.quickConnect(query, providerId: provider) else { return }

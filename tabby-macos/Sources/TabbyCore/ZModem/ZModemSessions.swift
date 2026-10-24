@@ -236,6 +236,10 @@ public final class ZModemSender {
     /// Data subpackets of 1 KiB, as lrzsz sends them; 32 KiB per batch.
     public static let blockSize = 1024
     static let batchSize = 32 * 1024
+    /// An ack (ZCRCQ) is asked for every 64 KiB, and at most this much goes ahead of the last
+    /// ack, so a big file never piles up in a session's write buffer (lrzsz's `-w` window).
+    public static let window = 256 * 1024
+    static let ackInterval = 64 * 1024
 
     private enum Phase { case idle, offering, sending, sentEOF, finishing, done }
     private var phase = Phase.idle
@@ -246,8 +250,14 @@ public final class ZModemSender {
     private var encoder = ZModemEncoder()
     private var crc32 = false
     private var offset: UInt64 = 0
+    /// What the receiver confirmed (ZACK, ZRPOS).
+    private var acked: UInt64 = 0
+    private var sinceAckRequest = 0
+    private var waitingForAck = false
     private var generation = 0
     private var lastFrame: [UInt8] = []
+    /// Runs `work` after a pause (an ack that never comes: carry on after 5 s).
+    public var after: ((TimeInterval, @escaping () -> Void) -> Void)?
 
     public init(files: [ZModemOutgoingFile]) {
         self.files = files
@@ -288,6 +298,7 @@ public final class ZModemSender {
                     offerNext()
                 case .sending, .sentEOF:
                     generation += 1
+                    onProgress?(index, offset)
                     onFileDone?(index, false)
                     index += 1
                     offerNext()
@@ -304,9 +315,22 @@ public final class ZModemSender {
                 }
                 phase = .sending
                 offset = UInt64(h.position)
+                acked = offset
+                sinceAckRequest = 0
+                waitingForAck = false
                 generation += 1
                 toRemote(encoder.binaryHeader(ZModemHeader(type: .data, position: h.position), crc32: crc32))
                 stream(generation)
+            case .ack?:
+                guard phase == .sending || phase == .sentEOF, index < files.count else { return }
+                let position = UInt64(h.position)
+                guard position > acked, position <= offset else { return }
+                acked = position
+                onProgress?(index, acked)
+                if waitingForAck && offset - acked < UInt64(Self.window) {
+                    waitingForAck = false
+                    stream(generation)
+                }
             case .skip?:
                 guard [.offering, .sending, .sentEOF].contains(phase) else { return }
                 generation += 1
@@ -319,7 +343,8 @@ public final class ZModemSender {
                 guard phase == .finishing else { return }
                 toRemote(Array("OO".utf8))
                 phase = .done
-                onFinished?(rest)
+                // The receiver's ZFIN header ends with CR and 0x8A; they aren't the shell's.
+                onFinished?(Array(rest.drop { [0x0D, 0x8D, 0x0A, 0x8A, 0x11].contains($0) }))
             case .abort?, .ferr?, .can?:
                 fail("cancelled by the remote")
             default:
@@ -356,20 +381,38 @@ public final class ZModemSender {
             let size = file.info.size ?? .max
             var sent = 0
             while sent < Self.batchSize {
+                if self.offset - self.acked >= UInt64(Self.window) {
+                    self.waitForAck(run)
+                    return
+                }
                 let chunk = self.offset < size ? file.read(self.offset, Self.blockSize) : []
                 let last = chunk.count < Self.blockSize || self.offset + UInt64(chunk.count) >= size
-                self.toRemote(self.encoder.subpacket(chunk, end: last ? ZModem.crce : ZModem.crcg, crc32: self.crc32))
+                self.sinceAckRequest += chunk.count
+                let askAck = !last && self.sinceAckRequest >= Self.ackInterval
+                if askAck { self.sinceAckRequest = 0 }
+                let end = last ? ZModem.crce : askAck ? ZModem.crcq : ZModem.crcg
+                self.toRemote(self.encoder.subpacket(chunk, end: end, crc32: self.crc32))
                 self.offset += UInt64(chunk.count)
                 sent += chunk.count + 1
                 if last {
                     self.toRemote(self.encoder.binaryHeader(ZModemHeader(type: .eof, position: UInt32(truncatingIfNeeded: self.offset)),
                                                             crc32: self.crc32))
                     self.phase = .sentEOF
-                    self.onProgress?(self.index, self.offset)
                     return
                 }
             }
-            self.onProgress?(self.index, self.offset)
+            self.stream(run)
+        }
+    }
+
+    /// The window is full: wait for an ack, or carry on after a pause if none comes.
+    private func waitForAck(_ run: Int) {
+        waitingForAck = true
+        let mark = acked
+        after?(5) { [weak self] in
+            guard let self, run == self.generation, self.waitingForAck, self.acked == mark else { return }
+            self.acked = self.offset
+            self.waitingForAck = false
             self.stream(run)
         }
     }
@@ -402,11 +445,31 @@ public final class ZModemSentry {
 
     public func feed(_ bytes: [UInt8]) -> Result {
         var result = Result()
-        var queue = bytes[...]
-        while let c = queue.first {
-            queue = queue.dropFirst()
+        // Fast path: no header start in the chunk.
+        if held.isEmpty, !bytes.contains(ZModem.zpad) {
+            result.toTerminal = bytes
+            return result
+        }
+        result.toTerminal.reserveCapacity(bytes.count)
+        var i = 0
+        // Bytes to look at again after a false start (at most a header's length).
+        var again: [UInt8] = []
+        while i < bytes.count || !again.isEmpty {
+            let c: UInt8
+            if !again.isEmpty {
+                c = again.removeFirst()
+            } else {
+                c = bytes[i]
+                i += 1
+            }
             if held.isEmpty {
                 if c == ZModem.zpad { held = [c] } else { result.toTerminal.append(c) }
+                continue
+            }
+            // A run of '*': keep the last two (a header has at most two), let the rest through.
+            if c == ZModem.zpad, held.count == 2, held[1] == ZModem.zpad {
+                result.toTerminal.append(held[0])
+                held = [ZModem.zpad, ZModem.zpad]
                 continue
             }
             held.append(c)
@@ -415,13 +478,13 @@ public final class ZModemSentry {
                 continue
             case .header(let type) where type == ZModemFrameType.rqinit.rawValue || type == ZModemFrameType.rinit.rawValue:
                 result.detection = type == ZModemFrameType.rqinit.rawValue ? .receive : .send
-                result.protocolBytes = held + queue
+                result.protocolBytes = held + again + Array(bytes[i...])
                 held = []
                 return result
             case .header, .no:
                 // Not a header: the first byte is text; look again from the next one.
                 result.toTerminal.append(held[0])
-                queue = held.dropFirst() + queue
+                again = Array(held.dropFirst()) + again
                 held = []
             }
         }

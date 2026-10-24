@@ -9,16 +9,19 @@ import AppKit
 @MainActor
 final class LinkOpeningTests: XCTestCase {
     var opened: [URL] = []
+    var revealed: [URL] = []
 
     override func setUp() {
         super.setUp()
         TestApp.boot()
         opened = []
         MainWindowController.openURL = { [unowned self] in self.opened.append($0) }
+        MainWindowController.revealInFinder = { [unowned self] in self.revealed.append($0) }
     }
 
     override func tearDown() {
         MainWindowController.openURL = MainWindowController.defaultOpenURL
+        MainWindowController.revealInFinder = MainWindowController.defaultRevealInFinder
         AppServices.shared.config.set("clickableLinks.modifier", .null)
         super.tearDown()
     }
@@ -57,6 +60,27 @@ final class LinkOpeningTests: XCTestCase {
         XCTAssertEqual(AppServices.shared.terminalSettings.linkModifier, .none, "Tabby's default")
         AppServices.shared.config.set("clickableLinks.modifier", .string("shiftKey"))
         XCTAssertEqual(AppServices.shared.terminalSettings.linkModifier, .shift)
+    }
+
+    /// Review: with a plain click now opening links, a click on `./deploy.command` or an app
+    /// would run it. Programs and apps are shown in Finder instead.
+    func testAClickNeverRunsAProgram() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("tabbymac-links-\(UUID().uuidString.prefix(6))")
+        try FileManager.default.createDirectory(at: folder.appendingPathComponent("Thing.app"), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let script = folder.appendingPathComponent("deploy.command")
+        try Data("#!/bin/sh\necho deployed\n".utf8).write(to: script)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: script.path)
+        let notes = folder.appendingPathComponent("notes.txt")
+        try Data("hi".utf8).write(to: notes)
+        let c = WindowManager.shared.newWindow(openDefaultTab: false)
+        defer { TestApp.dispose(c) }
+        let pane = try XCTUnwrap(c.model.openTab(profile: TestApp.profile("here", "sleep 30"))?.focusedPane)
+        c.openLink(script.path, from: pane)
+        c.openLink(folder.appendingPathComponent("Thing.app").path, from: pane)
+        c.openLink(notes.path, from: pane)
+        XCTAssertEqual(revealed.map(\.lastPathComponent), ["deploy.command", "Thing.app"])
+        XCTAssertEqual(opened.map(\.lastPathComponent), ["notes.txt"])
     }
 }
 #endif

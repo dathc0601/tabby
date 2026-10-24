@@ -144,5 +144,31 @@ final class PaneTitleTests: XCTestCase {
         XCTAssertEqual(state.customTitle, "logs")
         XCTAssertFalse(state.customTitleVisible)
     }
+
+    /// Review: ⌃⇧ while typing in a text field (the search bar, a prompt) flashed the labels.
+    func testTheChordIsIgnoredWhileATextFieldHasTheKeys() throws {
+        let (c, tab, _, _) = try splitWindow()
+        defer { TestApp.dispose(c) }
+        let manager = HotkeyManager { _ in true }
+        manager.reload(from: AppServices.shared.config)
+        manager.onModifierHotkey = { id, down in c.modifierHotkey(id, down: down) }
+        let window = try XCTUnwrap(c.window)
+        func flags(_ f: NSEvent.ModifierFlags) throws -> NSEvent {
+            try XCTUnwrap(NSEvent.keyEvent(with: .flagsChanged, location: .zero, modifierFlags: f, timestamp: 0,
+                                           windowNumber: window.windowNumber, context: nil, characters: "",
+                                           charactersIgnoringModifiers: "", isARepeat: false, keyCode: 0x3B))
+        }
+        let field = NSTextField(frame: CGRect(x: 0, y: 0, width: 100, height: 22))
+        window.contentView?.addSubview(field)
+        defer { field.removeFromSuperview() }
+        window.makeFirstResponder(field)
+        manager.flagsChanged(try flags([.control, .shift]))
+        XCTAssertFalse(tab.isRearranging, "a text field has the keys")
+        window.makeFirstResponder(nil)
+        manager.flagsChanged(try flags([.control, .shift]))
+        XCTAssertTrue(tab.isRearranging)
+        manager.flagsChanged(try flags([]))
+        XCTAssertFalse(tab.isRearranging)
+    }
 }
 #endif

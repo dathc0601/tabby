@@ -39,7 +39,7 @@ final class HotkeyManager {
             return self.handle(event)
         }
         flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged]) { [weak self] event in
-            if let self, !self.isSuspended, event.window is TerminalWindow { self.modifiersChanged(event.modifierFlags) }
+            self?.flagsChanged(event)
             return event
         }
     }
@@ -49,6 +49,16 @@ final class HotkeyManager {
         if let flagsMonitor { NSEvent.removeMonitor(flagsMonitor) }
         monitor = nil
         flagsMonitor = nil
+    }
+
+    /// A modifier key in a terminal window; text fields keep their keys (as for key-downs).
+    func flagsChanged(_ event: NSEvent) {
+        guard !isSuspended, event.window is TerminalWindow else { return }
+        if event.window?.firstResponder is NSText {
+            otherKeyPressed()
+            return
+        }
+        modifiersChanged(event.modifierFlags)
     }
 
     /// Modifiers pressed or released: starts or ends a modifier-only command.

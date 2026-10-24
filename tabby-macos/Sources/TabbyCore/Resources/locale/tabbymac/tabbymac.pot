@@ -112,6 +112,9 @@ msgstr ""
 msgid "Ask every time"
 msgstr ""
 
+msgid "Asked by the tab “{title}”."
+msgstr ""
+
 msgid "Asked for when connecting"
 msgstr ""
 

@@ -61,6 +61,8 @@ public final class ZModemBridge {
     public var after: (TimeInterval, @escaping () -> Void) -> Void = { delay, work in
         DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
     }
+    /// The clock (tests set it).
+    public var now: () -> Date = { Date() }
     /// Tabby: a progress line at most every 500 ms.
     public var progressInterval: TimeInterval = 0.5
 
@@ -74,8 +76,12 @@ public final class ZModemBridge {
 
     private var state = State.watching
     private var sentry = ZModemSentry()
-    /// After a rejection, sz/rz go on sending headers for a while; those are dropped.
+    /// After a rejection, sz/rz go on sending headers for a while; those are dropped. Each
+    /// refusal doubles the quiet time (2 s, 4 s, … 1 min), so a remote can't keep asking.
     private var ignoreUntil: Date?
+    private var quietTime: TimeInterval = 1
+    /// Output held while the question or a panel is up; more than this refuses the session.
+    public static let maxHeld = 1024 * 1024
     private var current: (info: ZModemFileInfo, sink: ZModemFileSink, received: UInt64)?
     private var uploads: [ZModemUpload] = []
     private var sendingIndex: Int?
@@ -107,12 +113,14 @@ public final class ZModemBridge {
             }
             guard let detection = result.detection else { return }
             let direction: ZModemDirection = detection == .receive ? .receive : .send
-            if let until = ignoreUntil, Date() < until { return }
+            if let until = ignoreUntil, now() < until { return }
             state = .asking(direction, result.protocolBytes)
             ask(direction) { [weak self] ok in self?.answered(direction, ok) }
         case .asking(let direction, let held):
+            guard held.count + bytes.count <= Self.maxHeld else { return refuse() }
             state = .asking(direction, held + bytes)
         case .choosing(let held):
+            guard held.count + bytes.count <= Self.maxHeld else { return refuse() }
             state = .choosing(held + bytes)
         case .receiving(let receiver):
             receiver.feed(bytes)
@@ -150,13 +158,7 @@ public final class ZModemBridge {
 
     private func answered(_ direction: ZModemDirection, _ ok: Bool) {
         guard case .asking(_, let held) = state else { return }
-        guard ok else {
-            toRemote(ZModem.abortSequence)
-            line(Self.label(L("Rejected"), .red), L("ZMODEM session"))
-            ignoreUntil = Date().addingTimeInterval(2)
-            endSession()
-            return
-        }
+        guard ok else { return refuse() }
         line(Self.label("ZMODEM", .blue), L("Session started")) // l10n-ignore: the protocol's name
         line("------------------------", nil) // l10n-ignore: a rule
         switch direction {
@@ -169,6 +171,15 @@ public final class ZModemBridge {
             state = .choosing(held)
             chooseFiles { [weak self] uploads in self?.startSending(uploads) }
         }
+    }
+
+    /// Tells the remote no (lrzsz's CAN sequence) and keeps quiet for a while.
+    private func refuse() {
+        toRemote(ZModem.abortSequence)
+        line(Self.label(L("Rejected"), .red), L("ZMODEM session"))
+        quietTime = min(quietTime * 2, 60)
+        ignoreUntil = now().addingTimeInterval(quietTime)
+        endSession()
     }
 
     private func makeReceiver() -> ZModemReceiver {
@@ -230,6 +241,7 @@ public final class ZModemBridge {
         cancelledUploads = []
         let sender = ZModemSender(files: uploads.map(\.file))
         sender.schedule = { [weak self] work in self?.schedule(work) }
+        sender.after = { [weak self] delay, work in self?.after(delay, work) }
         sender.toRemote = { [weak self] in self?.toRemote($0) }
         sender.onFileStart = { [weak self] index in
             guard let self else { return }
