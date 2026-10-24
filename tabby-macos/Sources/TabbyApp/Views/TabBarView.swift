@@ -30,6 +30,9 @@ enum TabBarPlacement {
 /// design: 38 pt bar × spaciness in `surfaceChrome`, 28 pt rounded tabs, a "+N" overflow menu,
 /// and the toolbar on the trailing side (on the column footer when the bar is vertical).
 struct TabBarView: View {
+    /// The tab's "…" options button: on hover, unless `terminal.hideTabOptionsButton`.
+    static func showsOptionsButton(hovering: Bool, compact: Bool, hidden: Bool) -> Bool { hovering && !compact && !hidden }
+
     let model: WindowModel
     let actions: TabBarActions
     let placement: TabBarPlacement
@@ -307,6 +310,7 @@ struct TabHeaderView: View {
         let _ = services.language // the title of a Settings or Welcome tab is translated
         let hideIndex = services.config.bool("terminal.hideTabIndex")
         let hideClose = services.config.bool("terminal.hideCloseButton")
+        let hideOptions = services.config.bool("terminal.hideTabOptionsButton")
         let showIcon = services.config.bool("terminal.showTabProfileIcon")
         let userColor = tab.color.flatMap(RGBColor.init(hex:))
         let profileColor = tab.focusedPane?.profile.color.flatMap(RGBColor.init(hex:))
@@ -338,7 +342,7 @@ struct TabHeaderView: View {
                 Image(systemName: "pin.fill").font(.system(size: 10)).foregroundStyle(chrome.textMuted.color)
                     .help(L("Pinned"))
             } else {
-                if hovering && !compact {
+                if TabBarView.showsOptionsButton(hovering: hovering, compact: compact, hidden: hideOptions) {
                     Image(systemName: "ellipsis").font(.system(size: 11, weight: .semibold))
                         .frame(width: 18, height: 18)
                         .overlay { MenuButtonArea { TabMenu.build(for: tab, actions: actions) } }

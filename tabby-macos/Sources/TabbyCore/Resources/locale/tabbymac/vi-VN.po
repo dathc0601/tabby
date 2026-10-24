@@ -572,6 +572,9 @@ msgstr "Mật khẩu hiện tại"
 msgid "Current process: {name}"
 msgstr "Tiến trình hiện tại: {name}"
 
+msgid "Current screen"
+msgstr "Màn hình hiện tại"
+
 msgid "Cursor"
 msgstr "Con trỏ"
 
@@ -713,6 +716,9 @@ msgstr "Đã ngắt kết nối"
 msgid "Dismiss"
 msgstr "Bỏ qua"
 
+msgid "Display on"
+msgstr "Hiển thị trên"
+
 msgid "Do not abort"
 msgstr "Không huỷ"
 
@@ -796,6 +802,9 @@ msgstr "Email"
 
 msgid "Empty: your Mac user name ({name})"
 msgstr "Để trống: tên người dùng trên Mac ({name})"
+
+msgid "Enable animations"
+msgstr "Bật hiệu ứng chuyển động"
 
 msgid "End of the line"
 msgstr "Cuối dòng"
@@ -2156,6 +2165,9 @@ msgstr "Hiện hồ sơ gần đây trong bộ chọn"
 msgid "Show tab index"
 msgstr "Hiện số thứ tự tab"
 
+msgid "Show tab options button"
+msgstr "Hiện nút tùy chọn của tab"
+
 msgid "Show tabs in full screen"
 msgstr "Hiện tab khi toàn màn hình"
 
@@ -2408,6 +2420,9 @@ msgstr "Khoá hiện tại sẽ ngừng hoạt động. Mật khẩu tài khoả
 msgid "The directory could not be created"
 msgstr "Không thể tạo thư mục"
 
+msgid "The display a docked window slides in on"
+msgstr "Màn hình mà cửa sổ neo trượt vào"
+
 msgid "The email or password is not right."
 msgstr "Email hoặc mật khẩu không đúng."
 
@@ -2473,6 +2488,9 @@ msgstr "Cấp ngoài cùng phải là một bảng ánh xạ"
 
 msgid "The window takes its colours from the active colour scheme"
 msgstr "Cửa sổ lấy màu từ bảng màu đang dùng"
+
+msgid "The … on a tab under the pointer"
+msgstr "Nút … trên tab khi rê chuột"
 
 msgid "Theme"
 msgstr "Chủ đề"

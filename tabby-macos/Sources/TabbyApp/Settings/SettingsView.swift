@@ -363,6 +363,9 @@ struct ApplicationSettingsView: View {
                     .buttonStyle(ChromeButtonStyle())
                 }
             }
+            SettingsGroup(L("Accessibility")) {
+                SettingsRow(L("Enable animations"), isOn: ConfigBinding.bool("accessibility.animations"))
+            }
             SettingsGroup(L("Startup")) {
                 SettingsRow(L("Restore tabs on startup"), isOn: ConfigBinding.bool("recoverTabs"))
                 SettingsRow(L("Open a new tab when the app starts"), isOn: ConfigBinding.bool("terminal.autoOpen"))
@@ -494,14 +497,35 @@ struct AppearanceSettingsView: View {
     }
 }
 
+/// Tabby's "Display on" choices for the docked window (`appearance.dockScreen`): the current
+/// screen, or a display by its `NSScreenNumber`.
+@MainActor
+enum DockScreens {
+    static func choices() -> [(title: String, tag: String)] {
+        [(L("Current screen"), "current")] + NSScreen.screens.compactMap { screen in
+            guard let number = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.intValue else { return nil }
+            return (screen.localizedName, String(number))
+        }
+    }
+
+    static func tag(for value: ConfigValue?) -> String { value?.intValue.map(String.init) ?? "current" }
+
+    static func value(for tag: String) -> ConfigValue { Int(tag).map(ConfigValue.int) ?? .string("current") }
+}
+
 struct WindowSettingsView: View {
+    /// Tabby's "Full" frame draws its own window buttons, which macOS already has: it reads
+    /// as the hidden title bar here.
+    static func frameChoice(_ value: String?) -> String { value == "native" ? "native" : "thin" }
+
     var body: some View {
         let _ = AppServices.shared.configRevision
         let percent: (Double) -> String = { "\(Int(($0 * 100).rounded()))%" }
         SettingsPage(L("Window")) {
             SettingsGroup(L("Frame")) {
                 SettingsRow(L("Window frame")) {
-                    RowPicker(selection: ConfigBinding.string("appearance.frame")) {
+                    RowPicker(selection: Binding(get: { Self.frameChoice(AppServices.shared.config.string("appearance.frame")) },
+                                                 set: { AppServices.shared.config.set("appearance.frame", .string($0)) })) {
                         Text(L("Hidden title bar")).tag("thin")
                         Text(L("Native")).tag("native")
                     }
@@ -526,6 +550,8 @@ struct WindowSettingsView: View {
             }
             SettingsGroup(L("Tabs")) {
                 SettingsRow(L("Show tabs in full screen"), isOn: ConfigBinding.bool("appearance.tabsInFullscreen"))
+                SettingsRow(L("Show tab options button"), subtitle: L("The … on a tab under the pointer"),
+                            isOn: ConfigBinding.inverted("terminal.hideTabOptionsButton"))
                 SettingsRow(L("Cycle through tabs"), subtitle: L("Next tab on the last tab goes back to the first"),
                             isOn: ConfigBinding.bool("appearance.cycleTabs"))
                 SettingsRow(L("Closing the last tab closes the window"), isOn: ConfigBinding.bool("appearance.lastTabClosesWindow"))
@@ -552,6 +578,12 @@ struct WindowSettingsView: View {
                 }
                 SettingsRow(L("Docked width")) {
                     RowSlider(value: ConfigBinding.double("appearance.dockSpace"), range: 0.2...1, format: percent)
+                }
+                SettingsRow(L("Display on"), subtitle: L("The display a docked window slides in on")) {
+                    RowPicker(selection: Binding(get: { DockScreens.tag(for: AppServices.shared.config.value("appearance.dockScreen")) },
+                                                 set: { AppServices.shared.config.set("appearance.dockScreen", DockScreens.value(for: $0)) })) {
+                        ForEach(DockScreens.choices(), id: \.tag) { Text(verbatim: $0.title).tag($0.tag) }
+                    }
                 }
                 SettingsRow(L("Always on top when docked"), isOn: ConfigBinding.bool("appearance.dockAlwaysOnTop"))
                 SettingsRow(L("Show / hide (global)")) {
