@@ -60,7 +60,14 @@ Read `README.md` and `docs/ARCHITECTURE.md` before larger changes.
   OSC 1337, file drops, new terminal, save as profile, links, ZMODEM, sixel). On-screen checks
   are M11. The tab menu is an AppKit menu built when it opens (`TabMenu`), not SwiftUI's
   `.contextMenu`. ZMODEM interop tests need `scripts/lrzsz-image.sh` once (Docker).
-- Roadmap after phase 6: settings/profile editors, macOS integration, Tabby's vault, native
+- Phase 7 (started 2026-10-25, spec `docs/superpowers/specs/2026-10-25-phase-7-design.md`,
+  plan `docs/superpowers/plans/2026-10-25-phase-7-settings-editors.md`, branch
+  `claude/phase-7-settings-editors`): settings and profile editors (group tree and editor,
+  type/group defaults, blacklist hiding, icon/colour pickers, environment editor, SSH
+  connection modes, line padding, 256-colour palette, custom schemes, Display on, profile
+  sidebar, dynamic hotkeys). On-screen checks are M12. `ProfileRegistry.tree` is the one
+  group tree (Profiles page and sidebar); hiding writes `profileBlacklist`.
+- Roadmap after phase 7: macOS integration, Tabby's vault, native
   plugin features, TabbyMac's strings in Tabby's other languages, SwiftTerm 2.0 when released.
 - Screens can be checked without a display:
   `TABBYMAC_SNAPSHOT_DIR=/tmp/shots swift test --filter DesignSnapshotTests`.

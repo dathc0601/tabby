@@ -75,16 +75,33 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
         return base
     }
 
+    /// Tabby's line height: (font size + 2 × padding) / font size, at least one line.
+    public static func lineSpacing(fontSize: Double, padding: Double) -> CGFloat {
+        guard fontSize > 0 else { return 1 }
+        return CGFloat(max(1, (fontSize + 2 * padding) / fontSize))
+    }
+
     public func apply(settings: TerminalSettings, scheme: ColorScheme, fontSize: Double) {
         lastApplied = (settings, scheme, fontSize)
         let newFont = Self.font(for: settings, size: fontSize)
         if newFont.fontName != font.fontName || newFont.pointSize != font.pointSize {
             font = newFont
         }
+        // Tabby's paletteGenerate: off is the xterm cube; SwiftTerm builds the palette when the
+        // 16 colours are installed, so the strategy goes first.
+        getTerminal().options.ansi256PaletteStrategy = !settings.paletteGenerate ? .xterm
+            : (settings.paletteHarmonious ? .base16LabHarmonious : .base16Lab)
         installColors(scheme.paletteRGB.map(Self.terminalColor))
+        let spacing = Self.lineSpacing(fontSize: fontSize, padding: settings.linePadding)
+        if abs(lineSpacing - spacing) > 0.0001 { lineSpacing = spacing }
         nativeForegroundColor = Self.nsColor(scheme.foregroundRGB)
         nativeBackgroundColor = transparentBackground ? Self.nsColor(scheme.backgroundRGB).withAlphaComponent(0) : Self.nsColor(scheme.backgroundRGB)
         caretColor = Self.nsColor(scheme.cursorRGB)
+        // Tabby's cursorAccent (text under a block cursor) and selectionForeground; SwiftTerm
+        // draws all selected text in one colour, black unless told, so the foreground is the
+        // fallback.
+        caretTextColor = scheme.cursorAccent.flatMap(TabbyCore.RGBColor.init(hex:)).map(Self.nsColor)
+        selectedTextForegroundColor = Self.nsColor(scheme.selectionForeground.flatMap(TabbyCore.RGBColor.init(hex:)) ?? scheme.foregroundRGB)
         if let sel = scheme.selection.flatMap(TabbyCore.RGBColor.init(hex:)) {
             selectedTextBackgroundColor = Self.nsColor(sel)
         } else {
@@ -375,8 +392,13 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
         guard let (scheme, _) = lastApplied.map({ ($0.1, $0.2) }) else { return nil }
         let lines = styledSelection()
         guard !lines.isEmpty else { return nil }
+        let settings = lastApplied?.0
+        let extended = settings?.paletteGenerate == true
+            ? Palette256.generate(colors: scheme.colors, background: scheme.background, foreground: scheme.foreground,
+                                  harmonious: settings?.paletteHarmonious ?? false)
+            : nil
         return TerminalHTML.render(lines: lines, scheme: scheme, fontFamily: font.familyName ?? font.fontName,
-                                   brightBold: lastApplied?.0.drawBoldTextInBrightColors ?? true)
+                                   brightBold: settings?.drawBoldTextInBrightColors ?? true, extended: extended)
     }
 
     /// The selected cells with their attributes, one array per line (wrapped rows joined).

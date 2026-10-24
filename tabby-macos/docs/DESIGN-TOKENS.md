@@ -105,6 +105,8 @@ Spacing scale `sp-2 … sp-24` = 2, 4, 6, 8, 12, 16, 20, 24 pt × spaciness.
 | Pane name label | a pane's custom title at its top centre, 6 pt from the top, white 12 pt on 70 % black, radius 4, one line (Tabby's `splitTabPaneLabel`; phase 6) |
 | Rearrange overlay | while ⌃⇧ are held: 50 % black over each pane, a centred label (`macwindow` + title) in `surfaceChrome` with a `border` outline, radius 6, 30 pt high, open-hand cursor (phase 6) |
 | Broadcast banner | "Focus all tabs": a 5 pt `danger` border around the window, a 300 × 28 pt `danger` banner 8 pt below the tab bar, white 12 pt semibold text (phase 6) |
+| Profile group tree | Profiles page: a group row per depth indented 16 pt (chevron, the group's icon in its colour, name, profile count; pencil and trash on hover); profile rows 18 pt + 16 pt per depth (phase 7) |
+| Profile sidebar | `showProfileTree`: full-height `surface` column at the leading edge, 250 pt by default (150–500, drag its edge), a filter field and the group tree in caption type, 24 pt rows, 14 pt indent per depth, a play button on hover; 38 pt top inset under the window buttons with the hidden title bar (phase 7) |
 | ZMODEM lines | in the terminal: black text on ANSI blue (ZMODEM, Complete), yellow (Offered, NN%), green (Received, Sent) or red (Rejected, Canceled, Error) labels, as Tabby (phase 6) |
 | Settings: Links / Command-line tool | Application page: the current `ssh://` handler on the subtitle and a secondary push button; the helper's path in Menlo with a "Copy install command" button (phase 5) |
 

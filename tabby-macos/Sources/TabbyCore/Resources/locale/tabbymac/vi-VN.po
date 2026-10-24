@@ -62,6 +62,9 @@ msgstr "Cài đặt tài khoản & đồng bộ…"
 msgid "Actual Size"
 msgstr "Kích thước thực"
 
+msgid "Add"
+msgstr "Thêm"
+
 msgid "Add a port forward"
 msgstr "Thêm chuyển tiếp cổng"
 
@@ -209,6 +212,9 @@ msgstr "Nhấp nháy"
 msgid "Block"
 msgstr "Khối"
 
+msgid "Block cursor foreground"
+msgstr "Màu chữ dưới con trỏ khối"
+
 msgid "Blue"
 msgstr "Xanh dương"
 
@@ -305,6 +311,9 @@ msgstr "Các thay đổi từ những máy Mac khác của bạn đã có ở đ
 msgid "Change…"
 msgstr "Thay đổi…"
 
+msgid "Choose a folder"
+msgstr "Chọn thư mục"
+
 msgid "Ciphers"
 msgstr "Thuật toán mã hoá"
 
@@ -374,6 +383,9 @@ msgstr "Đóng {busyCount} tab?"
 msgid "Closing the last tab closes the window"
 msgstr "Đóng tab cuối cùng sẽ đóng cửa sổ"
 
+msgid "Color"
+msgstr "Màu"
+
 msgid "Color scheme"
 msgstr "Bảng màu"
 
@@ -398,8 +410,14 @@ msgstr "Lệnh"
 msgid "Command Palette…"
 msgstr "Bảng lệnh…"
 
+msgid "Command line"
+msgstr "Dòng lệnh"
+
 msgid "Command not found: {executable}"
 msgstr "Không tìm thấy lệnh: {executable}"
+
+msgid "Command's stdin/stdout is used instead of a network connection"
+msgstr "Dùng stdin/stdout của lệnh thay cho kết nối mạng"
 
 msgid "Command-line tool"
 msgstr "Công cụ dòng lệnh"
@@ -425,6 +443,12 @@ msgstr "Xác nhận mật khẩu"
 msgid "Connect a device, or type its path"
 msgstr "Kết nối một thiết bị, hoặc nhập đường dẫn của nó"
 
+msgid "Connect through a proxy server"
+msgstr "Kết nối qua máy chủ proxy"
+
+msgid "Connect to a different host first and use it as a proxy"
+msgstr "Kết nối tới một máy khác trước rồi dùng nó làm proxy"
+
 msgid "Connected"
 msgstr "Đã kết nối"
 
@@ -439,6 +463,9 @@ msgstr "Đang kết nối tới {name}"
 
 msgid "Connecting…"
 msgstr "Đang kết nối…"
+
+msgid "Connection"
+msgstr "Kết nối"
 
 msgid "Connection closed"
 msgstr "Đã đóng kết nối"
@@ -545,8 +572,14 @@ msgstr "Mật khẩu hiện tại"
 msgid "Current process: {name}"
 msgstr "Tiến trình hiện tại: {name}"
 
+msgid "Current screen"
+msgstr "Màn hình hiện tại"
+
 msgid "Cursor"
 msgstr "Con trỏ"
+
+msgid "Cursor text"
+msgstr "Chữ dưới con trỏ"
 
 msgid "Custom"
 msgstr "Tuỳ chỉnh"
@@ -556,6 +589,9 @@ msgstr "Tốc độ baud tuỳ chỉnh"
 
 msgid "Custom scheme · “{name} (edited)”"
 msgstr "Bảng màu tuỳ chỉnh · “{name} (đã sửa)”"
+
+msgid "Custom: {icon}"
+msgstr "Tùy chỉnh: {icon}"
 
 msgid "Cyan"
 msgstr "Xanh lơ"
@@ -587,11 +623,23 @@ msgstr "Hồ sơ mặc định"
 msgid "Default profile for new tabs"
 msgstr "Hồ sơ mặc định cho tab mới"
 
+msgid "Default profile group settings"
+msgstr "Thiết lập mặc định của nhóm hồ sơ"
+
+msgid "Default profile settings"
+msgstr "Thiết lập hồ sơ mặc định"
+
 msgid "Defaults (read only)"
 msgstr "Mặc định (chỉ đọc)"
 
+msgid "Defaults for {type}"
+msgstr "Mặc định cho {type}"
+
 msgid "Delete"
 msgstr "Xoá"
+
+msgid "Delete \"{name}\"?"
+msgstr "Xóa \"{name}\"?"
 
 msgid "Delete (ESC [3~)"
 msgstr "Delete (ESC [3~)"
@@ -605,6 +653,9 @@ msgstr "Xoá tài khoản…"
 msgid "Delete entire line"
 msgstr "Xoá cả dòng"
 
+msgid "Delete group"
+msgstr "Xóa nhóm"
+
 msgid "Delete next word"
 msgstr "Xoá từ kế tiếp"
 
@@ -613,6 +664,9 @@ msgstr "Xoá từ phía trước"
 
 msgid "Delete profile"
 msgstr "Xoá hồ sơ"
+
+msgid "Delete the group's profiles?"
+msgstr "Xóa các hồ sơ của nhóm?"
 
 msgid "Delete your account?"
 msgstr "Xoá tài khoản của bạn?"
@@ -644,6 +698,9 @@ msgstr "Tên thiết bị"
 msgid "Devices"
 msgstr "Thiết bị"
 
+msgid "Direct"
+msgstr "Trực tiếp"
+
 msgid "Disconnect"
 msgstr "Ngắt kết nối"
 
@@ -658,6 +715,12 @@ msgstr "Đã ngắt kết nối"
 
 msgid "Dismiss"
 msgstr "Bỏ qua"
+
+msgid "Display on"
+msgstr "Hiển thị trên"
+
+msgid "Displays a full tree of profiles in the sidebar."
+msgstr "Hiện toàn bộ cây hồ sơ ở thanh bên."
 
 msgid "Do not abort"
 msgstr "Không huỷ"
@@ -722,6 +785,9 @@ msgstr "Động"
 msgid "Edit"
 msgstr "Sửa"
 
+msgid "Edit group"
+msgstr "Sửa nhóm"
+
 msgid "Edit locally"
 msgstr "Sửa trên máy"
 
@@ -736,6 +802,12 @@ msgstr "Sửa…"
 
 msgid "Email"
 msgstr "Email"
+
+msgid "Empty: your Mac user name ({name})"
+msgstr "Để trống: tên người dùng trên Mac ({name})"
+
+msgid "Enable animations"
+msgstr "Bật hiệu ứng chuyển động"
 
 msgid "End of the line"
 msgstr "Cuối dòng"
@@ -752,6 +824,9 @@ msgstr "Nhập địa chỉ cần chuyển tiếp tới."
 msgid "Enter the recovery key you saved when you created the account, then choose a new password."
 msgstr "Nhập khoá khôi phục bạn đã lưu khi tạo tài khoản, rồi chọn mật khẩu mới."
 
+msgid "Environment"
+msgstr "Biến môi trường"
+
 msgid "Error"
 msgstr "Lỗi"
 
@@ -763,6 +838,9 @@ msgstr "Mọi máy Mac đều bị đăng xuất và dữ liệu đồng bộ b�
 
 msgid "Everything in it is deleted too."
 msgstr "Mọi thứ bên trong cũng bị xoá."
+
+msgid "Example:"
+msgstr "Ví dụ:"
 
 msgid "Expect"
 msgstr "Chờ"
@@ -887,11 +965,23 @@ msgstr "Chuyển tiếp bắt đầu cùng phiên"
 msgid "Frame"
 msgstr "Khung cửa sổ"
 
+msgid "From color scheme"
+msgstr "Theo bảng màu"
+
+msgid "From theme"
+msgstr "Theo giao diện"
+
 msgid "From {host}"
 msgstr "Từ {host}"
 
 msgid "General"
 msgstr "Chung"
+
+msgid "Generate 256-color palette"
+msgstr "Tạo bảng 256 màu"
+
+msgid "Generate extended 256-color palette from your base 16 colors"
+msgstr "Tạo bảng 256 màu mở rộng từ 16 màu cơ bản"
 
 msgid "GitHub"
 msgstr "GitHub"
@@ -910,6 +1000,15 @@ msgstr "Xanh lá"
 
 msgid "Group"
 msgstr "Nhóm"
+
+msgid "HTTP proxy"
+msgstr "Proxy HTTP"
+
+msgid "HTTP proxy host"
+msgstr "Máy proxy HTTP"
+
+msgid "Harmonious palette"
+msgstr "Bảng màu hài hòa"
 
 msgid "Have an account? Sign in"
 msgstr "Đã có tài khoản? Đăng nhập"
@@ -953,8 +1052,14 @@ msgstr "Phím tắt"
 msgid "I've stored the recovery key somewhere safe"
 msgstr "Tôi đã cất khoá khôi phục ở nơi an toàn"
 
+msgid "Icon"
+msgstr "Biểu tượng"
+
 msgid "Icon & colour"
 msgstr "Biểu tượng & màu"
+
+msgid "If disabled, only custom profiles will show up in the profile selector"
+msgstr "Khi tắt, bộ chọn hồ sơ chỉ hiện các hồ sơ tự tạo"
 
 msgid "If you forget your password, this key is the only way to decrypt your synced profiles and private keys. TabbyMac can't reset it for you."
 msgstr "Nếu bạn quên mật khẩu, khoá này là cách duy nhất để giải mã hồ sơ và khoá riêng đã đồng bộ. TabbyMac không thể đặt lại nó cho bạn."
@@ -1115,6 +1220,9 @@ msgstr "Từng dòng"
 msgid "Line editor, input is sent after you press Enter"
 msgstr "Trình soạn dòng, dữ liệu được gửi sau khi bạn nhấn Enter"
 
+msgid "Line padding"
+msgstr "Khoảng đệm dòng"
+
 msgid "Links"
 msgstr "Liên kết"
 
@@ -1187,6 +1295,9 @@ msgstr "Chuyển tab sang trái"
 msgid "Move tab to the right"
 msgstr "Chuyển tab sang phải"
 
+msgid "Move to \"Ungrouped\""
+msgstr "Chuyển sang \"Chưa nhóm\""
+
 msgid "Moving the mouse over an inactive pane will cause it to activate"
 msgstr "Di chuột qua một khung không hoạt động sẽ kích hoạt khung đó"
 
@@ -1220,11 +1331,17 @@ msgstr "Mật khẩu mới"
 msgid "New profile"
 msgstr "Hồ sơ mới"
 
+msgid "New profile group"
+msgstr "Nhóm hồ sơ mới"
+
 msgid "New profile name"
 msgstr "Tên hồ sơ mới"
 
 msgid "New tab"
 msgstr "Tab mới"
+
+msgid "New tab: {profile}"
+msgstr "Tab mới: {profile}"
 
 msgid "New tabs"
 msgstr "Tab mới"
@@ -1267,6 +1384,9 @@ msgstr "Không tìm thấy cấu hình Tabby tại {path}."
 
 msgid "No app opens them yet"
 msgstr "Chưa có ứng dụng nào mở chúng"
+
+msgid "No color"
+msgstr "Không màu"
 
 msgid "No colour"
 msgstr "Không màu"
@@ -1412,6 +1532,9 @@ msgstr "Mở trong tab mới"
 msgid "Open profiles"
 msgstr "Mở hồ sơ"
 
+msgid "Open settings tab: {tab}"
+msgstr "Mở trang cài đặt: {tab}"
+
 msgid "Open ssh:// and telnet:// links"
 msgstr "Mở liên kết ssh:// và telnet://"
 
@@ -1420,6 +1543,12 @@ msgstr "Phím Option dùng làm Meta"
 
 msgid "Optional"
 msgstr "Tuỳ chọn"
+
+msgid "Orange"
+msgstr "Cam"
+
+msgid "Other color"
+msgstr "Màu khác"
 
 msgid "Out of memory"
 msgstr "Hết bộ nhớ"
@@ -1442,6 +1571,9 @@ msgstr "Xuống dòng ở đầu ra"
 msgid "Overrides the colour scheme for this profile's tabs."
 msgstr "Thay bảng màu cho các tab của hồ sơ này."
 
+msgid "Palette"
+msgstr "Bảng màu"
+
 msgid "Pane resize step"
 msgstr "Bước đổi kích thước khung"
 
@@ -1450,6 +1582,9 @@ msgstr "Khung {index}/{total} đang phóng to"
 
 msgid "Panes"
 msgstr "Khung"
+
+msgid "Parent group"
+msgstr "Nhóm cha"
 
 msgid "Parity"
 msgstr "Bit chẵn lẻ"
@@ -1517,6 +1652,9 @@ msgstr "Cổng"
 msgid "Press up to three keys in a row for a chord."
 msgstr "Nhấn tối đa ba tổ hợp phím liên tiếp để tạo chuỗi phím."
 
+msgid "Preview"
+msgstr "Xem trước"
+
 msgid "Previous Pane"
 msgstr "Khung trước"
 
@@ -1559,11 +1697,17 @@ msgstr "Tiến trình đã thoát với mã {code}. Nhấn phím bất kỳ đ�
 msgid "Process terminated. Press any key to restart."
 msgstr "Tiến trình đã bị dừng. Nhấn phím bất kỳ để khởi động lại."
 
+msgid "Profiles"
+msgstr "Hồ sơ"
+
 msgid "Profiles & Connections…"
 msgstr "Hồ sơ & kết nối…"
 
 msgid "Profiles & connections"
 msgstr "Hồ sơ & kết nối"
+
+msgid "Profiles and appearances that use it keep its colours."
+msgstr "Các hồ sơ và giao diện đang dùng vẫn giữ màu của nó."
 
 msgid "Profiles and keys stay usable here, unsynced"
 msgstr "Hồ sơ và khoá vẫn dùng được ở đây, nhưng không đồng bộ"
@@ -1576,6 +1720,9 @@ msgstr "Proxy: {text}"
 
 msgid "Public key"
 msgstr "Khoá công khai"
+
+msgid "Purple"
+msgstr "Tím"
 
 msgid "Quick connect"
 msgstr "Kết nối nhanh"
@@ -1694,6 +1841,9 @@ msgstr "Đổi tên"
 msgid "Rename Tab…"
 msgstr "Đổi tên tab…"
 
+msgid "Rename color scheme"
+msgstr "Đổi tên bảng màu"
+
 msgid "Rename pane"
 msgstr "Đổi tên khung"
 
@@ -1760,6 +1910,12 @@ msgstr "Khôi phục"
 msgid "Restore defaults"
 msgstr "Khôi phục mặc định"
 
+msgid "Restore settings to defaults"
+msgstr "Khôi phục thiết lập mặc định"
+
+msgid "Restore settings to defaults ?"
+msgstr "Khôi phục thiết lập mặc định?"
+
 msgid "Restore tabs on startup"
 msgstr "Khôi phục tab khi khởi động"
 
@@ -1789,6 +1945,9 @@ msgstr "SFTP"
 
 msgid "SOCKS proxy"
 msgstr "Proxy SOCKS"
+
+msgid "SOCKS proxy host"
+msgstr "Máy proxy SOCKS"
 
 msgid "SSH"
 msgstr "SSH"
@@ -1874,6 +2033,9 @@ msgstr "Lịch sử cuộn"
 msgid "Search"
 msgstr "Tìm kiếm"
 
+msgid "Search icons"
+msgstr "Tìm biểu tượng"
+
 msgid "Search profiles or user@host:port"
 msgstr "Tìm hồ sơ hoặc user@host:port"
 
@@ -1894,6 +2056,12 @@ msgstr "Chọn thư mục đích cho {name}"
 
 msgid "Selection"
 msgstr "Vùng chọn"
+
+msgid "Selection foreground"
+msgstr "Màu chữ khi chọn"
+
+msgid "Selection text"
+msgstr "Chữ khi chọn"
 
 msgid "Send"
 msgstr "Gửi"
@@ -1934,6 +2102,9 @@ msgstr "Phiên thất bại: {reason}"
 msgid "Session started"
 msgstr "Phiên đã bắt đầu"
 
+msgid "Set to 0 to disable recent profiles"
+msgstr "Đặt 0 để tắt hồ sơ gần đây"
+
 msgid "Settings"
 msgstr "Cài đặt"
 
@@ -1970,6 +2141,9 @@ msgstr "Hiện các kết nối serial"
 msgid "Show and hide TabbyMac from any app with ⌃Space"
 msgstr "Hiện và ẩn TabbyMac từ bất kỳ ứng dụng nào bằng ⌃Space"
 
+msgid "Show built-in profiles in selector"
+msgstr "Hiện hồ sơ có sẵn trong bộ chọn"
+
 msgid "Show close button"
 msgstr "Hiện nút đóng"
 
@@ -1997,8 +2171,20 @@ msgstr "Hiện biểu tượng hồ sơ"
 msgid "Show profile selector"
 msgstr "Hiện bộ chọn hồ sơ"
 
+msgid "Show profile selector for group {name}"
+msgstr "Hiện bộ chọn hồ sơ của nhóm {name}"
+
+msgid "Show profile sidebar"
+msgstr "Hiện thanh bên hồ sơ"
+
+msgid "Show recent profiles in selector"
+msgstr "Hiện hồ sơ gần đây trong bộ chọn"
+
 msgid "Show tab index"
 msgstr "Hiện số thứ tự tab"
+
+msgid "Show tab options button"
+msgstr "Hiện nút tùy chọn của tab"
 
 msgid "Show tabs in full screen"
 msgstr "Hiện tab khi toàn màn hình"
@@ -2008,6 +2194,9 @@ msgstr "Hiện tab Chào mừng"
 
 msgid "Show the recovery key"
 msgstr "Hiện khoá khôi phục"
+
+msgid "Show {type} profile selector"
+msgstr "Hiện bộ chọn hồ sơ {type}"
 
 msgid "Show/hide window (global)"
 msgstr "Hiện/ẩn cửa sổ (toàn cục)"
@@ -2056,6 +2245,9 @@ msgstr "Gửi chậm"
 
 msgid "Socket error: {reason}"
 msgstr "Lỗi socket: {reason}"
+
+msgid "Space above and below each line"
+msgstr "Khoảng trống trên và dưới mỗi dòng"
 
 msgid "Spaciness"
 msgstr "Độ thoáng"
@@ -2116,6 +2308,9 @@ msgstr "Lược bỏ"
 
 msgid "Strong"
 msgstr "Mạnh"
+
+msgid "Substitutions allowed."
+msgstr "Có thể dùng biến thay thế."
 
 msgid "Switch Profile…"
 msgstr "Đổi hồ sơ…"
@@ -2210,6 +2405,9 @@ msgstr "Phiên Telnet"
 msgid "Terminal"
 msgstr "Terminal"
 
+msgid "Terminal background"
+msgstr "Nền terminal"
+
 msgid "Terminal font"
 msgstr "Phông chữ terminal"
 
@@ -2243,6 +2441,9 @@ msgstr "Khoá hiện tại sẽ ngừng hoạt động. Mật khẩu tài khoả
 msgid "The directory could not be created"
 msgstr "Không thể tạo thư mục"
 
+msgid "The display a docked window slides in on"
+msgstr "Màn hình mà cửa sổ neo trượt vào"
+
 msgid "The email or password is not right."
 msgstr "Email hoặc mật khẩu không đúng."
 
@@ -2269,6 +2470,9 @@ msgstr "Cổng phải là số từ 1 đến 65535."
 
 msgid "The profile is removed here and, when profiles sync, on your other Macs. A password saved for it stays in the Keychain (Settings › Vault)."
 msgstr "Hồ sơ bị xoá ở đây và, khi hồ sơ được đồng bộ, trên các máy Mac khác của bạn. Mật khẩu đã lưu cho nó vẫn còn trong Keychain (Cài đặt › Kho bảo mật)."
+
+msgid "The program and its arguments, quoted as in a shell"
+msgstr "Chương trình và các tham số, đặt trong ngoặc như trong shell"
 
 msgid "The recovery key is not on this Mac yet."
 msgstr "Khoá khôi phục chưa có trên máy Mac này."
@@ -2306,6 +2510,9 @@ msgstr "Cấp ngoài cùng phải là một bảng ánh xạ"
 msgid "The window takes its colours from the active colour scheme"
 msgstr "Cửa sổ lấy màu từ bảng màu đang dùng"
 
+msgid "The … on a tab under the pointer"
+msgstr "Nút … trên tab khi rê chuột"
+
 msgid "Theme"
 msgstr "Chủ đề"
 
@@ -2314,6 +2521,12 @@ msgstr "Đang có tệp được truyền"
 
 msgid "There is already an account with this email."
 msgstr "Đã có tài khoản dùng email này."
+
+msgid "These apply to all profiles of a given type"
+msgstr "Áp dụng cho mọi hồ sơ cùng loại"
+
+msgid "These apply to all profiles of a given type in this group"
+msgstr "Áp dụng cho mọi hồ sơ cùng loại trong nhóm này"
 
 msgid "This Mac"
 msgstr "Máy Mac này"
@@ -2444,11 +2657,20 @@ msgstr "Tên người dùng"
 msgid "Username for {host}"
 msgstr "Tên người dùng cho {host}"
 
+msgid "Using CONNECT method"
+msgstr "Dùng phương thức CONNECT"
+
 msgid "Using saved password"
 msgstr "Đang dùng mật khẩu đã lưu"
 
 msgid "Valid YAML"
 msgstr "YAML hợp lệ"
+
+msgid "Value"
+msgstr "Giá trị"
+
+msgid "Variable name"
+msgstr "Tên biến"
 
 msgid "Vault"
 msgstr "Kho bảo mật"
@@ -2518,6 +2740,9 @@ msgstr "Khi tab được khôi phục; shell ở máy chủ phải báo thư m�
 
 msgid "Where forwarded X11 connections go; empty uses $DISPLAY"
 msgstr "Nơi các kết nối X11 được chuyển tiếp tới; để trống sẽ dùng $DISPLAY"
+
+msgid "Whether to invert generated light theme colors. This helps give the 256-color palette more semantic meaning."
+msgstr "Có đảo màu được tạo cho giao diện sáng hay không. Điều này giúp bảng 256 màu mang nghĩa rõ ràng hơn."
 
 msgid "While connected, change them from Ports on the connection chip"
 msgstr "Khi đang kết nối, hãy đổi chúng từ mục Cổng trên nhãn kết nối"
@@ -2647,6 +2872,9 @@ msgstr "lỗi {code}"
 
 msgid "esc close"
 msgstr "esc đóng"
+
+msgid "extend PATH"
+msgstr "mở rộng PATH"
 
 msgid "for the dark appearance"
 msgstr "cho giao diện tối"

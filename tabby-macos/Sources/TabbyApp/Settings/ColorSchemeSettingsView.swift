@@ -23,6 +23,7 @@ struct ColorSchemeSettingsView: View {
         let light = ColorScheme(config: config.value(Self.lightKey)) ?? .tabbyDefaultLight
         let current = editingLight ? light : dark
         let shown = FuzzyMatcher.filter(all, query: filter) { $0.name }
+        let customNames = Set(ColorSchemeCatalog.customSchemes(from: config).map(\.name))
         SettingsPage(L("Color scheme")) {
             HStack(spacing: 14) {
                 ModeCard(title: L("Dark appearance"), symbol: "moon", scheme: dark, isEditing: !editingLight) { editingLight = false }
@@ -45,12 +46,42 @@ struct ColorSchemeSettingsView: View {
                 }
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
                     ForEach(shown, id: \.name) { scheme in
-                        SchemeTile(scheme: scheme, isSelected: scheme.name == current.name)
+                        let custom = customNames.contains(scheme.name)
+                        SchemeTile(scheme: scheme, isSelected: scheme.name == current.name, isCustom: custom)
                             .onTapGesture { select(scheme) }
+                            .contextMenu {
+                                if custom {
+                                    Button(L("Rename…")) { rename(scheme.name) }
+                                    Button(L("Delete…"), role: .destructive) { delete(scheme.name) }
+                                }
+                            }
                     }
                 }
             }
             CustomSchemeEditor(scheme: current, original: all.first { $0.name == current.name }, write: write, saveAs: saveAs)
+            SettingsGroup(L("Palette")) {
+                SettingsRow(L("Generate 256-color palette"), subtitle: L("Generate extended 256-color palette from your base 16 colors"),
+                            isOn: ConfigBinding.bool("terminal.paletteGenerate"))
+                if config.bool("terminal.paletteGenerate") {
+                    SettingsRow(L("Harmonious palette"),
+                                subtitle: L("Whether to invert generated light theme colors. This helps give the 256-color palette more semantic meaning."),
+                                isOn: ConfigBinding.bool("terminal.paletteHarmonious"))
+                }
+            }
+        }
+    }
+
+    private func rename(_ name: String) {
+        Prompts.text(in: NSApp.keyWindow, title: L("Rename color scheme"), value: name, confirm: L("Rename")) { new, _ in
+            guard let new else { return }
+            ColorSchemeCatalog.renameCustom(name, to: new, in: AppServices.shared.config)
+        }
+    }
+
+    private func delete(_ name: String) {
+        Prompts.confirm(in: NSApp.keyWindow, title: L("Delete “{name}”?", ["name": name]),
+                        message: L("Profiles and appearances that use it keep its colours."), confirm: L("Delete"), destructive: true) { ok in
+            if ok { ColorSchemeCatalog.deleteCustom(name, in: AppServices.shared.config) }
         }
     }
 
@@ -136,6 +167,7 @@ struct SchemePreview: View {
 struct SchemeTile: View {
     let scheme: ColorScheme
     let isSelected: Bool
+    var isCustom = false
     @Environment(\.chrome) private var chrome
     @State private var hovering = false
 
@@ -155,6 +187,10 @@ struct SchemeTile: View {
             HStack(spacing: 4) {
                 Text(scheme.name).font(ChromeFont.caption).lineLimit(1).truncationMode(.tail)
                 Spacer(minLength: 0)
+                if isCustom {
+                    Text(L("Custom")).font(.system(size: 9, weight: .semibold)).padding(.horizontal, 4).frame(height: 14)
+                        .foregroundStyle(chrome.accent.color).background(Capsule().fill(chrome.accentFill.color)).fixedSize()
+                }
                 if isSelected { Image(systemName: "checkmark.circle.fill").foregroundStyle(chrome.accent.color).font(.system(size: 11)) }
             }
             .padding(.horizontal, 2)
@@ -190,7 +226,8 @@ private struct CustomSchemeEditor: View {
                     buttons(edited: edited)
                 }
                 VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 18) { wells }
+                    HStack(spacing: 18) { mainWells }
+                    HStack(spacing: 18) { textWells }
                     HStack(spacing: 8) { buttons(edited: edited) }
                 }
             }
@@ -206,10 +243,23 @@ private struct CustomSchemeEditor: View {
     }
 
     @ViewBuilder private var wells: some View {
+        mainWells
+        textWells
+    }
+
+    @ViewBuilder private var mainWells: some View {
         well(L("Background"), \.background)
         well(L("Foreground"), \.foreground)
         well(L("Cursor"), \.cursor)
+    }
+
+    /// Tabby's cursor accent and selection colours.
+    @ViewBuilder private var textWells: some View {
+        well(L("Cursor text"), Binding(get: { scheme.cursorAccent ?? scheme.background }, set: { var s = scheme; s.cursorAccent = $0; write(s) }))
+            .help(L("Block cursor foreground"))
         well(L("Selection"), Binding(get: { scheme.selection ?? "#80808066" }, set: { var s = scheme; s.selection = $0; write(s) }))
+        well(L("Selection text"), Binding(get: { scheme.selectionForeground ?? scheme.foreground }, set: { var s = scheme; s.selectionForeground = $0; write(s) }))
+            .help(L("Selection foreground"))
     }
 
     @ViewBuilder private func buttons(edited: Bool) -> some View {

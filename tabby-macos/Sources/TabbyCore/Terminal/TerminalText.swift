@@ -36,7 +36,10 @@ public enum TerminalHTML {
     /// Tabby adds HTML only to copies shorter than 32 KiB (`xtermFrontend.ts`).
     public static func shouldInclude(textLength: Int) -> Bool { textLength < 32 * 1024 }
 
-    public static func render(lines: [[StyledCell]], scheme: ColorScheme, fontFamily: String, brightBold: Bool) -> String {
+    /// `extended`: colours 16–255 when the palette is generated (`Palette256`); nil is the
+    /// xterm cube and grey ramp.
+    public static func render(lines: [[StyledCell]], scheme: ColorScheme, fontFamily: String, brightBold: Bool,
+                              extended: [String]? = nil) -> String {
         let foreground = scheme.foregroundRGB.hex, background = scheme.backgroundRGB.hex
         let palette = scheme.paletteRGB.map(\.hex)
         func hex(_ color: CellColor, bold: Bool) -> String? {
@@ -46,6 +49,7 @@ public enum TerminalHTML {
             case .ansi(var n):
                 if bold && brightBold && n < 8 { n += 8 }
                 if n < 16 { return n < palette.count ? palette[n] : nil }
+                if let extended, n - 16 < extended.count { return extended[n - 16] }
                 if n < 232 {
                     let levels = [0, 95, 135, 175, 215, 255], i = n - 16
                     return String(format: "#%02x%02x%02x", levels[i / 36], levels[(i / 6) % 6], levels[i % 6])

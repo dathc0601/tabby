@@ -30,6 +30,9 @@ enum TabBarPlacement {
 /// design: 38 pt bar × spaciness in `surfaceChrome`, 28 pt rounded tabs, a "+N" overflow menu,
 /// and the toolbar on the trailing side (on the column footer when the bar is vertical).
 struct TabBarView: View {
+    /// The tab's "…" options button: on hover, unless `terminal.hideTabOptionsButton`.
+    static func showsOptionsButton(hovering: Bool, compact: Bool, hidden: Bool) -> Bool { hovering && !compact && !hidden }
+
     let model: WindowModel
     let actions: TabBarActions
     let placement: TabBarPlacement
@@ -307,6 +310,7 @@ struct TabHeaderView: View {
         let _ = services.language // the title of a Settings or Welcome tab is translated
         let hideIndex = services.config.bool("terminal.hideTabIndex")
         let hideClose = services.config.bool("terminal.hideCloseButton")
+        let hideOptions = services.config.bool("terminal.hideTabOptionsButton")
         let showIcon = services.config.bool("terminal.showTabProfileIcon")
         let userColor = tab.color.flatMap(RGBColor.init(hex:))
         let profileColor = tab.focusedPane?.profile.color.flatMap(RGBColor.init(hex:))
@@ -338,7 +342,7 @@ struct TabHeaderView: View {
                 Image(systemName: "pin.fill").font(.system(size: 10)).foregroundStyle(chrome.textMuted.color)
                     .help(L("Pinned"))
             } else {
-                if hovering && !compact {
+                if TabBarView.showsOptionsButton(hovering: hovering, compact: compact, hidden: hideOptions) {
                     Image(systemName: "ellipsis").font(.system(size: 11, weight: .semibold))
                         .frame(width: 18, height: 18)
                         .overlay { MenuButtonArea { TabMenu.build(for: tab, actions: actions) } }
@@ -432,31 +436,6 @@ struct TabColors: Identifiable {
 }
 
 /// Maps Tabby's Font Awesome icon names to SF Symbols, falling back to a terminal glyph.
-enum ProfileIcons {
-    static func symbol(for icon: String) -> String {
-        let name = icon.replacingOccurrences(of: "fas fa-", with: "").replacingOccurrences(of: "fab fa-", with: "") // l10n-ignore: Font Awesome icon names
-        let map = ["terminal": "terminal", "network": "network", "server": "server.rack", "desktop": "desktopcomputer",
-                   "laptop": "laptopcomputer", "globe": "globe", "bolt": "bolt", "cloud": "cloud", "database": "cylinder",
-                   "linux": "terminal", "apple": "apple.logo", "docker": "shippingbox", "code": "chevron.left.forwardslash.chevron.right",
-                   "microchip": "cable.connector", "network-wired": "network"]
-        return map[name] ?? "terminal"
-    }
-
-    /// The icon of a profile that has none (Tabby's providers set these on their builtins).
-    static func defaultIcon(forType type: String) -> String {
-        switch type {
-        case "ssh": return "server"
-        case "serial": return "fas fa-microchip" // l10n-ignore: Font Awesome icon names
-        case "telnet": return "fas fa-network-wired" // l10n-ignore: Font Awesome icon names
-        default: return "terminal"
-        }
-    }
-
-    /// Icons the profile editor offers (Tabby's Font Awesome names, shown as SF Symbols).
-    static let choices = ["terminal", "server", "desktop", "laptop", "globe", "cloud", "database", "bolt", "code", "docker", "apple", "linux", "network",
-                          "microchip", "network-wired"]
-}
-
 /// Empty space in the tab bar that drags the window (and zooms on double click).
 struct WindowDragArea: NSViewRepresentable {
     final class DragView: NSView {

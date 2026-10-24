@@ -9,12 +9,41 @@ public enum HotkeyCatalog {
         public let key: String
         public let group: String
         public var number: Int?
+        /// Values for the key's other placeholders (`{profile}`, `{type}`, `{name}`, `{tab}`).
+        public var arguments: [String: String] = [:]
+
+        public init(id: String, key: String, group: String, number: Int? = nil, arguments: [String: String] = [:]) {
+            self.id = id
+            self.key = key
+            self.group = group
+            self.number = number
+            self.arguments = arguments
+        }
 
         /// English, as in Tabby's hotkey list (config and tests use it).
-        public var name: String { number.map { key.replacingOccurrences(of: "{number}", with: String($0)) } ?? key }
+        public var name: String {
+            if let number { return key.replacingOccurrences(of: "{number}", with: String(number)) }
+            return arguments.reduce(key) { $0.replacingOccurrences(of: "{\($1.key)}", with: $1.value) }
+        }
         /// The name in the current language.
-        public var title: String { number.map { L(key, ["number": $0]) } ?? L(key) }
+        public var title: String {
+            if let number { return L(key, ["number": number]) }
+            return arguments.isEmpty ? L(key) : L(key, arguments)
+        }
         public var groupTitle: String { L(group) }
+    }
+
+    /// Tabby's provided hotkeys: "New tab: {profile}" for each profile, a profile selector for
+    /// each type and each group, and each settings page.
+    public static func dynamicEntries(profiles: [Profile], types: [(id: String, name: String)], groups: [ProfileGroup],
+                                      settingsPages: [(id: String, title: String)]) -> [Entry] {
+        profiles.map { Entry(id: $0.hotkeyId, key: Lkey("New tab: {profile}"), group: Lkey("Profiles"), arguments: ["profile": $0.name]) }
+            + types.map { Entry(id: "profile-selectors.\($0.id)", key: Lkey("Show {type} profile selector"), group: Lkey("Profiles"),
+                                arguments: ["type": $0.name]) }
+            + groups.map { Entry(id: "group-selectors.\($0.id)", key: Lkey("Show profile selector for group {name}"), group: Lkey("Profiles"),
+                                 arguments: ["name": $0.name]) }
+            + settingsPages.map { Entry(id: "settings-tab.\($0.id)", key: Lkey("Open settings tab: {tab}"), group: Lkey("Application"),
+                                        arguments: ["tab": $0.title]) }
     }
 
     public static let entries: [Entry] = {

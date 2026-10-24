@@ -6,24 +6,35 @@ import TabbyCore
 import TabbyTerminal
 
 /// Profiles & connections (Tabby's `ProfilesSettingsTabComponent` + `EditProfileModal`), in the
-/// phase 2 design: an outline of groups and profiles with a bottom bar; ↩ or a double click
-/// opens the editor.
+/// phase 2 design: a tree of groups and profiles with a bottom bar; ↩ or a double click
+/// opens the editor. Phase 7: nested groups with their editor, type defaults, Advanced.
 struct ProfilesSettingsView: View {
     @State private var editing: EditableProfile?
+    @State private var editingGroup: EditableGroup?
+    /// The group whose editor is waiting while one of its defaults is edited (Tabby returns
+    /// to the group modal; nothing is saved until its Save).
+    @State private var pendingGroup: EditableGroup?
     @State private var filter = ""
     @State private var showHidden = false
     @State private var selection: String?
-    @State private var collapsed: Set<String> = []
+    @State private var collapsed = CollapsedGroups.load()
     @Environment(\.chrome) private var chrome
+
+    struct EditableGroup: Identifiable {
+        let id = UUID()
+        var group: ProfileGroup
+        var isNew: Bool
+    }
 
     var body: some View {
         let services = AppServices.shared
         let _ = services.configRevision
         let registry = services.profiles
         let defaultId = services.config.string("terminal.profile") ?? "local:default"
-        let all = FuzzyMatcher.filter(registry.allProfiles(includeHidden: showHidden), query: filter) { "\($0.name) \(registry.groupPath($0.group))" }
-        let sections = Self.sections(all, registry: registry)
-        let selected = all.first { $0.id == selection }
+        let matching = FuzzyMatcher.filter(registry.allProfiles(includeHidden: showHidden), query: filter) { "\($0.name) \(registry.groupPath($0.group))" }
+            .filter { !$0.isTemplate }
+        let rows = Self.rows(registry.tree(matching), collapsed: collapsed, dropEmpty: !filter.isEmpty)
+        let selected = matching.first { $0.id == selection }
         SettingsPage(L("Profiles & connections")) {
             SettingsGroup {
                 SettingsRow(L("Default profile for new tabs")) {
@@ -51,6 +62,8 @@ struct ProfilesSettingsView: View {
                                 .labelStyle(.titleAndIcon)
                         }
                     }
+                    Divider()
+                    Button { newGroup() } label: { Label(L("New profile group"), systemImage: "folder.badge.plus").labelStyle(.titleAndIcon) }
                 } label: {
                     Label(L("New"), systemImage: "plus")
                 }
@@ -63,22 +76,22 @@ struct ProfilesSettingsView: View {
             }
             VStack(spacing: 0) {
                 VStack(spacing: 1) {
-                    ForEach(sections) { section in
-                        GroupRow(title: section.title, count: section.profiles.count, color: section.color,
-                                 isOpen: !collapsed.contains(section.title)) {
-                            if collapsed.contains(section.title) { collapsed.remove(section.title) } else { collapsed.insert(section.title) }
-                        }
-                        if !collapsed.contains(section.title) {
-                            ForEach(section.profiles, id: \.id) { p in
-                                ProfileListRow(profile: p, description: registry.provider(for: p.type)?.description(for: p) ?? p.type,
-                                               isDefault: p.id == defaultId, isSelected: p.id == selection)
-                                    .onTapGesture(count: 2) { edit(p) }
-                                    .simultaneousGesture(TapGesture().onEnded { selection = p.id })
-                                    .contextMenu { menu(for: p, registry: registry) }
-                            }
+                    ForEach(rows) { row in
+                        switch row {
+                        case let .group(node, depth):
+                            GroupRow(node: node, depth: depth, isOpen: !collapsed.contains(node.id),
+                                     toggle: { toggle(node.id) },
+                                     edit: { if let g = node.group { editingGroup = EditableGroup(group: g, isNew: false) } },
+                                     delete: { if let g = node.group { ProfileGroupActions.delete(g, registry: registry) } })
+                        case let .profile(p, depth):
+                            ProfileListRow(profile: p, depth: depth, description: registry.provider(for: p.type)?.description(for: p) ?? p.type,
+                                           isDefault: p.id == defaultId, isHidden: registry.isHidden(p), isSelected: p.id == selection)
+                                .onTapGesture(count: 2) { edit(p) }
+                                .simultaneousGesture(TapGesture().onEnded { selection = p.id })
+                                .contextMenu { menu(for: p, registry: registry) }
                         }
                     }
-                    if sections.isEmpty {
+                    if rows.isEmpty {
                         Text(filter.isEmpty ? L("No profiles") : L("No profiles match “{filter}”", ["filter": filter]))
                             .foregroundStyle(chrome.textMuted.color).padding(20)
                     }
@@ -92,11 +105,12 @@ struct ProfilesSettingsView: View {
                     Rectangle().fill(chrome.separator.color).frame(width: 1, height: 16).padding(.horizontal, 4)
                     Button { if let selected { duplicate(selected) } } label: { Label(L("Duplicate"), systemImage: "doc.on.doc") }
                         .disabled(selected == nil)
-                    Button { if let selected { toggleHidden(selected, registry: registry) } } label: {
-                        Label(selected?.extra["hidden"]?.boolValue == true ? L("Unhide") : L("Hide"), systemImage: "eye.slash")
+                    Button { if let selected { Self.toggleHidden(selected, registry: registry) } } label: {
+                        Label(selected.map { registry.isHidden($0) } == true ? L("Show") : L("Hide"),
+                              systemImage: selected.map { registry.isHidden($0) } == true ? "eye" : "eye.slash")
                     }
-                    .disabled(selected.map { $0.isBuiltin } ?? true)
-                    Button { newGroup(registry: registry) } label: { Label(L("New group"), systemImage: "folder.badge.plus") }
+                    .disabled(selected == nil)
+                    Button { newGroup() } label: { Label(L("New group"), systemImage: "folder.badge.plus") }
                     Spacer()
                     Button(selected?.isBuiltin == true ? L("Duplicate…") : L("Edit…")) { if let selected { edit(selected) } }
                         .buttonStyle(ChromeButtonStyle(kind: .primary))
@@ -111,14 +125,102 @@ struct ProfilesSettingsView: View {
             }
             .background(RoundedRectangle(cornerRadius: 10).fill(chrome.surfaceRaised.color))
             .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(chrome.border.color, lineWidth: 0.5))
+            SettingsGroup(L("Default profile settings"), footer: L("These apply to all profiles of a given type")) {
+                ForEach(ProfileTypes.creatable, id: \.self) { type in
+                    SettingsRow(ProfileTypes.title(type)) {
+                        HStack(spacing: 6) {
+                            Button(L("Edit…")) { editTypeDefaults(type) }.buttonStyle(ChromeButtonStyle())
+                            IconButton(symbol: "arrow.uturn.backward", help: L("Restore settings to defaults"), size: 22) {
+                                ProfileGroupActions.resetTypeDefaults(type, registry: registry)
+                            }
+                            .disabled(registry.typeDefaults(type).objectValue?.isEmpty ?? true)
+                        }
+                    }
+                }
+            }
+            if Self.showsAdvanced(registry: registry) {
+                SettingsGroup(L("Advanced")) {
+                    SettingsRow(L("Show recent profiles in selector"), subtitle: L("Set to 0 to disable recent profiles")) {
+                        RowStepper(value: Binding(get: { Double(services.config.int("terminal.showRecentProfiles") ?? 3) },
+                                                  set: { services.config.set("terminal.showRecentProfiles", .int(Int($0))) }),
+                                   range: 0...20, step: 1) { String(Int($0)) }
+                    }
+                    SettingsRow(L("Show built-in profiles in selector"),
+                                subtitle: L("If disabled, only custom profiles will show up in the profile selector"),
+                                isOn: ConfigBinding.bool("terminal.showBuiltinProfiles"))
+                }
+            }
         }
         .sheet(item: $editing) { item in
             ProfileEditorSheet(item: item) { result in
                 editing = nil
-                if let result { selection = registry.save(result).id }
+                finishEditing(item, result: result, registry: registry)
             }
             .chromeEnvironment()
         }
+        .sheet(item: $editingGroup) { item in
+            ProfileGroupEditorSheet(group: item.group, isNew: item.isNew, done: { result in
+                editingGroup = nil
+                if let result { registry.save(result) }
+            }, editDefaults: { group, type in
+                editingGroup = nil
+                pendingGroup = EditableGroup(group: group, isNew: item.isNew)
+                DispatchQueue.main.async { editGroupDefaults(group, type: type) }
+            })
+            .chromeEnvironment()
+        }
+    }
+
+    /// Saves what the profile editor returns according to its mode.
+    private func finishEditing(_ item: EditableProfile, result: Profile?, registry: ProfileRegistry) {
+        switch item.mode {
+        case .profile:
+            if let result { selection = registry.save(result).id }
+        case let .typeDefaults(type):
+            if let result { registry.setTypeDefaults(type, ProfileEditorSheet.defaultsValue(from: result)) }
+        case let .groupDefaults(_, type):
+            guard var pending = pendingGroup else { return }
+            if let result {
+                let value = ProfileEditorSheet.defaultsValue(from: result)
+                pending.group.defaults[type] = (value.objectValue?.isEmpty ?? true) ? nil : value
+            }
+            pendingGroup = nil
+            DispatchQueue.main.async { editingGroup = pending }
+        }
+    }
+
+    /// Tabby shows the Advanced rows only once there are custom profiles.
+    static func showsAdvanced(registry: ProfileRegistry) -> Bool { !registry.userProfiles.isEmpty }
+
+    enum Row: Identifiable {
+        case group(ProfileTreeNode, depth: Int)
+        case profile(Profile, depth: Int)
+        var id: String {
+            switch self {
+            case let .group(node, _): return "g:" + node.id
+            case let .profile(p, _): return "p:" + p.id
+            }
+        }
+    }
+
+    /// The tree as rows: a group, then (unless collapsed) its profiles and its subgroups.
+    /// While filtering, groups without a match anywhere below them are left out.
+    static func rows(_ tree: [ProfileTreeNode], collapsed: Set<String>, dropEmpty: Bool = false) -> [Row] {
+        var rows: [Row] = []
+        func walk(_ node: ProfileTreeNode, _ depth: Int) {
+            if dropEmpty && node.profileCount == 0 { return }
+            rows.append(.group(node, depth: depth))
+            guard !collapsed.contains(node.id) else { return }
+            rows += node.profiles.map { .profile($0, depth: depth + 1) }
+            node.children.forEach { walk($0, depth + 1) }
+        }
+        tree.forEach { walk($0, 0) }
+        return rows
+    }
+
+    private func toggle(_ id: String) {
+        if collapsed.contains(id) { collapsed.remove(id) } else { collapsed.insert(id) }
+        CollapsedGroups.save(collapsed)
     }
 
     @ViewBuilder
@@ -128,8 +230,8 @@ struct ProfilesSettingsView: View {
         Divider()
         if !p.isBuiltin { Button(L("Edit…")) { edit(p) } }
         Button(L("Duplicate")) { duplicate(p) }
+        Button(registry.isHidden(p) ? L("Show") : L("Hide")) { Self.toggleHidden(p, registry: registry) }
         if !p.isBuiltin {
-            Button(p.extra["hidden"]?.boolValue == true ? L("Unhide") : L("Hide")) { toggleHidden(p, registry: registry) }
             Divider()
             Button(L("Delete…"), role: .destructive) { delete(p, registry: registry) }
         }
@@ -148,10 +250,9 @@ struct ProfilesSettingsView: View {
         editing = EditableProfile(copy, isNew: true)
     }
 
-    private func toggleHidden(_ p: Profile, registry: ProfileRegistry) {
-        var copy = p
-        copy.extra["hidden"] = p.extra["hidden"]?.boolValue == true ? nil : true
-        _ = registry.save(copy)
+    /// Hide and Show write Tabby's `profileBlacklist` (built-in profiles too).
+    static func toggleHidden(_ p: Profile, registry: ProfileRegistry) {
+        registry.setHidden(p, !registry.isHidden(p))
     }
 
     private func delete(_ p: Profile, registry: ProfileRegistry) {
@@ -165,74 +266,79 @@ struct ProfilesSettingsView: View {
         }
     }
 
-    private func newGroup(registry: ProfileRegistry) {
-        Prompts.text(in: NSApp.keyWindow, title: L("New group"), value: "", confirm: L("Create")) { name, _ in
-            guard let name = name?.trimmingCharacters(in: .whitespaces), !name.isEmpty,
-                  !registry.groups.contains(where: { $0.name == name }) else { return }
-            registry.save(ProfileGroup(name: name))
-        }
+    /// Tabby's "New profile group": the group editor on a new group with the folder icon.
+    private func newGroup() {
+        editingGroup = EditableGroup(group: ProfileGroup(name: "", icon: "far fa-folder"), isNew: true) // l10n-ignore: Font Awesome class
     }
 
-    struct ProfileSection: Identifiable {
-        let title: String
-        let color: String?
-        let profiles: [Profile]
-        var id: String { title }
+    /// Opens the profile editor on a type's defaults (Tabby's `editDefaults`).
+    private func editTypeDefaults(_ type: String) {
+        editing = EditableProfile(ProfileEditorSheet.profile(fromDefaults: AppServices.shared.profiles.typeDefaults(type), type: type),
+                                  isNew: false, mode: .typeDefaults(type))
     }
 
-    static func sections(_ profiles: [Profile], registry: ProfileRegistry) -> [ProfileSection] {
-        var order: [String] = []
-        var map: [String: [Profile]] = [:]
-        var colors: [String: String] = [:]
-        for p in profiles where !p.isTemplate {
-            let title = p.isBuiltin ? (p.group ?? L("Built-in")) : (registry.groupPath(p.group).isEmpty ? L("Ungrouped") : registry.groupPath(p.group))
-            if map[title] == nil { order.append(title) }
-            map[title, default: []].append(p)
-            if let g = registry.groups.first(where: { $0.id == p.group }), let c = g.color { colors[title] = c }
-        }
-        // User groups first, built-in and imported groups last, as in the design.
-        let builtinTitles = Set(profiles.filter(\.isBuiltin).map { $0.group ?? "Built-in" })
-        let sorted = order.filter { !builtinTitles.contains($0) } + order.filter { builtinTitles.contains($0) }
-        return sorted.map { ProfileSection(title: $0, color: colors[$0], profiles: map[$0] ?? []) }
+    /// Opens the profile editor on a group's defaults for a type (Tabby's
+    /// `editProfileGroupDefaults`).
+    private func editGroupDefaults(_ group: ProfileGroup, type: String) {
+        editing = EditableProfile(ProfileEditorSheet.profile(fromDefaults: group.defaults[type] ?? .emptyObject, type: type),
+                                  isNew: false, mode: .groupDefaults(groupId: group.id, type: type))
     }
 }
 
+/// Which groups of the Profiles page are collapsed (Tabby keeps this in localStorage).
+enum CollapsedGroups {
+    static let key = "profilesPage.collapsedGroups"
+    static var defaults: UserDefaults = .standard
+
+    static func load() -> Set<String> { Set(defaults.stringArray(forKey: key) ?? []) }
+    static func save(_ ids: Set<String>) { defaults.set(ids.sorted(), forKey: key) }
+}
+
 private struct GroupRow: View {
-    let title: String
-    let count: Int
-    let color: String?
+    let node: ProfileTreeNode
+    let depth: Int
     let isOpen: Bool
     let toggle: () -> Void
+    let edit: () -> Void
+    let delete: () -> Void
+    @State private var hovering = false
     @Environment(\.chrome) private var chrome
 
     var body: some View {
-        Button(action: toggle) {
-            HStack(spacing: 6) {
-                Image(systemName: isOpen ? "chevron.down" : "chevron.right").font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(chrome.textFaint.color).frame(width: 12)
-                Image(systemName: "folder").foregroundStyle((color.flatMap(RGBColor.init(hex:)) ?? chrome.textMuted).color)
-                Text(title).font(ChromeFont.bodyEmphasised)
-                Text("\(count)").font(ChromeFont.caption).foregroundStyle(chrome.textFaint.color)
-                Spacer()
+        let editable = node.group?.editable == true
+        HStack(spacing: 6) {
+            Image(systemName: isOpen ? "chevron.down" : "chevron.right").font(.system(size: 9, weight: .bold))
+                .foregroundStyle(chrome.textFaint.color).frame(width: 12)
+            Image(systemName: ProfileIcons.symbol(for: node.group?.icon ?? "far fa-folder")) // l10n-ignore: Font Awesome class
+                .foregroundStyle((node.group?.color.flatMap(ProfileColors.rgb) ?? chrome.textMuted).color)
+            Text(node.name).font(ChromeFont.bodyEmphasised)
+            Text("\(node.profileCount)").font(ChromeFont.caption).foregroundStyle(chrome.textFaint.color)
+            Spacer()
+            if editable && hovering {
+                IconButton(symbol: "pencil", help: L("Edit group"), size: 22, action: edit)
+                IconButton(symbol: "trash", help: L("Delete group"), size: 22, action: delete)
             }
-            .padding(.horizontal, 10)
-            .frame(height: 30)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .padding(.leading, 10 + CGFloat(depth) * 16)
+        .padding(.trailing, 10)
+        .frame(height: 30)
+        .contentShape(Rectangle())
+        .onTapGesture(perform: toggle)
+        .onHover { hovering = $0 }
     }
 }
 
 private struct ProfileListRow: View {
     let profile: Profile
+    let depth: Int
     let description: String
     let isDefault: Bool
+    let isHidden: Bool
     let isSelected: Bool
     @Environment(\.chrome) private var chrome
 
     var body: some View {
-        let hidden = profile.extra["hidden"]?.boolValue == true
-        let tint = profile.color.flatMap(RGBColor.init(hex:))
+        let tint = profile.color.flatMap(ProfileColors.rgb)
         let fg = isSelected ? chrome.onAccent : chrome.text
         let muted = isSelected ? chrome.onAccent.withAlpha(0.75) : chrome.textMuted
         HStack(spacing: 8) {
@@ -243,7 +349,7 @@ private struct ProfileListRow: View {
             Text(description).font(ChromeFont.caption).foregroundStyle(muted.color).lineLimit(1).truncationMode(.middle)
             Spacer(minLength: 8)
             if let tint { StatusDot(color: tint, size: 7) }
-            if hidden { Image(systemName: "eye.slash").font(.system(size: 11)).foregroundStyle(muted.color) }
+            if isHidden { Image(systemName: "eye.slash").font(.system(size: 11)).foregroundStyle(muted.color) }
             if isDefault {
                 Text(L("Default")).font(.system(size: 10, weight: .semibold)).padding(.horizontal, 6).frame(height: 16)
                     .foregroundStyle((isSelected ? chrome.onAccent : chrome.accent).color)
@@ -253,24 +359,80 @@ private struct ProfileListRow: View {
                 .foregroundStyle(muted.color)
                 .background(RoundedRectangle(cornerRadius: 4).fill((isSelected ? chrome.onAccent.withAlpha(0.2) : chrome.fill).color))
         }
-        .padding(.leading, 34)
+        .padding(.leading, 18 + CGFloat(depth) * 16)
         .padding(.trailing, 10)
         .frame(height: 30)
-        .opacity(hidden ? 0.6 : 1)
+        .opacity(isHidden ? 0.6 : 1)
         .background(RoundedRectangle(cornerRadius: 6).fill(isSelected ? chrome.accent.color : .clear))
         .contentShape(Rectangle())
     }
 
 }
 
+/// What the profile editor edits: a profile, a type's defaults (`profileDefaults.<type>`) or
+/// a group's defaults for a type (`groups[].defaults.<type>`) — Tabby's `defaultsMode`.
+enum ProfileEditorMode: Equatable {
+    case profile
+    case typeDefaults(String)
+    case groupDefaults(groupId: String, type: String)
+}
+
 struct EditableProfile: Identifiable {
     let id = UUID()
     var profile: Profile
     var isNew: Bool
+    var mode: ProfileEditorMode
 
-    init(_ profile: Profile, isNew: Bool) {
+    init(_ profile: Profile, isNew: Bool, mode: ProfileEditorMode = .profile) {
         self.profile = profile
         self.isNew = isNew
+        self.mode = mode
+    }
+}
+
+extension ProfileEditorSheet {
+    /// A defaults object as a profile the editor can show.
+    static func profile(fromDefaults value: ConfigValue, type: String) -> Profile {
+        var o = value.objectValue ?? [:]
+        o["type"] = .string(type)
+        o["id"] = .string("")
+        o["name"] = .string("")
+        return Profile(config: .object(o))
+    }
+
+    /// What a defaults editor writes: the options that were set (an emptied field is left
+    /// out, so it doesn't override what the profile inherits) and the common settings that
+    /// differ from a new profile's.
+    static func defaultsValue(from p: Profile) -> ConfigValue {
+        // Keys the editor doesn't know (an imported plugin's) stay as they were.
+        var o: [String: ConfigValue] = p.extra.filter { $0.key != "hidden" }
+        var options = strippingEmpty(p.options)?.objectValue ?? [:]
+        // A null that means something ("Normal" input, "Keep" newlines) is a setting.
+        for (key, value) in p.options.objectValue ?? [:] where value.isNull && meaningfulNulls.contains(key) { options[key] = .null }
+        if !options.isEmpty { o["options"] = .object(options) }
+        if let color = p.color, !color.isEmpty { o["color"] = .string(color) }
+        if p.disableDynamicTitle { o["disableDynamicTitle"] = true }
+        if p.behaviorOnSessionEnd != .auto { o["behaviorOnSessionEnd"] = .string(p.behaviorOnSessionEnd.rawValue) }
+        if p.clearServiceMessagesOnConnect != Profile.clearsServiceMessagesByDefault(type: p.type) {
+            o["clearServiceMessagesOnConnect"] = .bool(p.clearServiceMessagesOnConnect)
+        }
+        if let scheme = p.terminalColorScheme, scheme != .null { o["terminalColorScheme"] = scheme }
+        return .object(o)
+    }
+
+    /// `value` without empty strings, empty lists and maps, or nulls (nil when nothing is left).
+    static func strippingEmpty(_ value: ConfigValue) -> ConfigValue? {
+        // ConfigValue takes the nil literal (as .null), so "nothing" is spelled Optional.none.
+        let nothing: ConfigValue? = .none
+        switch value {
+        case .null: return nothing
+        case let .string(s): return s.isEmpty ? nothing : value
+        case let .array(a): return a.isEmpty ? nothing : value
+        case let .object(o):
+            let kept = o.compactMapValues(strippingEmpty)
+            return kept.isEmpty ? nothing : .object(kept)
+        default: return value
+        }
     }
 }
 
@@ -301,13 +463,67 @@ struct ProfileEditorSheet: View {
     @State private var passwordSaved = false
     @State private var testOutcome: SSHConnectionTest.Outcome?
     @State private var testing = false
+    /// The connection mode picked in this editor (Direct has no option of its own to read back).
+    @State private var pickedMode: SSHConnectionMode?
     @Environment(\.chrome) private var chrome
+
+    /// What the profile would get from its type and group defaults (nil in a defaults mode).
+    let inherited: Inherited?
 
     init(item: EditableProfile, initialPage: Page = .general, done: @escaping (Profile?) -> Void) {
         self.item = item
         self.done = done
-        _profile = State(initialValue: item.profile)
+        let inherited = item.mode == .profile ? Self.inherited(for: item.profile, registry: AppServices.shared.profiles) : nil
+        self.inherited = inherited
+        _profile = State(initialValue: inherited.map { Self.showingInherited(item.profile, $0) } ?? item.profile)
         _page = State(initialValue: initialPage)
+    }
+
+    /// The common settings a profile inherits when it doesn't set them.
+    struct Inherited: Equatable {
+        var disableDynamicTitle: Bool
+        var behaviorOnSessionEnd: SessionEndBehavior
+        var clearServiceMessagesOnConnect: Bool
+    }
+
+    static func inherited(for p: Profile, registry: ProfileRegistry) -> Inherited {
+        var bare = p
+        bare.explicitKeys = []
+        bare.disableDynamicTitle = false
+        bare.behaviorOnSessionEnd = .auto
+        bare.clearServiceMessagesOnConnect = Profile.clearsServiceMessagesByDefault(type: p.type)
+        let r = registry.resolved(bare)
+        return Inherited(disableDynamicTitle: r.disableDynamicTitle, behaviorOnSessionEnd: r.behaviorOnSessionEnd,
+                         clearServiceMessagesOnConnect: r.clearServiceMessagesOnConnect)
+    }
+
+    /// The profile as the editor shows it: what applies, inherited where it sets nothing.
+    static func showingInherited(_ p: Profile, _ i: Inherited) -> Profile {
+        var q = p
+        if !p.explicitKeys.contains("disableDynamicTitle") { q.disableDynamicTitle = i.disableDynamicTitle }
+        if !p.explicitKeys.contains("behaviorOnSessionEnd") { q.behaviorOnSessionEnd = i.behaviorOnSessionEnd }
+        if !p.explicitKeys.contains("clearServiceMessagesOnConnect") { q.clearServiceMessagesOnConnect = i.clearServiceMessagesOnConnect }
+        return q
+    }
+
+    /// What the profile saves: a common setting equal to the inherited one is left out (it
+    /// keeps inheriting); any other is written, even at its built-in value.
+    static func normalized(_ p: Profile, _ i: Inherited) -> Profile {
+        var q = p
+        func settle(_ key: String, inherits: Bool, reset: (inout Profile) -> Void) {
+            if inherits {
+                q.explicitKeys.remove(key)
+                reset(&q)
+            } else {
+                q.explicitKeys.insert(key)
+            }
+        }
+        settle("disableDynamicTitle", inherits: p.disableDynamicTitle == i.disableDynamicTitle) { $0.disableDynamicTitle = false }
+        settle("behaviorOnSessionEnd", inherits: p.behaviorOnSessionEnd == i.behaviorOnSessionEnd) { $0.behaviorOnSessionEnd = .auto }
+        settle("clearServiceMessagesOnConnect", inherits: p.clearServiceMessagesOnConnect == i.clearServiceMessagesOnConnect) {
+            $0.clearServiceMessagesOnConnect = Profile.clearsServiceMessagesByDefault(type: $0.type)
+        }
+        return q
     }
 
     private var isSSH: Bool { profile.type == "ssh" }
@@ -315,7 +531,11 @@ struct ProfileEditorSheet: View {
     private var pages: [Page] { Self.pages(for: profile.type) }
 
     static func pages(for type: String) -> [Page] {
-        type == "ssh" ? Page.allCases : [.general, .advanced, .colors, .scripts]
+        switch type {
+        case "ssh": return Page.allCases
+        case "split-layout": return [] // only the common fields (Tabby has no settings for layouts)
+        default: return [.general, .advanced, .colors, .scripts]
+        }
     }
 
     enum DeviceMenuEntry: Equatable {
@@ -418,8 +638,13 @@ struct ProfileEditorSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     common
-                    Picker("", selection: $page) { ForEach(pages) { Text($0.title).tag($0) } }
-                        .pickerStyle(.segmented).labelsHidden()
+                    if !pages.isEmpty {
+                        Picker("", selection: $page) { ForEach(pages) { Text($0.title).tag($0) } }
+                            .pickerStyle(.segmented).labelsHidden()
+                    }
+                    if pages.isEmpty {
+                        EmptyView()
+                    } else {
                     switch page {
                     case .general: generalPage
                     case .ports: AnyView(SettingsGroup(L("Forwarded ports")) { PortForwardsEditor(options: $profile.options) })
@@ -427,6 +652,7 @@ struct ProfileEditorSheet: View {
                     case .ciphers: AnyView(sshCiphers)
                     case .colors: AnyView(colours)
                     case .scripts: AnyView(LoginScriptsEditor(options: $profile.options))
+                    }
                     }
                 }
                 .padding(20)
@@ -438,7 +664,7 @@ struct ProfileEditorSheet: View {
                 Button(item.isNew ? L("Create") : L("Save")) { done(finalProfile()) }
                     .buttonStyle(ChromeButtonStyle(kind: .primary))
                     .keyboardShortcut("s", modifiers: .command)
-                    .disabled(["ssh", "telnet"].contains(profile.type) && (profile.options["host"]?.stringValue ?? "").isEmpty)
+                    .disabled(item.mode == .profile && ["ssh", "telnet"].contains(profile.type) && (profile.options["host"]?.stringValue ?? "").isEmpty)
             }
             .padding(14)
         }
@@ -448,7 +674,35 @@ struct ProfileEditorSheet: View {
         .onAppear(perform: refreshPasswordState)
     }
 
+    /// The editor's title in a defaults mode (Tabby's "Defaults for {type}"); nil for a profile.
+    static func title(for mode: ProfileEditorMode) -> String? {
+        switch mode {
+        case .profile: return nil
+        case let .typeDefaults(type), let .groupDefaults(_, type): return L("Defaults for {type}", ["type": ProfileTypes.title(type)])
+        }
+    }
+
+    /// Name, group and icon belong to a profile, not to defaults (Tabby hides them there).
+    static func showsIdentityFields(_ mode: ProfileEditorMode) -> Bool { mode == .profile }
+
+    /// "Reconnect" only for connections (Tabby's `isConnectable()`).
+    static func sessionEndChoices(for type: String) -> [SessionEndBehavior] {
+        ["ssh", "telnet", "serial"].contains(type) ? [.auto, .keep, .reconnect, .close] : [.auto, .keep, .close]
+    }
+
+    @ViewBuilder
     private var header: some View {
+        if let title = Self.title(for: item.mode) {
+            Text(title).font(ChromeFont.headline)
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .overlay(alignment: .bottom) { Rectangle().fill(chrome.separator.color).frame(height: 1) }
+        } else {
+            profileHeader
+        }
+    }
+
+    private var profileHeader: some View {
         HStack(spacing: 12) {
             // The profile's colour behind its icon at 20% (design C6/C7).
             let tint = profile.color.flatMap(RGBColor.init(hex:)) ?? chrome.accent
@@ -470,7 +724,9 @@ struct ProfileEditorSheet: View {
 
     private var common: some View {
         let registry = AppServices.shared.profiles
+        let identity = Self.showsIdentityFields(item.mode)
         return SettingsGroup {
+            if identity {
             SettingsRow(L("Group")) {
                 HStack(spacing: 6) {
                     RowPicker(selection: Binding(get: { profile.group ?? "" }, set: { profile.group = $0.isEmpty ? nil : $0 })) {
@@ -493,25 +749,33 @@ struct ProfileEditorSheet: View {
             }
             SettingsRow(L("Icon & colour")) {
                 HStack(spacing: 8) {
-                    RowPicker(selection: Binding(get: { profile.icon ?? "" }, set: { profile.icon = $0.isEmpty ? nil : $0 })) {
-                        Text(L("Default")).tag("")
-                        ForEach(ProfileIcons.choices, id: \.self) { name in Label(name, systemImage: ProfileIcons.symbol(for: name)).tag(name) }
-                    }
-                    ColourSwatches(selection: $profile.color)
+                    ProfileIconPicker(icon: $profile.icon, placeholder: ProfileIcons.defaultIcon(forType: profile.type))
+                    ProfileColorPicker(color: $profile.color)
                 }
+            }
+            } else {
+                SettingsRow(L("Color")) { ProfileColorPicker(color: $profile.color) }
             }
             SettingsRow(L("When the session ends")) {
                 RowSegments(selection: $profile.behaviorOnSessionEnd) {
-                    Text(L("Auto")).tag(SessionEndBehavior.auto)
-                    Text(L("Keep")).tag(SessionEndBehavior.keep)
-                    Text(L("Reconnect")).tag(SessionEndBehavior.reconnect)
-                    Text(L("Close")).tag(SessionEndBehavior.close)
+                    ForEach(Self.sessionEndChoices(for: profile.type), id: \.self) { choice in
+                        Text(Self.sessionEndTitle(choice)).tag(choice)
+                    }
                 }
             }
             if isConnection {
                 SettingsRow(L("Clear terminal after connection"), subtitle: L("Removes the connection messages once connected"),
                             isOn: $profile.clearServiceMessagesOnConnect)
             }
+        }
+    }
+
+    static func sessionEndTitle(_ choice: SessionEndBehavior) -> String {
+        switch choice {
+        case .auto: return L("Auto")
+        case .keep: return L("Keep")
+        case .reconnect: return L("Reconnect")
+        case .close: return L("Close")
         }
     }
 
@@ -677,14 +941,54 @@ struct ProfileEditorSheet: View {
     }
 
     private var localGeneral: some View {
-        SettingsGroup {
-            SettingsRow(L("Command")) { RowField(placeholder: "/bin/zsh", text: option("command"), width: 300) } // l10n-ignore: sample input
-            SettingsRow(L("Arguments"), subtitle: L("One per line")) {
-                TextEditor(text: listOption("args")).font(.custom("Menlo", size: 12)).frame(width: 300, height: 54)
-                    .scrollContentBackground(.hidden).background(RoundedRectangle(cornerRadius: 5).fill(chrome.surface.color))
+        VStack(alignment: .leading, spacing: 18) {
+            SettingsGroup {
+                SettingsRow(L("Command line"), subtitle: L("The program and its arguments, quoted as in a shell")) {
+                    RowField(placeholder: "/bin/zsh --login", text: commandLine, width: 300) // l10n-ignore: sample input
+                }
+                SettingsRow(L("Command")) { RowField(placeholder: "/bin/zsh", text: option("command"), width: 300) } // l10n-ignore: sample input
+                SettingsRow(L("Arguments"), subtitle: L("One per line")) {
+                    TextEditor(text: listOption("args")).font(.custom("Menlo", size: 12)).frame(width: 300, height: 54)
+                        .scrollContentBackground(.hidden).background(RoundedRectangle(cornerRadius: 5).fill(chrome.surface.color))
+                }
+                SettingsRow(L("Working directory")) {
+                    HStack(spacing: 6) {
+                        RowField(placeholder: L("Inherit"), text: option("cwd"), width: 270)
+                        IconButton(symbol: "folder", help: L("Choose a folder"), size: 24) { chooseFolder() }
+                    }
+                }
             }
-            SettingsRow(L("Working directory")) { RowField(placeholder: L("Inherit"), text: option("cwd"), width: 300) }
+            SettingsGroup(L("Environment")) {
+                EnvironmentEditor(env: Binding(get: { profile.options["env"] }, set: { profile.options["env"] = $0 }))
+            }
         }
+    }
+
+    /// The command and arguments as one shell line.
+    private var commandLine: Binding<String> {
+        Binding(get: {
+            CommandLineField.join(command: profile.options["command"]?.stringValue ?? "",
+                                  args: profile.options["args"]?.arrayValue?.compactMap(\.stringValue) ?? [])
+        }, set: { line in
+            let split = CommandLineField.split(line)
+            profile.options["command"] = split.command.isEmpty ? .null : .string(split.command)
+            profile.options["args"] = .array(split.args.map(ConfigValue.string))
+        })
+    }
+
+    private func chooseFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        if let cwd = profile.options["cwd"]?.stringValue, !cwd.isEmpty {
+            panel.directoryURL = URL(fileURLWithPath: (cwd as NSString).expandingTildeInPath)
+        }
+        let window = NSApp.keyWindow
+        let finish: (NSApplication.ModalResponse) -> Void = { response in
+            if response == .OK, let url = panel.url { profile.options["cwd"] = .string(url.path) }
+        }
+        if let window { panel.beginSheetModal(for: window, completionHandler: finish) } else { finish(panel.runModal()) }
     }
 
     private var localAdvanced: some View {
@@ -698,6 +1002,32 @@ struct ProfileEditorSheet: View {
         let registry = AppServices.shared.profiles
         return VStack(alignment: .leading, spacing: 18) {
             SettingsGroup {
+                SettingsRow(L("Connection"), subtitle: Self.connectionDescription(connectionMode.wrappedValue)) {
+                    RowPicker(selection: connectionMode) {
+                        ForEach(SSHConnectionMode.allCases, id: \.self) { Text(Self.connectionTitle($0)).tag($0) }
+                    }
+                }
+                switch connectionMode.wrappedValue {
+                case .proxyCommand:
+                    SettingsRow(L("Proxy command")) { RowField(placeholder: "nc %h %p", text: option("proxyCommand"), width: 300) } // l10n-ignore: sample input
+                case .jumpHost:
+                    SettingsRow(L("Jump host")) {
+                        RowPicker(selection: option("jumpHost")) {
+                            Text(L("Select")).tag("")
+                            ForEach(registry.allProfiles(includeHidden: true).filter { $0.type == "ssh" && !$0.isTemplate && $0.id != profile.id }, id: \.id) { p in
+                                Text(p.name).tag(p.id)
+                            }
+                        }
+                    }
+                case .socksProxy:
+                    SettingsRow(L("SOCKS proxy host")) { proxyFields("socksProxy", defaultPort: 1080) }
+                case .httpProxy:
+                    SettingsRow(L("HTTP proxy host")) { proxyFields("httpProxy", defaultPort: 3128) }
+                case .direct:
+                    EmptyView()
+                }
+            }
+            SettingsGroup {
                 SettingsRow(L("Host")) {
                     HStack(spacing: 8) {
                         RowField(placeholder: "example.com", text: option("host"), width: 220) // l10n-ignore: sample input
@@ -706,7 +1036,9 @@ struct ProfileEditorSheet: View {
                             .textFieldStyle(.roundedBorder).font(.custom("Menlo", size: 12)).frame(width: 60)
                     }
                 }
-                SettingsRow(L("Username")) { RowField(placeholder: NSUserName(), text: option("user")) }
+                SettingsRow(L("Username"), subtitle: L("Empty: your Mac user name ({name})", ["name": NSUserName()])) {
+                    RowField(placeholder: NSUserName(), text: option("user"))
+                }
                 SettingsRow(L("Authentication")) {
                     RowPicker(selection: option("auth")) {
                         Text(L("Automatic")).tag("")
@@ -730,17 +1062,6 @@ struct ProfileEditorSheet: View {
                 PrivateKeysEditor(options: $profile.options)
             }
             SettingsGroup {
-                SettingsRow(L("Jump host")) {
-                    RowPicker(selection: option("jumpHost")) {
-                        Text(L("None")).tag("")
-                        ForEach(registry.allProfiles(includeHidden: true).filter { $0.type == "ssh" && !$0.isTemplate && $0.id != profile.id }, id: \.id) { p in
-                            Text(p.name).tag(p.id)
-                        }
-                    }
-                }
-                SettingsRow(L("Proxy command")) { RowField(placeholder: L("None"), text: option("proxyCommand"), width: 300) }
-            }
-            SettingsGroup {
                 SettingsRow(L("Test connection"), subtitle: testSubtitle) {
                     HStack(spacing: 8) {
                         if testing { ProgressView().controlSize(.small) }
@@ -750,6 +1071,45 @@ struct ProfileEditorSheet: View {
                     }
                 }
             }
+        }
+    }
+
+    /// The SSH connection mode; choosing one clears the other modes' options (Tabby clears
+    /// them on save).
+    private var connectionMode: Binding<SSHConnectionMode> {
+        Binding(get: { pickedMode ?? SSHConnectionMode(options: profile.options) }, set: { mode in
+            pickedMode = mode
+            mode.apply(to: &profile.options)
+        })
+    }
+
+    static func connectionTitle(_ mode: SSHConnectionMode) -> String {
+        switch mode {
+        case .direct: return L("Direct")
+        case .proxyCommand: return L("Proxy command")
+        case .jumpHost: return L("Jump host")
+        case .socksProxy: return L("SOCKS proxy")
+        case .httpProxy: return L("HTTP proxy")
+        }
+    }
+
+    static func connectionDescription(_ mode: SSHConnectionMode) -> String? {
+        switch mode {
+        case .direct: return nil
+        case .proxyCommand: return L("Command's stdin/stdout is used instead of a network connection")
+        case .jumpHost: return L("Connect to a different host first and use it as a proxy")
+        case .socksProxy: return L("Connect through a proxy server")
+        case .httpProxy: return L("Using CONNECT method")
+        }
+    }
+
+    /// Host and port of a SOCKS or HTTP proxy (`<prefix>Host`, `<prefix>Port`).
+    private func proxyFields(_ prefix: String, defaultPort: Int) -> some View {
+        HStack(spacing: 8) {
+            RowField(placeholder: "127.0.0.1", text: option(prefix + "Host"), width: 200) // l10n-ignore: sample input
+            Text(L("Port")).foregroundStyle(chrome.textMuted.color).fixedSize()
+            TextField(String(defaultPort), text: optionalIntOption(prefix + "Port")) // l10n-ignore: config key
+                .textFieldStyle(.roundedBorder).font(.custom("Menlo", size: 12)).frame(width: 70)
         }
     }
 
@@ -877,36 +1237,11 @@ struct ProfileEditorSheet: View {
         return p
     }
 
-    private func finalProfile() -> Profile { Self.finalized(profile) }
+    private func finalProfile() -> Profile { Self.finalized(inherited.map { Self.normalized(profile, $0) } ?? profile) }
 }
 
 /// The design's colour swatches: none plus the scheme's six ANSI colours, stored as hex as in
 /// Tabby.
-private struct ColourSwatches: View {
-    @Binding var selection: String?
-    @Environment(\.chrome) private var chrome
-
-    var body: some View {
-        let palette = AppServices.shared.theme.scheme.paletteRGB
-        let colours = [1, 3, 2, 6, 4, 5].map { palette[$0].hex }
-        HStack(spacing: 5) {
-            Button { selection = nil } label: {
-                Image(systemName: "nosign").font(.system(size: 13)).foregroundStyle(chrome.textMuted.color)
-            }
-            .buttonStyle(.plain)
-            .help(L("No colour"))
-            ForEach(colours, id: \.self) { hex in
-                Button { selection = hex } label: {
-                    Circle().fill((RGBColor(hex: hex) ?? .black).color).frame(width: 15, height: 15)
-                        .overlay(Circle().strokeBorder(selection?.lowercased() == hex ? chrome.text.color : .clear, lineWidth: 2).padding(-3))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-}
-
-/// Key files of an SSH profile, added with an open panel.
 private struct PrivateKeysEditor: View {
     @Binding var options: ConfigValue
     @Environment(\.chrome) private var chrome
@@ -956,7 +1291,8 @@ struct PortForwardsEditor: View {
                     TextField("localhost", text: binding(forwards, index, \.targetAddress)).frame(width: 110) // l10n-ignore: sample input
                     TextField("80", value: binding(forwards, index, \.targetPort), format: .number.grouping(.never)).frame(width: 56)
                 }
-                Spacer()
+                TextField(L("Description"), text: binding(forwards, index, \.description)).font(.system(size: 12))
+                Spacer(minLength: 0)
                 IconButton(symbol: "minus", help: L("Remove"), size: 22) {
                     var list = forwards
                     list.remove(at: index)
@@ -981,6 +1317,16 @@ struct PortForwardsEditor: View {
             }
             .fixedSize()
         }
+    }
+
+    /// `options` with one field of forward `index` changed.
+    static func updated<T>(_ options: ConfigValue, _ index: Int, _ path: WritableKeyPath<ForwardedPort, T>, _ value: T) -> ConfigValue {
+        var list = (options["forwardedPorts"]?.arrayValue ?? []).compactMap(ForwardedPort.init)
+        guard list.indices.contains(index) else { return options }
+        list[index][keyPath: path] = value
+        var o = options
+        o["forwardedPorts"] = .array(list.map(\.configValue))
+        return o
     }
 
     private func binding<T>(_ forwards: [ForwardedPort], _ index: Int, _ path: WritableKeyPath<ForwardedPort, T>) -> Binding<T> {

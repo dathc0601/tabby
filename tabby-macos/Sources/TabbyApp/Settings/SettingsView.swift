@@ -19,6 +19,29 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// The id of Tabby's settings tab for this page (`settings-tab.<id>` hotkeys); TabbyMac's
+    /// own pages use their own ids.
+    var tabbyId: String {
+        switch self {
+        case .application: return "application"
+        case .appearance: return "terminal-appearance"
+        case .colorScheme: return "terminal-color-scheme"
+        case .terminal: return "terminal"
+        case .window: return "window"
+        case .profiles: return "profiles"
+        case .ssh: return "ssh"
+        case .hotkeys: return "hotkeys"
+        case .vault: return "vault"
+        case .account: return "config-sync"
+        case .configFile: return "config-file"
+        }
+    }
+
+    init?(tabbyId: String) {
+        guard let section = Self.allCases.first(where: { $0.tabbyId == tabbyId }) else { return nil }
+        self = section
+    }
+
     /// The sidebar and page title in the current language.
     var title: String {
         switch self {
@@ -369,6 +392,7 @@ struct ApplicationSettingsView: View {
                 SettingsRow(L("Show the Welcome tab"), isOn: ConfigBinding.bool("enableWelcomeTab"))
             }
             SettingsGroup(L("Accessibility")) {
+                SettingsRow(L("Enable animations"), isOn: ConfigBinding.bool("accessibility.animations"))
                 SettingsRow(L("Minimum contrast ratio"), subtitle: L("Text that is harder to read than this is brightened or darkened")) {
                     RowStepper(value: ConfigBinding.double("terminal.minimumContrastRatio"), range: 1...21, step: 0.5) { String(format: "%.1f", $0) }
                 }
@@ -406,11 +430,20 @@ struct AppearanceSettingsView: View {
                         Text(L("Light")).tag("light")
                     }
                 }
+                SettingsRow(L("Terminal background")) {
+                    RowSegments(selection: ConfigBinding.string("terminal.background")) {
+                        Text(L("From theme")).tag("theme")
+                        Text(L("From color scheme")).tag("colorScheme")
+                    }
+                }
             }
             SettingsGroup(L("Terminal font")) {
+                let fonts = Self.fontChoices(including: config.string("terminal.font"))
                 SettingsRow(L("Font")) {
                     RowPicker(selection: ConfigBinding.string("terminal.font")) {
-                        ForEach(Self.monospacedFamilies(including: config.string("terminal.font")), id: \.self) { Text($0).tag($0) }
+                        ForEach(fonts.monospaced, id: \.self) { Text($0).tag($0) }
+                        Divider()
+                        ForEach(fonts.others, id: \.self) { Text($0).tag($0) }
                     }
                 }
                 SettingsRow(L("Size")) {
@@ -418,8 +451,17 @@ struct AppearanceSettingsView: View {
                 }
                 SettingsRow(L("Weight")) {
                     RowPicker(selection: ConfigBinding.int("terminal.fontWeight")) {
-                        ForEach([300, 400, 500, 600, 700], id: \.self) { Text("\($0)").tag($0) }
+                        ForEach(Self.weights, id: \.self) { Text("\($0)").tag($0) }
                     }
+                }
+                SettingsRow(L("Line padding"), subtitle: L("Space above and below each line")) {
+                    RowStepper(value: ConfigBinding.double("terminal.linePadding"), range: 0...10, step: 1) { "\(Int($0)) pt" } // l10n-ignore: a unit
+                }
+                SettingsRow(L("Preview")) {
+                    Text(verbatim: "AaBb 0123 {}[]() -> != ~/") // l10n-ignore: sample terminal text
+                        .font(.custom(config.string("terminal.font") ?? "Menlo", size: config.double("terminal.fontSize") ?? 14) // l10n-ignore: a font name
+                            .weight(Self.fontWeight(config.int("terminal.fontWeight") ?? 400)))
+                        .lineLimit(1)
                 }
                 SettingsRow(L("Fallback font")) { RowField(placeholder: L("None"), text: ConfigBinding.optionalString("terminal.fallbackFont")) }
                 SettingsRow(L("Draw bold text in bright colours"), isOn: ConfigBinding.bool("terminal.drawBoldTextInBrightColors"))
@@ -445,29 +487,72 @@ struct AppearanceSettingsView: View {
         }
     }
 
-    static func monospacedFamilies(including current: String?) -> [String] {
-        let manager = NSFontManager.shared
-        var families = manager.availableFontFamilies.filter { family in
-            guard let font = NSFont(name: family, size: 12) else { return false }
+    /// Tabby's weights: 100–900.
+    static let weights = Array(stride(from: 100, through: 900, by: 100))
+
+    /// Every font family: the monospaced ones first (with the configured font, even one this
+    /// Mac doesn't have), then the rest, as Tabby lists every font.
+    static func fontChoices(including current: String?) -> (monospaced: [String], others: [String]) {
+        let all = NSFontManager.shared.availableFontFamilies
+        var mono = all.filter { family in
+            guard let font = NSFont(name: family, size: 12) else { return family.lowercased().contains("mono") }
             return font.isFixedPitch || family.lowercased().contains("mono")
         }
-        if let current, !families.contains(current) { families.insert(current, at: 0) }
-        return families
+        if let current, !current.isEmpty, !mono.contains(current) { mono.insert(current, at: 0) }
+        let set = Set(mono)
+        return (mono, all.filter { !set.contains($0) })
+    }
+
+    static func fontWeight(_ value: Int) -> Font.Weight {
+        switch value {
+        case ..<150: return .ultraLight
+        case ..<250: return .thin
+        case ..<350: return .light
+        case ..<450: return .regular
+        case ..<550: return .medium
+        case ..<650: return .semibold
+        case ..<750: return .bold
+        case ..<850: return .heavy
+        default: return .black
+        }
     }
 }
 
+/// Tabby's "Display on" choices for the docked window (`appearance.dockScreen`): the current
+/// screen, or a display by its `NSScreenNumber`.
+@MainActor
+enum DockScreens {
+    static func choices() -> [(title: String, tag: String)] {
+        [(L("Current screen"), "current")] + NSScreen.screens.compactMap { screen in
+            guard let number = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.intValue else { return nil }
+            return (screen.localizedName, String(number))
+        }
+    }
+
+    static func tag(for value: ConfigValue?) -> String { value?.intValue.map(String.init) ?? "current" }
+
+    static func value(for tag: String) -> ConfigValue { Int(tag).map(ConfigValue.int) ?? .string("current") }
+}
+
 struct WindowSettingsView: View {
+    /// Tabby's "Full" frame draws its own window buttons, which macOS already has: it reads
+    /// as the hidden title bar here.
+    static func frameChoice(_ value: String?) -> String { value == "native" ? "native" : "thin" }
+
     var body: some View {
         let _ = AppServices.shared.configRevision
         let percent: (Double) -> String = { "\(Int(($0 * 100).rounded()))%" }
         SettingsPage(L("Window")) {
             SettingsGroup(L("Frame")) {
                 SettingsRow(L("Window frame")) {
-                    RowPicker(selection: ConfigBinding.string("appearance.frame")) {
+                    RowPicker(selection: Binding(get: { Self.frameChoice(AppServices.shared.config.string("appearance.frame")) },
+                                                 set: { AppServices.shared.config.set("appearance.frame", .string($0)) })) {
                         Text(L("Hidden title bar")).tag("thin")
                         Text(L("Native")).tag("native")
                     }
                 }
+                SettingsRow(L("Show profile sidebar"), subtitle: L("Displays a full tree of profiles in the sidebar."),
+                            isOn: ConfigBinding.bool("showProfileTree"))
                 SettingsRow(L("Tab bar location")) {
                     RowSegments(selection: ConfigBinding.string("appearance.tabsLocation")) {
                         Text(L("Top")).tag("top")
@@ -488,6 +573,8 @@ struct WindowSettingsView: View {
             }
             SettingsGroup(L("Tabs")) {
                 SettingsRow(L("Show tabs in full screen"), isOn: ConfigBinding.bool("appearance.tabsInFullscreen"))
+                SettingsRow(L("Show tab options button"), subtitle: L("The … on a tab under the pointer"),
+                            isOn: ConfigBinding.inverted("terminal.hideTabOptionsButton"))
                 SettingsRow(L("Cycle through tabs"), subtitle: L("Next tab on the last tab goes back to the first"),
                             isOn: ConfigBinding.bool("appearance.cycleTabs"))
                 SettingsRow(L("Closing the last tab closes the window"), isOn: ConfigBinding.bool("appearance.lastTabClosesWindow"))
@@ -514,6 +601,12 @@ struct WindowSettingsView: View {
                 }
                 SettingsRow(L("Docked width")) {
                     RowSlider(value: ConfigBinding.double("appearance.dockSpace"), range: 0.2...1, format: percent)
+                }
+                SettingsRow(L("Display on"), subtitle: L("The display a docked window slides in on")) {
+                    RowPicker(selection: Binding(get: { DockScreens.tag(for: AppServices.shared.config.value("appearance.dockScreen")) },
+                                                 set: { AppServices.shared.config.set("appearance.dockScreen", DockScreens.value(for: $0)) })) {
+                        ForEach(DockScreens.choices(), id: \.tag) { Text(verbatim: $0.title).tag($0.tag) }
+                    }
                 }
                 SettingsRow(L("Always on top when docked"), isOn: ConfigBinding.bool("appearance.dockAlwaysOnTop"))
                 SettingsRow(L("Show / hide (global)")) {

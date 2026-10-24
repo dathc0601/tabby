@@ -91,6 +91,20 @@ final class DesignSnapshotTests: XCTestCase {
         try save(try XCTUnwrap(c.window?.contentView), "main-left")
     }
 
+    /// Phase 7: Tabby's profile sidebar beside the tabs.
+    func testProfileSidebar() throws {
+        let c = window()
+        defer {
+            AppServices.shared.config.set("showProfileTree", nil)
+            TestApp.dispose(c)
+        }
+        c.model.openTab(profile: TestApp.profile("zsh", "printf 'ls\\n'; sleep 30"))
+        AppServices.shared.config.set("showProfileTree", true)
+        XCTAssertTrue(TestApp.pump(until: { c.root.sidebar != nil }))
+        TestApp.pump(0.8)
+        try save(try XCTUnwrap(c.window?.contentView), "profile-sidebar")
+    }
+
     func testSplits() throws {
         let c = window()
         defer { TestApp.dispose(c) }

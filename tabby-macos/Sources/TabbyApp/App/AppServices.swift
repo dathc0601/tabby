@@ -81,6 +81,8 @@ public final class AppServices {
         self.serialPorts = serialPorts
         let serial = SerialProfileProvider(ports: { MainActor.assumeIsolated { serialPorts.ports } })
         profiles = ProfileRegistry(config: config, providers: [local, ssh, serial, TelnetProfileProvider()], recents: recents)
+        // Earlier builds hid profiles with their own `hidden` flag; Tabby uses profileBlacklist.
+        profiles.migrateLegacyHidden()
 
         let askpassPath = Self.askpassExecutablePath()
         sshFactory = SSHSessionFactory(
@@ -216,6 +218,7 @@ public final class AppServices {
     public func importElectronTabbyConfig() throws -> Bool {
         guard let value = try ConfigFile.loadElectronTabbyConfig() else { return false }
         try config.replaceUser(value)
+        profiles.migrateLegacyHidden()
         flushSave()
         return true
     }

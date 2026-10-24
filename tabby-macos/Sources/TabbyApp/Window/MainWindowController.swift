@@ -16,7 +16,10 @@ final class TerminalWindow: NSWindow {
 final class MainWindowController: NSWindowController, NSWindowDelegate, WindowModelUI {
     let model = WindowModel()
     let toasts = ToastCenter()
-    private let root = WindowRootView()
+    let root = WindowRootView()
+    /// Tabby's profile sidebar (`showProfileTree`) and its resize handle.
+    private var sidebarHost: NSHostingView<AnyView>?
+    private let sidebarGrabber = SidebarGrabber()
     private var toastHost: NSHostingView<ToastOverlay>!
     private var tabBarHost: NSHostingView<TabBarView>!
     private var startPageHost: NSHostingView<StartPageView>!
@@ -176,7 +179,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
             window.standardWindowButton(button)?.isHidden = docked
         }
         let lights = frame != "native" && !fullscreen && !docked
-        let inset: CGFloat = lights && (placement == .top || placement == .left) ? 78 : (docked ? 8 : 0)
+        let showTree = config.bool("showProfileTree")
+        applySidebar(showTree, topInset: lights ? CGFloat(theme.metrics.tabBar) : 8)
+        // With the sidebar, the window buttons sit over it instead of over the tab bar.
+        let inset: CGFloat = lights && !showTree && (placement == .top || placement == .left) ? 78 : (docked ? 8 : 0)
         let place = placement
         let verticalInset: CGFloat = place.isVertical && lights ? 30 : 0
         tabBarHost.rootView = TabBarView(model: model, actions: tabBarHost.rootView.actions, placement: place,
@@ -189,6 +195,44 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, WindowMo
         root.contentTopInset = (frame != "native" && !fullscreen && place != .top) ? 28 : 0
         root.needsLayout = true
         layoutTrafficLights()
+    }
+
+    /// Shows or hides the profile sidebar (Tabby's `showProfileTree`).
+    private func applySidebar(_ show: Bool, topInset: CGFloat) {
+        guard show else {
+            sidebarHost?.removeFromSuperview()
+            sidebarHost = nil
+            sidebarGrabber.removeFromSuperview()
+            root.sidebar = nil
+            root.sidebarGrabber = nil
+            return
+        }
+        let view = AnyView(ProfileTreeView(topInset: topInset) { [weak self] p in self?.openFromSidebar(p) }.chromeEnvironment())
+        if let sidebarHost {
+            sidebarHost.rootView = view
+        } else {
+            let host = NSHostingView(rootView: view)
+            host.safeAreaRegions = []
+            root.addSubview(host, positioned: .above, relativeTo: effectView)
+            root.addSubview(sidebarGrabber)
+            sidebarHost = host
+            root.sidebar = host
+            root.sidebarGrabber = sidebarGrabber
+            root.sidebarWidth = ProfileSidebar.width
+            sidebarGrabber.currentWidth = { [weak self] in self?.root.sidebarWidth ?? 250 }
+            sidebarGrabber.resized = { [weak self] width in
+                self?.root.sidebarWidth = width
+                self?.root.needsLayout = true
+            }
+            sidebarGrabber.finished = { [weak self] in
+                if let width = self?.root.sidebarWidth { ProfileSidebar.saveWidth(width) }
+            }
+        }
+    }
+
+    /// Opens a profile from the sidebar in a new tab.
+    func openFromSidebar(_ profile: Profile) {
+        _ = model.openTab(profile: profile)
     }
 
     /// Centres the traffic lights in the tab bar (Tabby: `macOSWindowButtonsInsetX/Y`).
@@ -477,29 +521,41 @@ final class WindowRootView: NSView {
     var tabBarHeight: CGFloat = 38
     var hidesTabBar = false
     var contentTopInset: CGFloat = 0
+    /// Tabby's profile sidebar at the leading edge, full height; nil when off.
+    weak var sidebar: NSView?
+    weak var sidebarGrabber: NSView?
+    var sidebarWidth: CGFloat = 250
 
     override var isFlipped: Bool { true }
 
     override func layout() {
         super.layout()
         effectView?.frame = bounds
-        var content = bounds
+        // The sidebar takes the leading edge; the tab bar and the tabs share the rest.
+        var area = bounds
+        if let sidebar {
+            let width = min(sidebarWidth, max(0, bounds.width - 200))
+            sidebar.frame = CGRect(x: 0, y: 0, width: width, height: bounds.height)
+            sidebarGrabber?.frame = CGRect(x: width - 3, y: 0, width: 6, height: bounds.height)
+            area = CGRect(x: width, y: 0, width: max(0, bounds.width - width), height: bounds.height)
+        }
+        var content = area
         if let tabBar {
             tabBar.isHidden = hidesTabBar
             if !hidesTabBar {
                 switch placement {
                 case .top:
-                    tabBar.frame = CGRect(x: 0, y: 0, width: bounds.width, height: tabBarHeight)
-                    content = CGRect(x: 0, y: tabBarHeight, width: bounds.width, height: max(0, bounds.height - tabBarHeight))
+                    tabBar.frame = CGRect(x: area.minX, y: 0, width: area.width, height: tabBarHeight)
+                    content = CGRect(x: area.minX, y: tabBarHeight, width: area.width, height: max(0, area.height - tabBarHeight))
                 case .bottom:
-                    tabBar.frame = CGRect(x: 0, y: bounds.height - tabBarHeight, width: bounds.width, height: tabBarHeight)
-                    content = CGRect(x: 0, y: 0, width: bounds.width, height: max(0, bounds.height - tabBarHeight))
+                    tabBar.frame = CGRect(x: area.minX, y: area.height - tabBarHeight, width: area.width, height: tabBarHeight)
+                    content = CGRect(x: area.minX, y: 0, width: area.width, height: max(0, area.height - tabBarHeight))
                 case .left:
-                    tabBar.frame = CGRect(x: 0, y: 0, width: 200, height: bounds.height)
-                    content = CGRect(x: 200, y: 0, width: max(0, bounds.width - 200), height: bounds.height)
+                    tabBar.frame = CGRect(x: area.minX, y: 0, width: 200, height: area.height)
+                    content = CGRect(x: area.minX + 200, y: 0, width: max(0, area.width - 200), height: area.height)
                 case .right:
-                    tabBar.frame = CGRect(x: bounds.width - 200, y: 0, width: 200, height: bounds.height)
-                    content = CGRect(x: 0, y: 0, width: max(0, bounds.width - 200), height: bounds.height)
+                    tabBar.frame = CGRect(x: area.maxX - 200, y: 0, width: 200, height: area.height)
+                    content = CGRect(x: area.minX, y: 0, width: max(0, area.width - 200), height: area.height)
                 }
             }
         }

@@ -166,6 +166,9 @@ msgstr ""
 msgid "Block"
 msgstr ""
 
+msgid "Block cursor foreground"
+msgstr ""
+
 msgid "Bracketed paste"
 msgstr ""
 
@@ -245,6 +248,9 @@ msgid "Changes from your other Macs are here."
 msgstr ""
 
 msgid "Change…"
+msgstr ""
+
+msgid "Choose a folder"
 msgstr ""
 
 msgid "Clear Buffer"
@@ -400,13 +406,22 @@ msgstr ""
 msgid "Current password"
 msgstr ""
 
+msgid "Current screen"
+msgstr ""
+
 msgid "Cursor"
+msgstr ""
+
+msgid "Cursor text"
 msgstr ""
 
 msgid "Custom baud rate"
 msgstr ""
 
 msgid "Custom scheme · “{name} (edited)”"
+msgstr ""
+
+msgid "Custom: {icon}"
 msgstr ""
 
 msgid "Cyan"
@@ -445,6 +460,9 @@ msgstr ""
 msgid "Delete account…"
 msgstr ""
 
+msgid "Delete group"
+msgstr ""
+
 msgid "Delete profile"
 msgstr ""
 
@@ -479,6 +497,9 @@ msgid "Disconnected"
 msgstr ""
 
 msgid "Dismiss"
+msgstr ""
+
+msgid "Displays a full tree of profiles in the sidebar."
 msgstr ""
 
 msgid "Dock"
@@ -520,6 +541,9 @@ msgstr ""
 msgid "Dynamic"
 msgstr ""
 
+msgid "Edit group"
+msgstr ""
+
 msgid "Edit this appearance"
 msgstr ""
 
@@ -527,6 +551,9 @@ msgid "Edit “{name}”"
 msgstr ""
 
 msgid "Email"
+msgstr ""
+
+msgid "Empty: your Mac user name ({name})"
 msgstr ""
 
 msgid "End-to-end encrypted"
@@ -622,6 +649,12 @@ msgstr ""
 msgid "From {host}"
 msgstr ""
 
+msgid "Generate 256-color palette"
+msgstr ""
+
+msgid "Generate extended 256-color palette from your base 16 colors"
+msgstr ""
+
 msgid "GitHub"
 msgstr ""
 
@@ -629,6 +662,9 @@ msgid "Global hotkey"
 msgstr ""
 
 msgid "Good"
+msgstr ""
+
+msgid "Harmonious palette"
 msgstr ""
 
 msgid "Have an account? Sign in"
@@ -853,9 +889,6 @@ msgstr ""
 msgid "No app opens them yet"
 msgstr ""
 
-msgid "No colour"
-msgstr ""
-
 msgid "No files match the filter “{text}”"
 msgstr ""
 
@@ -973,6 +1006,9 @@ msgstr ""
 msgid "Option key acts as Meta"
 msgstr ""
 
+msgid "Other color"
+msgstr ""
+
 msgid "Out of memory"
 msgstr ""
 
@@ -982,7 +1018,13 @@ msgstr ""
 msgid "Overrides the colour scheme for this profile's tabs."
 msgstr ""
 
+msgid "Palette"
+msgstr ""
+
 msgid "Pane {index} of {total} maximised"
+msgstr ""
+
+msgid "Parent group"
 msgstr ""
 
 msgid "Passphrase for key"
@@ -1027,6 +1069,9 @@ msgstr ""
 msgid "Press up to three keys in a row for a chord."
 msgstr ""
 
+msgid "Preview"
+msgstr ""
+
 msgid "Previous Pane"
 msgstr ""
 
@@ -1055,6 +1100,9 @@ msgid "Process exited with code {code}. Press any key to restart."
 msgstr ""
 
 msgid "Process terminated. Press any key to restart."
+msgstr ""
+
+msgid "Profiles and appearances that use it keep its colours."
 msgstr ""
 
 msgid "Profiles and keys stay usable here, unsynced"
@@ -1153,6 +1201,9 @@ msgstr ""
 msgid "Removing a Mac signs it out; it stops receiving updates."
 msgstr ""
 
+msgid "Rename color scheme"
+msgstr ""
+
 msgid "Rename pane"
 msgstr ""
 
@@ -1190,6 +1241,9 @@ msgid "Restore"
 msgstr ""
 
 msgid "Restore defaults"
+msgstr ""
+
+msgid "Restore settings to defaults"
 msgstr ""
 
 msgid "Restore tabs on startup"
@@ -1276,6 +1330,9 @@ msgstr ""
 msgid "Scroll up one page"
 msgstr ""
 
+msgid "Search icons"
+msgstr ""
+
 msgid "Search profiles or user@host:port"
 msgstr ""
 
@@ -1289,6 +1346,12 @@ msgid "Select destination folder for {name}"
 msgstr ""
 
 msgid "Selection"
+msgstr ""
+
+msgid "Selection foreground"
+msgstr ""
+
+msgid "Selection text"
 msgstr ""
 
 msgid "Send"
@@ -1351,7 +1414,16 @@ msgstr ""
 msgid "Show profile icon"
 msgstr ""
 
+msgid "Show profile selector for group {name}"
+msgstr ""
+
+msgid "Show profile sidebar"
+msgstr ""
+
 msgid "Show tab index"
+msgstr ""
+
+msgid "Show tab options button"
 msgstr ""
 
 msgid "Show tabs in full screen"
@@ -1403,6 +1475,9 @@ msgid "Skip the login banner"
 msgstr ""
 
 msgid "Socket error: {reason}"
+msgstr ""
+
+msgid "Space above and below each line"
 msgstr ""
 
 msgid "Split Down"
@@ -1540,6 +1615,9 @@ msgstr ""
 msgid "The directory could not be created"
 msgstr ""
 
+msgid "The display a docked window slides in on"
+msgstr ""
+
 msgid "The email or password is not right."
 msgstr ""
 
@@ -1565,6 +1643,9 @@ msgid "The port must be a number from 1 to 65535."
 msgstr ""
 
 msgid "The profile is removed here and, when profiles sync, on your other Macs. A password saved for it stays in the Keychain (Settings › Vault)."
+msgstr ""
+
+msgid "The program and its arguments, quoted as in a shell"
 msgstr ""
 
 msgid "The recovery key is not on this Mac yet."
@@ -1601,6 +1682,9 @@ msgid "The top level must be a mapping"
 msgstr ""
 
 msgid "The window takes its colours from the active colour scheme"
+msgstr ""
+
+msgid "The … on a tab under the pointer"
 msgstr ""
 
 msgid "There is already an account with this email."
@@ -1655,9 +1739,6 @@ msgid "Unanswered keep-alives before the connection counts as lost"
 msgstr ""
 
 msgid "Underline"
-msgstr ""
-
-msgid "Unhide"
 msgstr ""
 
 msgid "Unlock"
@@ -1723,6 +1804,12 @@ msgstr ""
 msgid "Valid YAML"
 msgstr ""
 
+msgid "Value"
+msgstr ""
+
+msgid "Variable name"
+msgstr ""
+
 msgid "Verify host key"
 msgstr ""
 
@@ -1772,6 +1859,9 @@ msgid "When the tab is restored; the remote shell must report it (OSC 7)"
 msgstr ""
 
 msgid "Where forwarded X11 connections go; empty uses $DISPLAY"
+msgstr ""
+
+msgid "Whether to invert generated light theme colors. This helps give the 256-color palette more semantic meaning."
 msgstr ""
 
 msgid "While connected, change them from Ports on the connection chip"
@@ -1868,6 +1958,9 @@ msgid "error {code}"
 msgstr ""
 
 msgid "esc close"
+msgstr ""
+
+msgid "extend PATH"
 msgstr ""
 
 msgid "for the dark appearance"

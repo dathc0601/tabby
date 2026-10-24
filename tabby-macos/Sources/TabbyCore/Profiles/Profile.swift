@@ -61,6 +61,14 @@ public struct Profile: Hashable, Identifiable, Sendable {
         self.extra = extra
     }
 
+    /// Common settings a type or group default can also set. A profile that sets one of them
+    /// itself (`explicitKeys`) writes it even at its built-in value, so it overrides the
+    /// default, as Tabby's ConfigProxy does.
+    public static let commonKeys: Set<String> = ["disableDynamicTitle", "behaviorOnSessionEnd", "clearServiceMessagesOnConnect"]
+
+    /// Which of `commonKeys` this profile sets itself.
+    public var explicitKeys: Set<String> = []
+
     static let knownKeys: Set<String> = [
         "id", "type", "name", "group", "options", "icon", "color", "disableDynamicTitle",
         "behaviorOnSessionEnd", "weight", "isBuiltin", "isTemplate", "clearServiceMessagesOnConnect",
@@ -90,6 +98,7 @@ public struct Profile: Hashable, Identifiable, Sendable {
             terminalColorScheme: v["terminalColorScheme"].flatMap { $0.isNull ? nil : $0 },
             extra: (v.objectValue ?? [:]).filter { !Profile.knownKeys.contains($0.key) }
         )
+        explicitKeys = Profile.commonKeys.filter { v[$0].map { !$0.isNull } ?? false }
     }
 
     /// The config.yaml form. Only non-default fields are written, like Tabby.
@@ -102,11 +111,13 @@ public struct Profile: Hashable, Identifiable, Sendable {
         o["options"] = options
         if let icon, !icon.isEmpty { o["icon"] = .string(icon) }
         if let color, !color.isEmpty { o["color"] = .string(color) }
-        if disableDynamicTitle { o["disableDynamicTitle"] = true }
-        if behaviorOnSessionEnd != .auto { o["behaviorOnSessionEnd"] = .string(behaviorOnSessionEnd.rawValue) }
+        if disableDynamicTitle || explicitKeys.contains("disableDynamicTitle") { o["disableDynamicTitle"] = .bool(disableDynamicTitle) }
+        if behaviorOnSessionEnd != .auto || explicitKeys.contains("behaviorOnSessionEnd") {
+            o["behaviorOnSessionEnd"] = .string(behaviorOnSessionEnd.rawValue)
+        }
         if weight != 0 { o["weight"] = .int(weight) }
         if isTemplate { o["isTemplate"] = true }
-        if clearServiceMessagesOnConnect != Self.clearsServiceMessagesByDefault(type: type) {
+        if clearServiceMessagesOnConnect != Self.clearsServiceMessagesByDefault(type: type) || explicitKeys.contains("clearServiceMessagesOnConnect") {
             o["clearServiceMessagesOnConnect"] = .bool(clearServiceMessagesOnConnect)
         }
         if let terminalColorScheme { o["terminalColorScheme"] = terminalColorScheme }
@@ -122,8 +133,11 @@ public struct Profile: Hashable, Identifiable, Sendable {
         "\(type):custom:\(Slug.make(name)):\(UUID().uuidString.lowercased())"
     }
 
-    /// The hotkey id Tabby uses to open this profile (`profile.<id with . -> ->`).
-    public var hotkeyId: String { "profile." + id.replacingOccurrences(of: ".", with: "-") }
+    /// Tabby's `getProfileHotkeyName`: the id with `.` turned into `-` (a hotkey path segment).
+    public var hotkeyName: String { (id.isEmpty ? name : id).replacingOccurrences(of: ".", with: "-") }
+
+    /// The hotkey id Tabby uses to open this profile (`profile.<hotkeyName>`).
+    public var hotkeyId: String { "profile." + hotkeyName }
 }
 
 /// A profile group. Groups nest through `parentGroupId` and can carry per-provider defaults.

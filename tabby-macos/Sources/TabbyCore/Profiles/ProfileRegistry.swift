@@ -50,8 +50,8 @@ public final class ProfileRegistry {
         var list = userProfiles
         if includeBuiltin { list += builtinProfiles() }
         list = list.filter { p in
-            !blacklist.contains(p.id) && !providerBlacklist.contains(p.type) &&
-                (includeHidden || p.extra["hidden"]?.boolValue != true)
+            !providerBlacklist.contains(p.type) &&
+                (includeHidden || (!blacklist.contains(p.id) && p.extra["hidden"]?.boolValue != true))
         }
         let groupNames = Dictionary(groups.map { ($0.id, groupPath($0.id)) }, uniquingKeysWith: { a, _ in a })
         return list.enumerated().sorted { l, r in
@@ -70,7 +70,8 @@ public final class ProfileRegistry {
         allProfiles(includeHidden: true).first { $0.id == id }
     }
 
-    /// Group path such as `Work 🡒 Servers`, as shown in Tabby's selector.
+    /// Group path such as `Work › Servers` (Tabby joins with "🡒", which macOS's menu and
+    /// selector fonts can't draw).
     public func groupPath(_ groupId: String?) -> String {
         guard let groupId, !groupId.isEmpty else { return "" }
         var names: [String] = []
@@ -86,7 +87,7 @@ public final class ProfileRegistry {
             names.insert(g.name, at: 0)
             current = g.parentGroupId
         }
-        return names.joined(separator: " 🡒 ")
+        return names.joined(separator: " › ")
     }
 
     // MARK: Effective settings
@@ -148,9 +149,15 @@ public final class ProfileRegistry {
         return p
     }
 
+    /// Deletes a user profile and its "New tab" hotkey (Tabby's `deleteProfile`).
     public func delete(profileId: String) {
+        let removed = (config.value("profiles")?.arrayValue ?? []).first { $0["id"]?.stringValue == profileId }
         let list = (config.value("profiles")?.arrayValue ?? []).filter { $0["id"]?.stringValue != profileId }
         config.set("profiles", .array(list))
+        if let removed {
+            let name = Profile(config: removed).hotkeyName
+            if config.value(at: ["hotkeys", "profile", name]) != nil { config.set(at: ["hotkeys", "profile", name], nil) }
+        }
     }
 
     public func save(_ group: ProfileGroup) {
@@ -163,12 +170,26 @@ public final class ProfileRegistry {
         config.set("groups", .array(list))
     }
 
-    /// Deletes a group; its profiles move to the top level (or are deleted if asked).
+    /// Deletes a group; its profiles move to the top level (or are deleted if asked), its
+    /// subgroups move up to its parent, and its selector hotkey goes (Tabby's
+    /// `deleteProfileGroup`).
     public func delete(groupId: String, deleteProfiles: Bool = false) {
-        let groupsList = (config.value("groups")?.arrayValue ?? []).filter { $0["id"]?.stringValue != groupId }
+        let all = config.value("groups")?.arrayValue ?? []
+        let parent = all.first { $0["id"]?.stringValue == groupId }?["parentGroupId"]?.stringValue
+        var groupsList = all.filter { $0["id"]?.stringValue != groupId }
+        for i in groupsList.indices where groupsList[i]["parentGroupId"]?.stringValue == groupId {
+            groupsList[i]["parentGroupId"] = parent.map(ConfigValue.string)
+        }
         config.set("groups", .array(groupsList))
+        if config.value(at: ["hotkeys", "group-selectors", groupId]) != nil {
+            config.set(at: ["hotkeys", "group-selectors", groupId], nil)
+        }
         var profiles = config.value("profiles")?.arrayValue ?? []
         if deleteProfiles {
+            for removed in profiles where removed["group"]?.stringValue == groupId {
+                let name = Profile(config: removed).hotkeyName
+                if config.value(at: ["hotkeys", "profile", name]) != nil { config.set(at: ["hotkeys", "profile", name], nil) }
+            }
             profiles.removeAll { $0["group"]?.stringValue == groupId }
         } else {
             for i in profiles.indices where profiles[i]["group"]?.stringValue == groupId {
@@ -176,6 +197,56 @@ public final class ProfileRegistry {
             }
         }
         config.set("profiles", .array(profiles))
+    }
+
+    // MARK: Hiding (Tabby's profileBlacklist)
+
+    /// Whether the profile is hidden from selectors and menus: in `profileBlacklist`, or
+    /// marked `hidden` by an earlier TabbyMac build.
+    public func isHidden(_ profile: Profile) -> Bool {
+        (config.value("profileBlacklist")?.stringArrayValue ?? []).contains(profile.id) || profile.extra["hidden"]?.boolValue == true
+    }
+
+    /// Hides or shows a profile through `profileBlacklist` (built-in profiles too).
+    public func setHidden(_ profile: Profile, _ hidden: Bool) {
+        var list = (config.value("profileBlacklist")?.stringArrayValue ?? []).filter { $0 != profile.id }
+        if hidden { list.append(profile.id) }
+        config.set("profileBlacklist", .array(list.map(ConfigValue.string)))
+        if !hidden, profile.extra["hidden"] != nil, !profile.isBuiltin {
+            var copy = profile
+            copy.extra["hidden"] = nil
+            save(copy)
+        }
+    }
+
+    /// Moves the `hidden: true` flag of earlier TabbyMac builds into `profileBlacklist`.
+    public func migrateLegacyHidden() {
+        var profiles = config.value("profiles")?.arrayValue ?? []
+        var blacklist = config.value("profileBlacklist")?.stringArrayValue ?? []
+        var changed = false
+        for i in profiles.indices where profiles[i]["hidden"] != nil {
+            if profiles[i]["hidden"]?.boolValue == true, let id = profiles[i]["id"]?.stringValue, !blacklist.contains(id) {
+                blacklist.append(id)
+            }
+            profiles[i]["hidden"] = nil
+            changed = true
+        }
+        guard changed else { return }
+        config.set("profiles", .array(profiles))
+        config.set("profileBlacklist", .array(blacklist.map(ConfigValue.string)))
+    }
+
+    // MARK: Type defaults (Tabby's profileDefaults)
+
+    /// `profileDefaults.<type>`: what every profile of the type starts from.
+    public func typeDefaults(_ type: String) -> ConfigValue {
+        config.value(at: ["profileDefaults", type]) ?? .emptyObject
+    }
+
+    /// Replaces a type's defaults; nil (or an empty object) removes them.
+    public func setTypeDefaults(_ type: String, _ value: ConfigValue?) {
+        let empty = value?.objectValue?.isEmpty ?? true
+        config.set(at: ["profileDefaults", type], empty ? nil : value)
     }
 
     // MARK: Quick connect
@@ -206,10 +277,14 @@ public final class ProfileRegistry {
 
     /// Profile selector entries in Tabby's order: recent, user + built-in profiles, the
     /// "Manage profiles" item, and quick-connect entries for the current query.
-    public func selectorEntries(query: String = "") -> [SelectorEntry] {
+    /// With `type` or `groupId` (Tabby's `profile-selectors.<type>` and
+    /// `group-selectors.<id>` hotkeys) only those profiles are listed: no recent or built-in
+    /// entries, and a group includes its subgroups.
+    public func selectorEntries(query: String = "", type: String? = nil, groupId: String? = nil) -> [SelectorEntry] {
         var entries: [SelectorEntry] = []
-        let recentLimit = config.int("terminal.showRecentProfiles") ?? 3
-        let recent = Array(recents.load().prefix(recentLimit))
+        let filtered = type != nil || groupId != nil
+        let recentLimit = filtered ? 0 : (config.int("terminal.showRecentProfiles") ?? 3)
+        let recent = Array(recents.load().prefix(max(0, recentLimit)))
         for p in recent {
             entries.append(SelectorEntry(kind: .profile(p), title: p.name, group: L("Recent"),
                                          description: provider(for: p.type)?.description(for: p) ?? "",
@@ -219,20 +294,29 @@ public final class ProfileRegistry {
             entries.append(SelectorEntry(kind: .clearRecent, title: L("Clear recent profiles"), group: L("Recent"),
                                          description: "", icon: "trash", color: nil, isRecent: true))
         }
-        let showBuiltin = config.value("terminal.showBuiltinProfiles")?.boolValue ?? true
+        // Tabby's type selector lists the type's built-ins whatever showBuiltinProfiles says;
+        // a group has only user profiles.
+        let showBuiltin = type != nil ? groupId == nil : (!filtered && (config.value("terminal.showBuiltinProfiles")?.boolValue ?? true))
+        let groups = groupId.map { descendants(of: $0).union([$0]) }
         for p in allProfiles(includeBuiltin: showBuiltin) where !p.isTemplate {
+            if let type, p.type != type { continue }
+            if let groups, !groups.contains(p.group ?? "") { continue }
             let group = p.isBuiltin ? "Built-in" : groupPath(p.group)
             entries.append(SelectorEntry(kind: .profile(p), title: p.name, group: group,
                                          description: provider(for: p.type)?.description(for: p) ?? "",
                                          icon: p.icon, color: p.color, isRecent: false))
         }
-        entries.append(SelectorEntry(kind: .manageProfiles, title: L("Manage profiles"), group: "",
-                                     description: "", icon: "gearshape", color: nil, isRecent: false))
+        if !filtered {
+            entries.append(SelectorEntry(kind: .manageProfiles, title: L("Manage profiles"), group: "",
+                                         description: "", icon: "gearshape", color: nil, isRecent: false))
+        }
         let trimmed = query.trimmingCharacters(in: .whitespaces)
-        if !trimmed.isEmpty {
+        // Quick connect: every type in the full selector, the type's own in a type selector,
+        // none in a group selector (Tabby).
+        if !trimmed.isEmpty && groupId == nil {
             let defaultId = config.string("defaultQuickConnectProvider") ?? "ssh"
             for provider in providers.sorted(by: { ($0.id == defaultId ? 0 : 1) < ($1.id == defaultId ? 0 : 1) })
-            where provider.supportsQuickConnect {
+            where provider.supportsQuickConnect && (type == nil || provider.id == type) {
                 entries.append(SelectorEntry(kind: .quickConnect(providerId: provider.id, query: trimmed),
                                              title: trimmed, group: L("Quick connect"),
                                              description: provider.name, icon: "bolt", color: nil, isRecent: false))
