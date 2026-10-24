@@ -32,6 +32,25 @@ final class ProfileEditorModeTests: XCTestCase {
         XCTAssertEqual(ProfileEditorSheet.pages(for: "local"), [.general, .advanced, .colors, .scripts])
     }
 
+    /// Final review: the editor showed the raw profile (titles "on" while the SSH default
+    /// ignores them) and could not write the built-in value back.
+    func testTheEditorWritesOnlyWhatDiffersFromTheInheritedValues() {
+        let inherited = ProfileEditorSheet.Inherited(disableDynamicTitle: true, behaviorOnSessionEnd: .close, clearServiceMessagesOnConnect: true)
+        let p = Profile(config: ["id": "x", "type": "ssh", "name": "x", "options": ["host": "h"]])
+        let shown = ProfileEditorSheet.showingInherited(p, inherited)
+        XCTAssertTrue(shown.disableDynamicTitle, "the editor shows what applies")
+        XCTAssertEqual(shown.behaviorOnSessionEnd, .close)
+        let untouched = ProfileEditorSheet.normalized(shown, inherited).configValue
+        XCTAssertNil(untouched["disableDynamicTitle"], "unchanged: it keeps inheriting")
+        XCTAssertNil(untouched["behaviorOnSessionEnd"])
+        var changed = shown
+        changed.disableDynamicTitle = false
+        changed.behaviorOnSessionEnd = .auto
+        let written = ProfileEditorSheet.normalized(changed, inherited).configValue
+        XCTAssertEqual(written["disableDynamicTitle"], false, "an explicit false overrides the default")
+        XCTAssertEqual(written["behaviorOnSessionEnd"]?.stringValue, "auto")
+    }
+
     func testUnknownIconAndColourRoundTrip() {
         let p = Profile(config: ["id": "x", "type": "ssh", "name": "x", "icon": "fas fa-dragon", "color": "teal", "options": ["host": "h"]])
         let saved = ProfileEditorSheet.finalized(p)

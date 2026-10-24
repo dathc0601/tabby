@@ -30,6 +30,7 @@ struct EnvironmentRows: Equatable {
 
     mutating func add() { rows.append(Row(name: "", value: "")) }
     mutating func remove(at index: Int) { rows.remove(at: index) }
+    mutating func remove(id: UUID) { rows.removeAll { $0.id == id } }
 
     /// Tabby shows its "extend PATH" example while there is no PATH variable.
     var showsExample: Bool { !rows.contains { $0.name.lowercased() == "path" } }
@@ -49,12 +50,14 @@ struct EnvironmentEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            ForEach(Array(model.rows.enumerated()), id: \.element.id) { index, _ in
+            // Bound by element and removed by id: a field still editing a removed row can't
+            // write through a stale index.
+            ForEach($model.rows) { $row in
                 HStack(spacing: 6) {
-                    TextField(L("Variable name"), text: $model.rows[index].name).frame(width: 150)
+                    TextField(L("Variable name"), text: $row.name).frame(width: 150)
                     Text(verbatim: "=").foregroundStyle(chrome.textMuted.color)
-                    TextField(L("Value"), text: $model.rows[index].value)
-                    IconButton(symbol: "trash", help: L("Remove"), size: 22) { model.remove(at: index) }
+                    TextField(L("Value"), text: $row.value)
+                    IconButton(symbol: "trash", help: L("Remove"), size: 22) { [id = row.id] in model.remove(id: id) }
                 }
                 .textFieldStyle(.roundedBorder)
                 .font(.custom("Menlo", size: 12))

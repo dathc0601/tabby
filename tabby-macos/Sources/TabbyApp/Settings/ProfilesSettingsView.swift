@@ -404,8 +404,12 @@ extension ProfileEditorSheet {
     /// out, so it doesn't override what the profile inherits) and the common settings that
     /// differ from a new profile's.
     static func defaultsValue(from p: Profile) -> ConfigValue {
-        var o: [String: ConfigValue] = [:]
-        if let options = strippingEmpty(p.options), options.objectValue?.isEmpty == false { o["options"] = options }
+        // Keys the editor doesn't know (an imported plugin's) stay as they were.
+        var o: [String: ConfigValue] = p.extra.filter { $0.key != "hidden" }
+        var options = strippingEmpty(p.options)?.objectValue ?? [:]
+        // A null that means something ("Normal" input, "Keep" newlines) is a setting.
+        for (key, value) in p.options.objectValue ?? [:] where value.isNull && meaningfulNulls.contains(key) { options[key] = .null }
+        if !options.isEmpty { o["options"] = .object(options) }
         if let color = p.color, !color.isEmpty { o["color"] = .string(color) }
         if p.disableDynamicTitle { o["disableDynamicTitle"] = true }
         if p.behaviorOnSessionEnd != .auto { o["behaviorOnSessionEnd"] = .string(p.behaviorOnSessionEnd.rawValue) }
@@ -463,11 +467,63 @@ struct ProfileEditorSheet: View {
     @State private var pickedMode: SSHConnectionMode?
     @Environment(\.chrome) private var chrome
 
+    /// What the profile would get from its type and group defaults (nil in a defaults mode).
+    let inherited: Inherited?
+
     init(item: EditableProfile, initialPage: Page = .general, done: @escaping (Profile?) -> Void) {
         self.item = item
         self.done = done
-        _profile = State(initialValue: item.profile)
+        let inherited = item.mode == .profile ? Self.inherited(for: item.profile, registry: AppServices.shared.profiles) : nil
+        self.inherited = inherited
+        _profile = State(initialValue: inherited.map { Self.showingInherited(item.profile, $0) } ?? item.profile)
         _page = State(initialValue: initialPage)
+    }
+
+    /// The common settings a profile inherits when it doesn't set them.
+    struct Inherited: Equatable {
+        var disableDynamicTitle: Bool
+        var behaviorOnSessionEnd: SessionEndBehavior
+        var clearServiceMessagesOnConnect: Bool
+    }
+
+    static func inherited(for p: Profile, registry: ProfileRegistry) -> Inherited {
+        var bare = p
+        bare.explicitKeys = []
+        bare.disableDynamicTitle = false
+        bare.behaviorOnSessionEnd = .auto
+        bare.clearServiceMessagesOnConnect = Profile.clearsServiceMessagesByDefault(type: p.type)
+        let r = registry.resolved(bare)
+        return Inherited(disableDynamicTitle: r.disableDynamicTitle, behaviorOnSessionEnd: r.behaviorOnSessionEnd,
+                         clearServiceMessagesOnConnect: r.clearServiceMessagesOnConnect)
+    }
+
+    /// The profile as the editor shows it: what applies, inherited where it sets nothing.
+    static func showingInherited(_ p: Profile, _ i: Inherited) -> Profile {
+        var q = p
+        if !p.explicitKeys.contains("disableDynamicTitle") { q.disableDynamicTitle = i.disableDynamicTitle }
+        if !p.explicitKeys.contains("behaviorOnSessionEnd") { q.behaviorOnSessionEnd = i.behaviorOnSessionEnd }
+        if !p.explicitKeys.contains("clearServiceMessagesOnConnect") { q.clearServiceMessagesOnConnect = i.clearServiceMessagesOnConnect }
+        return q
+    }
+
+    /// What the profile saves: a common setting equal to the inherited one is left out (it
+    /// keeps inheriting); any other is written, even at its built-in value.
+    static func normalized(_ p: Profile, _ i: Inherited) -> Profile {
+        var q = p
+        func settle(_ key: String, inherits: Bool, reset: (inout Profile) -> Void) {
+            if inherits {
+                q.explicitKeys.remove(key)
+                reset(&q)
+            } else {
+                q.explicitKeys.insert(key)
+            }
+        }
+        settle("disableDynamicTitle", inherits: p.disableDynamicTitle == i.disableDynamicTitle) { $0.disableDynamicTitle = false }
+        settle("behaviorOnSessionEnd", inherits: p.behaviorOnSessionEnd == i.behaviorOnSessionEnd) { $0.behaviorOnSessionEnd = .auto }
+        settle("clearServiceMessagesOnConnect", inherits: p.clearServiceMessagesOnConnect == i.clearServiceMessagesOnConnect) {
+            $0.clearServiceMessagesOnConnect = Profile.clearsServiceMessagesByDefault(type: $0.type)
+        }
+        return q
     }
 
     private var isSSH: Bool { profile.type == "ssh" }
@@ -1181,7 +1237,7 @@ struct ProfileEditorSheet: View {
         return p
     }
 
-    private func finalProfile() -> Profile { Self.finalized(profile) }
+    private func finalProfile() -> Profile { Self.finalized(inherited.map { Self.normalized(profile, $0) } ?? profile) }
 }
 
 /// The design's colour swatches: none plus the scheme's six ANSI colours, stored as hex as in

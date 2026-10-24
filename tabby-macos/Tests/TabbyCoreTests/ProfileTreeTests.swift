@@ -87,6 +87,15 @@ final class ProfileTreeTests: XCTestCase {
         XCTAssertFalse(r.userProfiles.contains { $0.id == "p2" })
     }
 
+    /// Final review: deleting a group with its profiles left their hotkeys behind; a dead
+    /// binding could shadow a new one on the same keys (Tabby's bulkDeleteProfiles removes them).
+    func testDeletingAGroupsProfilesRemovesTheirHotkeys() throws {
+        let r = try registry(["groups": [group("G", "G")], "profiles": [profile("p.1", "one", group: "G")],
+                              "hotkeys": ["profile": ["p-1": ["⌘-7"]]]])
+        r.delete(groupId: "G", deleteProfiles: true)
+        XCTAssertNil(r.config.value(at: ["hotkeys", "profile", "p-1"]))
+    }
+
     func testDeletingAProfileRemovesItsHotkey() throws {
         let id = "ssh:custom:a.b:1"
         let r = try registry(["profiles": [profile(id, "ab")], "hotkeys": ["profile": ["ssh:custom:a-b:1": ["⌘-7"]]]])
@@ -137,6 +146,51 @@ final class ProfileTreeTests: XCTestCase {
         XCTAssertEqual(r.resolved(try XCTUnwrap(r.profile(withId: "out"))).options["port"]?.intValue, 2200)
     }
 
+    /// Final review: a profile couldn't set a common field back to the built-in value over a
+    /// type or group default (false and auto were never written).
+    func testAProfileCanOverrideADefaultBackToTheBuiltInValue() throws {
+        let r = try registry(["profileDefaults": ["ssh": ["disableDynamicTitle": true, "behaviorOnSessionEnd": "close"]],
+                              "profiles": [profile("own", "own")]])
+        var p = try XCTUnwrap(r.profile(withId: "own"))
+        XCTAssertTrue(r.resolved(p).disableDynamicTitle)
+        XCTAssertEqual(r.resolved(p).behaviorOnSessionEnd, .close)
+        p.disableDynamicTitle = false
+        p.behaviorOnSessionEnd = .auto
+        p.explicitKeys.formUnion(["disableDynamicTitle", "behaviorOnSessionEnd"])
+        r.save(p)
+        let saved = try XCTUnwrap(r.profile(withId: "own"))
+        XCTAssertEqual(saved.configValue["disableDynamicTitle"], false)
+        XCTAssertFalse(r.resolved(saved).disableDynamicTitle)
+        XCTAssertEqual(r.resolved(saved).behaviorOnSessionEnd, .auto)
+        XCTAssertEqual(Profile(config: saved.configValue).explicitKeys, ["disableDynamicTitle", "behaviorOnSessionEnd"], "kept on reload")
+    }
+
+    /// Final review: "Show Local terminal profile selector" listed no shells (built-ins were
+    /// left out) and every selector offered quick connect for every type. Tabby: a type's
+    /// built-ins are listed, quick connect only for that type, none for a group, and neither
+    /// has "Manage profiles".
+    func testATypeSelectorListsBuiltinsAndOnlyItsQuickConnect() throws {
+        let r = try registry(["groups": [group("A", "A")], "profiles": [profile("s1", "s1", group: "A")],
+                              "terminal": ["showBuiltinProfiles": false]])
+        func kinds(_ entries: [ProfileRegistry.SelectorEntry]) -> [String] {
+            entries.map {
+                switch $0.kind {
+                case let .profile(p): return "p:" + p.id
+                case .manageProfiles: return "manage"
+                case .clearRecent: return "clear"
+                case let .quickConnect(providerId, _): return "qc:" + providerId
+                }
+            }
+        }
+        let local = kinds(r.selectorEntries(query: "me@host", type: "local"))
+        XCTAssertTrue(local.contains("p:local:default"), "the type's built-ins")
+        XCTAssertFalse(local.contains("manage"))
+        XCTAssertEqual(local.filter { $0.hasPrefix("qc:") }, [], "local has no quick connect")
+        XCTAssertEqual(kinds(r.selectorEntries(query: "me@host", type: "ssh")).filter { $0.hasPrefix("qc:") }, ["qc:ssh"])
+        let group = kinds(r.selectorEntries(query: "me@host", groupId: "A"))
+        XCTAssertEqual(group, ["p:s1"], "a group's profiles only")
+    }
+
     func testSelectorFiltersByTypeAndGroup() throws {
         let r = try registry(["groups": [group("A", "A"), group("B", "B", parent: "A"), group("C", "C")],
                               "profiles": [profile("s1", "s1", group: "A"), profile("s2", "s2", group: "B"), profile("s3", "s3", group: "C"),
@@ -144,7 +198,9 @@ final class ProfileTreeTests: XCTestCase {
         func ids(_ entries: [ProfileRegistry.SelectorEntry]) -> [String] {
             entries.compactMap { if case let .profile(p) = $0.kind { return p.id } else { return nil } }
         }
-        XCTAssertEqual(Set(ids(r.selectorEntries(type: "local"))), ["l1"], "type filter drops built-in and other types")
+        let local = ids(r.selectorEntries(type: "local"))
+        XCTAssertTrue(local.contains("l1"))
+        XCTAssertTrue(local.allSatisfy { r.profile(withId: $0)?.type == "local" }, "only that type (its built-ins too, as Tabby)")
         XCTAssertEqual(Set(ids(r.selectorEntries(groupId: "A"))), ["s1", "s2", "l1"], "a group and its subgroups")
         XCTAssertEqual(Set(ids(r.selectorEntries(type: "ssh", groupId: "A"))), ["s1", "s2"])
     }

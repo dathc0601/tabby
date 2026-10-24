@@ -139,6 +139,16 @@ final class ProfilesPageTests: XCTestCase {
         XCTAssertNil(ProfileColors.rgb("not a colour"))
     }
 
+    /// Final review: editing defaults dropped keys the editor doesn't know (an imported
+    /// plugin's) and the nulls that mean something ("Normal" input mode, "Keep" newlines).
+    func testDefaultsKeepUnknownKeysAndMeaningfulNulls() {
+        let p = ProfileEditorSheet.profile(fromDefaults: ["pluginSetting": "x", "options": ["inputMode": .null, "port": 23]], type: "telnet")
+        let value = ProfileEditorSheet.defaultsValue(from: p)
+        XCTAssertEqual(value["pluginSetting"]?.stringValue, "x")
+        XCTAssertEqual(value["options"]?["inputMode"], .some(.null))
+        XCTAssertEqual(value["options"]?["port"]?.intValue, 23)
+    }
+
     func testClearedDefaultsFieldsAreRemoved() {
         var p = ProfileEditorSheet.profile(fromDefaults: ["options": ["port": 2200, "user": "root"]], type: "ssh")
         p.options["port"] = .string("")

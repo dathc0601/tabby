@@ -19,6 +19,17 @@ final class ProfileEditorFieldsTests: XCTestCase {
         XCTAssertNil(EnvironmentRows(env: nil).env, "no variables, no key")
     }
 
+    /// Final review: rows were bound and removed by index; removing the row being edited could
+    /// write through a stale index. Rows go by id.
+    func testRowsAreRemovedById() {
+        var rows = EnvironmentRows(env: ["A": "1", "B": "2", "C": "3"])
+        let b = rows.rows[1].id
+        rows.remove(id: b)
+        XCTAssertEqual(rows.env, ["A": "1", "C": "3"])
+        rows.remove(id: b)
+        XCTAssertEqual(rows.env, ["A": "1", "C": "3"], "a stale id removes nothing")
+    }
+
     func testExtendPathExample() {
         var rows = EnvironmentRows(env: nil)
         XCTAssertTrue(rows.showsExample)

@@ -186,6 +186,10 @@ public final class ProfileRegistry {
         }
         var profiles = config.value("profiles")?.arrayValue ?? []
         if deleteProfiles {
+            for removed in profiles where removed["group"]?.stringValue == groupId {
+                let name = Profile(config: removed).hotkeyName
+                if config.value(at: ["hotkeys", "profile", name]) != nil { config.set(at: ["hotkeys", "profile", name], nil) }
+            }
             profiles.removeAll { $0["group"]?.stringValue == groupId }
         } else {
             for i in profiles.indices where profiles[i]["group"]?.stringValue == groupId {
@@ -290,7 +294,9 @@ public final class ProfileRegistry {
             entries.append(SelectorEntry(kind: .clearRecent, title: L("Clear recent profiles"), group: L("Recent"),
                                          description: "", icon: "trash", color: nil, isRecent: true))
         }
-        let showBuiltin = !filtered && (config.value("terminal.showBuiltinProfiles")?.boolValue ?? true)
+        // Tabby's type selector lists the type's built-ins whatever showBuiltinProfiles says;
+        // a group has only user profiles.
+        let showBuiltin = type != nil ? groupId == nil : (!filtered && (config.value("terminal.showBuiltinProfiles")?.boolValue ?? true))
         let groups = groupId.map { descendants(of: $0).union([$0]) }
         for p in allProfiles(includeBuiltin: showBuiltin) where !p.isTemplate {
             if let type, p.type != type { continue }
@@ -300,13 +306,17 @@ public final class ProfileRegistry {
                                          description: provider(for: p.type)?.description(for: p) ?? "",
                                          icon: p.icon, color: p.color, isRecent: false))
         }
-        entries.append(SelectorEntry(kind: .manageProfiles, title: L("Manage profiles"), group: "",
-                                     description: "", icon: "gearshape", color: nil, isRecent: false))
+        if !filtered {
+            entries.append(SelectorEntry(kind: .manageProfiles, title: L("Manage profiles"), group: "",
+                                         description: "", icon: "gearshape", color: nil, isRecent: false))
+        }
         let trimmed = query.trimmingCharacters(in: .whitespaces)
-        if !trimmed.isEmpty {
+        // Quick connect: every type in the full selector, the type's own in a type selector,
+        // none in a group selector (Tabby).
+        if !trimmed.isEmpty && groupId == nil {
             let defaultId = config.string("defaultQuickConnectProvider") ?? "ssh"
             for provider in providers.sorted(by: { ($0.id == defaultId ? 0 : 1) < ($1.id == defaultId ? 0 : 1) })
-            where provider.supportsQuickConnect {
+            where provider.supportsQuickConnect && (type == nil || provider.id == type) {
                 entries.append(SelectorEntry(kind: .quickConnect(providerId: provider.id, query: trimmed),
                                              title: trimmed, group: L("Quick connect"),
                                              description: provider.name, icon: "bolt", color: nil, isRecent: false))
