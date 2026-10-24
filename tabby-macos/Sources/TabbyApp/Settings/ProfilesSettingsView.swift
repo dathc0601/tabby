@@ -473,7 +473,11 @@ struct ProfileEditorSheet: View {
     private var pages: [Page] { Self.pages(for: profile.type) }
 
     static func pages(for type: String) -> [Page] {
-        type == "ssh" ? Page.allCases : [.general, .advanced, .colors, .scripts]
+        switch type {
+        case "ssh": return Page.allCases
+        case "split-layout": return [] // only the common fields (Tabby has no settings for layouts)
+        default: return [.general, .advanced, .colors, .scripts]
+        }
     }
 
     enum DeviceMenuEntry: Equatable {
@@ -576,8 +580,13 @@ struct ProfileEditorSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     common
-                    Picker("", selection: $page) { ForEach(pages) { Text($0.title).tag($0) } }
-                        .pickerStyle(.segmented).labelsHidden()
+                    if !pages.isEmpty {
+                        Picker("", selection: $page) { ForEach(pages) { Text($0.title).tag($0) } }
+                            .pickerStyle(.segmented).labelsHidden()
+                    }
+                    if pages.isEmpty {
+                        EmptyView()
+                    } else {
                     switch page {
                     case .general: generalPage
                     case .ports: AnyView(SettingsGroup(L("Forwarded ports")) { PortForwardsEditor(options: $profile.options) })
@@ -585,6 +594,7 @@ struct ProfileEditorSheet: View {
                     case .ciphers: AnyView(sshCiphers)
                     case .colors: AnyView(colours)
                     case .scripts: AnyView(LoginScriptsEditor(options: $profile.options))
+                    }
                     }
                 }
                 .padding(20)
@@ -596,7 +606,7 @@ struct ProfileEditorSheet: View {
                 Button(item.isNew ? L("Create") : L("Save")) { done(finalProfile()) }
                     .buttonStyle(ChromeButtonStyle(kind: .primary))
                     .keyboardShortcut("s", modifiers: .command)
-                    .disabled(["ssh", "telnet"].contains(profile.type) && (profile.options["host"]?.stringValue ?? "").isEmpty)
+                    .disabled(item.mode == .profile && ["ssh", "telnet"].contains(profile.type) && (profile.options["host"]?.stringValue ?? "").isEmpty)
             }
             .padding(14)
         }
@@ -606,7 +616,35 @@ struct ProfileEditorSheet: View {
         .onAppear(perform: refreshPasswordState)
     }
 
+    /// The editor's title in a defaults mode (Tabby's "Defaults for {type}"); nil for a profile.
+    static func title(for mode: ProfileEditorMode) -> String? {
+        switch mode {
+        case .profile: return nil
+        case let .typeDefaults(type), let .groupDefaults(_, type): return L("Defaults for {type}", ["type": ProfileTypes.title(type)])
+        }
+    }
+
+    /// Name, group and icon belong to a profile, not to defaults (Tabby hides them there).
+    static func showsIdentityFields(_ mode: ProfileEditorMode) -> Bool { mode == .profile }
+
+    /// "Reconnect" only for connections (Tabby's `isConnectable()`).
+    static func sessionEndChoices(for type: String) -> [SessionEndBehavior] {
+        ["ssh", "telnet", "serial"].contains(type) ? [.auto, .keep, .reconnect, .close] : [.auto, .keep, .close]
+    }
+
+    @ViewBuilder
     private var header: some View {
+        if let title = Self.title(for: item.mode) {
+            Text(title).font(ChromeFont.headline)
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .overlay(alignment: .bottom) { Rectangle().fill(chrome.separator.color).frame(height: 1) }
+        } else {
+            profileHeader
+        }
+    }
+
+    private var profileHeader: some View {
         HStack(spacing: 12) {
             // The profile's colour behind its icon at 20% (design C6/C7).
             let tint = profile.color.flatMap(RGBColor.init(hex:)) ?? chrome.accent
@@ -628,7 +666,9 @@ struct ProfileEditorSheet: View {
 
     private var common: some View {
         let registry = AppServices.shared.profiles
+        let identity = Self.showsIdentityFields(item.mode)
         return SettingsGroup {
+            if identity {
             SettingsRow(L("Group")) {
                 HStack(spacing: 6) {
                     RowPicker(selection: Binding(get: { profile.group ?? "" }, set: { profile.group = $0.isEmpty ? nil : $0 })) {
@@ -655,18 +695,29 @@ struct ProfileEditorSheet: View {
                     ProfileColorPicker(color: $profile.color)
                 }
             }
+            } else {
+                SettingsRow(L("Color")) { ProfileColorPicker(color: $profile.color) }
+            }
             SettingsRow(L("When the session ends")) {
                 RowSegments(selection: $profile.behaviorOnSessionEnd) {
-                    Text(L("Auto")).tag(SessionEndBehavior.auto)
-                    Text(L("Keep")).tag(SessionEndBehavior.keep)
-                    Text(L("Reconnect")).tag(SessionEndBehavior.reconnect)
-                    Text(L("Close")).tag(SessionEndBehavior.close)
+                    ForEach(Self.sessionEndChoices(for: profile.type), id: \.self) { choice in
+                        Text(Self.sessionEndTitle(choice)).tag(choice)
+                    }
                 }
             }
             if isConnection {
                 SettingsRow(L("Clear terminal after connection"), subtitle: L("Removes the connection messages once connected"),
                             isOn: $profile.clearServiceMessagesOnConnect)
             }
+        }
+    }
+
+    static func sessionEndTitle(_ choice: SessionEndBehavior) -> String {
+        switch choice {
+        case .auto: return L("Auto")
+        case .keep: return L("Keep")
+        case .reconnect: return L("Reconnect")
+        case .close: return L("Close")
         }
     }
 

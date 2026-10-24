@@ -602,6 +602,9 @@ msgstr "Thiết lập hồ sơ mặc định"
 msgid "Defaults (read only)"
 msgstr "Mặc định (chỉ đọc)"
 
+msgid "Defaults for {type}"
+msgstr "Mặc định cho {type}"
+
 msgid "Delete"
 msgstr "Xoá"
 
