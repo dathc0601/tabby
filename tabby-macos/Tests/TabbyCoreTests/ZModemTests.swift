@@ -221,4 +221,36 @@ final class ZModemTests: XCTestCase {
         receiver.feed(bytes("OO$ prompt"))
         XCTAssertEqual(trailing, bytes("$ prompt"))
     }
+
+    func testSkippingTheCurrentFileMovesOnToTheNext() {
+        var queue: [() -> Void] = []
+        let a = (0..<200_000).map { UInt8($0 % 13) }
+        let files = [("a", a), ("b", bytes("bee"))].map { name, data in
+            ZModemOutgoingFile(info: ZModemFileInfo(name: name, size: UInt64(data.count), mtime: nil, mode: nil)) { o, n in
+                Array(data[Int(o)..<min(data.count, Int(o) + n)])
+            }
+        }
+        let sender = ZModemSender(files: files)
+        let receiver = ZModemReceiver()
+        var got: [String: [UInt8]] = [:]
+        var current = ""
+        var done: [Int: Bool] = [:]
+        var ended = false
+        sender.schedule = { queue.append($0) }
+        sender.toRemote = { b in queue.append { receiver.feed(b) } }
+        receiver.toRemote = { b in queue.append { sender.feed(b) } }
+        receiver.onOffer = { info in current = info.name; got[info.name] = []; receiver.accept() }
+        receiver.onData = { d in
+            got[current]! += d
+            if current == "a" && got["a"]!.count >= 2048 { receiver.skipCurrent() }
+        }
+        sender.onFileDone = { done[$0] = $1 }
+        receiver.onFinished = { _ in ended = true }
+        receiver.start()
+        while !queue.isEmpty { queue.removeFirst()() }
+        XCTAssertLessThan(got["a"]?.count ?? 0, a.count)
+        XCTAssertEqual(got["b"], bytes("bee"))
+        XCTAssertEqual(done[0], true, "the sender saw the skip")
+        XCTAssertTrue(ended)
+    }
 }

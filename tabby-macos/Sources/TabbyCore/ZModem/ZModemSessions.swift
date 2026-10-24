@@ -52,7 +52,9 @@ public final class ZModemReceiver {
     private var position: UInt32 = 0
     /// After a bad subpacket: data is ignored until ZDATA comes back at `position`.
     private var resyncing = false
-    private var awaiting: ZModemFrameType?
+    /// What the next data subpacket belongs to.
+    private enum Awaiting { case sinit, file, ignored }
+    private var awaiting: Awaiting?
     private var lastHeader: ZModemHeader?
     private var over = OverAndOut()
 
@@ -78,6 +80,18 @@ public final class ZModemReceiver {
         phase = .waiting
         send(ZModemHeader(type: .skip))
     }
+
+    /// Gives up the file being received; lrzsz's `sz` then offers the next one.
+    public func skipCurrent() {
+        guard phase == .receiving else { return }
+        phase = .waiting
+        // Like lrzsz's rz: the data still on its way is noise; look for the next header.
+        decoder.seekHeader()
+        send(ZModemHeader(type: .skip))
+    }
+
+    /// Both sides sent ZFIN; "OO" is due.
+    public var isEnding: Bool { phase == .over }
 
     /// The user cancelled: the remote is told with lrzsz's CAN sequence.
     public func cancel() {
@@ -117,7 +131,8 @@ public final class ZModemReceiver {
             case .sinit?:
                 awaiting = .sinit
             case .file?:
-                awaiting = phase == .waiting ? .file : nil
+                // A repeated offer (the sender thought it was lost) once a file is under way.
+                awaiting = phase == .waiting ? .file : .ignored
             case .data?:
                 awaiting = nil
                 guard phase == .receiving else { return }
@@ -152,6 +167,8 @@ public final class ZModemReceiver {
             case .sinit?:
                 awaiting = nil
                 send(ZModemHeader(type: .ack))
+            case .ignored?:
+                awaiting = nil
             case .file?:
                 awaiting = nil
                 guard let info = ZModemFileInfo(subpacket: data) else {

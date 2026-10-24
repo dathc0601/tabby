@@ -41,6 +41,9 @@ msgstr "Giới thiệu TabbyMac"
 msgid "Accept"
 msgstr "Chấp nhận"
 
+msgid "Accept a ZMODEM session?"
+msgstr "Chấp nhận phiên ZMODEM?"
+
 msgid "Accept new key"
 msgstr "Chấp nhận khoá mới"
 
@@ -233,6 +236,9 @@ msgstr "Có sẵn"
 msgid "Cancel"
 msgstr "Huỷ"
 
+msgid "Canceled"
+msgstr "Đã hủy"
+
 msgid "Cancelled"
 msgstr "Đã huỷ"
 
@@ -394,6 +400,9 @@ msgstr "Không tìm thấy lệnh: {executable}"
 
 msgid "Command-line tool"
 msgstr "Công cụ dòng lệnh"
+
+msgid "Complete"
+msgstr "Hoàn tất"
 
 msgid "Compression"
 msgstr "Nén"
@@ -740,6 +749,9 @@ msgstr "Nhập địa chỉ cần chuyển tiếp tới."
 msgid "Enter the recovery key you saved when you created the account, then choose a new password."
 msgstr "Nhập khoá khôi phục bạn đã lưu khi tạo tài khoản, rồi chọn mật khẩu mới."
 
+msgid "Error"
+msgstr "Lỗi"
+
 msgid "Even"
 msgstr "Chẵn"
 
@@ -943,6 +955,9 @@ msgstr "Biểu tượng & màu"
 
 msgid "If you forget your password, this key is the only way to decrypt your synced profiles and private keys. TabbyMac can't reset it for you."
 msgstr "Nếu bạn quên mật khẩu, khoá này là cách duy nhất để giải mã hồ sơ và khoá riêng đã đồng bộ. TabbyMac không thể đặt lại nó cho bạn."
+
+msgid "If you have not requested it, it could be a sign of malicious activity."
+msgstr "Nếu bạn không yêu cầu, đây có thể là dấu hiệu của hoạt động độc hại."
 
 msgid "Ignore titles set by programs"
 msgstr "Bỏ qua tiêu đề do chương trình đặt"
@@ -1364,6 +1379,9 @@ msgstr "Lẻ"
 msgid "Off"
 msgstr "Tắt"
 
+msgid "Offered"
+msgstr "Được đề nghị"
+
 msgid "On the active tab and on hover"
 msgstr "Trên tab đang mở và khi rê chuột"
 
@@ -1583,6 +1601,9 @@ msgstr "Kết nối socket thô"
 msgid "Ready timeout"
 msgstr "Thời gian chờ sẵn sàng"
 
+msgid "Received"
+msgstr "Đã nhận"
+
 msgid "Recent"
 msgstr "Gần đây"
 
@@ -1618,6 +1639,9 @@ msgstr "Biểu thức chính quy"
 
 msgid "Reject"
 msgstr "Từ chối"
+
+msgid "Rejected"
+msgstr "Đã từ chối"
 
 msgid "Rejected incoming forwarded connection for unrecognized port {destinationAddress}:{destinationPort}"
 msgstr "Đã từ chối kết nối chuyển tiếp tới cho cổng lạ {destinationAddress}:{destinationPort}"
@@ -1877,6 +1901,9 @@ msgstr "Gửi byte bằng cách gõ giá trị hex"
 msgid "Sends data one byte at a time"
 msgstr "Gửi dữ liệu từng byte một"
 
+msgid "Sent"
+msgstr "Đã gửi"
+
 msgid "Serial"
 msgstr "Serial"
 
@@ -1897,6 +1924,12 @@ msgstr "Phiên đã đóng. Nhấn phím bất kỳ để kết nối lại."
 
 msgid "Session ended"
 msgstr "Phiên đã kết thúc"
+
+msgid "Session failed: {reason}"
+msgstr "Phiên thất bại: {reason}"
+
+msgid "Session started"
+msgstr "Phiên đã bắt đầu"
 
 msgid "Settings"
 msgstr "Cài đặt"
@@ -2557,6 +2590,9 @@ msgstr "Khoá khôi phục của bạn"
 
 msgid "Your setup is restored from your account. Passwords and keys went into this Mac's Keychain, so your saved servers connect without asking again."
 msgstr "Thiết lập của bạn được khôi phục từ tài khoản. Mật khẩu và khoá đã được đưa vào Keychain của máy Mac này, nên các máy chủ đã lưu sẽ kết nối mà không hỏi lại."
+
+msgid "ZMODEM session"
+msgstr "phiên ZMODEM"
 
 msgid "Zoom"
 msgstr "Thu phóng"

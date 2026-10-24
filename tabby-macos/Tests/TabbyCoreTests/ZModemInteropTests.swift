@@ -81,6 +81,42 @@ final class ZModemInteropTests: XCTestCase {
         XCTAssertEqual(process.terminationStatus, 0, "sz is satisfied")
     }
 
+    func testSkippingAFileHalfwayWithSz() throws {
+        var received: [String: [UInt8]] = [:]
+        var current = ""
+        var errors: [String] = []
+        let done = DispatchSemaphore(value: 0)
+        let sentry = ZModemSentry()
+        let receiver = ZModemReceiver()
+        var stdinHandle: FileHandle?
+        var detected = false
+        receiver.toRemote = { bytes in try? stdinHandle?.write(contentsOf: Data(bytes)) }
+        receiver.onOffer = { info in current = info.name; received[info.name] = []; receiver.accept() }
+        receiver.onData = { data in
+            received[current]! += data
+            if current == "big" && received["big"]!.count > 100_000 { receiver.skipCurrent() }
+        }
+        receiver.onFinished = { _ in done.signal() }
+        receiver.onError = { errors.append($0); done.signal() }
+        let (process, stdin) = try run("cd /tmp && head -c 3000000 /dev/zero > big && echo small > small && sz big small") { bytes in
+            if detected { receiver.feed(bytes); return }
+            let r = sentry.feed(bytes)
+            if r.detection == .receive {
+                detected = true
+                receiver.start()
+                receiver.feed(r.protocolBytes)
+            }
+        }
+        stdinHandle = stdin
+        XCTAssertEqual(done.wait(timeout: .now() + 60), .success)
+        queue.sync {}
+        try? stdin.close()
+        process.waitUntilExit()
+        XCTAssertEqual(errors, [])
+        XCTAssertLessThan(received["big"]?.count ?? 0, 3_000_000)
+        XCTAssertEqual(received["small"], Array("small\n".utf8), "sz went on to the next file")
+    }
+
     func testSendingToRz() throws {
         let big = (0..<200_000).map { UInt8(truncatingIfNeeded: $0 &* 2654435761 >> 7) }
         let files: [(String, [UInt8])] = [("first file.txt", Array("hello\n".utf8)), ("data.bin", big)]

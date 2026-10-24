@@ -37,6 +37,9 @@ msgstr ""
 msgid "Accept"
 msgstr ""
 
+msgid "Accept a ZMODEM session?"
+msgstr ""
+
 msgid "Accept new key"
 msgstr ""
 
@@ -175,6 +178,9 @@ msgstr ""
 msgid "Built in"
 msgstr ""
 
+msgid "Canceled"
+msgstr ""
+
 msgid "Cancelled"
 msgstr ""
 
@@ -290,6 +296,9 @@ msgid "Command not found: {executable}"
 msgstr ""
 
 msgid "Command-line tool"
+msgstr ""
+
+msgid "Complete"
 msgstr ""
 
 msgid "Compression"
@@ -529,6 +538,9 @@ msgstr ""
 msgid "Enter the recovery key you saved when you created the account, then choose a new password."
 msgstr ""
 
+msgid "Error"
+msgstr ""
+
 msgid "Even"
 msgstr ""
 
@@ -647,6 +659,9 @@ msgid "Icon & colour"
 msgstr ""
 
 msgid "If you forget your password, this key is the only way to decrypt your synced profiles and private keys. TabbyMac can't reset it for you."
+msgstr ""
+
+msgid "If you have not requested it, it could be a sign of malicious activity."
 msgstr ""
 
 msgid "Ignore titles set by programs"
@@ -928,6 +943,9 @@ msgstr ""
 msgid "Odd"
 msgstr ""
 
+msgid "Offered"
+msgstr ""
+
 msgid "On the active tab and on hover"
 msgstr ""
 
@@ -1063,6 +1081,9 @@ msgstr ""
 msgid "Ready timeout"
 msgstr ""
 
+msgid "Received"
+msgstr ""
+
 msgid "Reconnect tab"
 msgstr ""
 
@@ -1085,6 +1106,9 @@ msgid "Regular expression"
 msgstr ""
 
 msgid "Reject"
+msgstr ""
+
+msgid "Rejected"
 msgstr ""
 
 msgid "Rejected incoming forwarded connection for unrecognized port {destinationAddress}:{destinationPort}"
@@ -1267,6 +1291,9 @@ msgstr ""
 msgid "Send"
 msgstr ""
 
+msgid "Sent"
+msgstr ""
+
 msgid "Serial port or a device path"
 msgstr ""
 
@@ -1277,6 +1304,12 @@ msgid "Session closed. Press any key to reconnect."
 msgstr ""
 
 msgid "Session ended"
+msgstr ""
+
+msgid "Session failed: {reason}"
+msgstr ""
+
+msgid "Session started"
 msgstr ""
 
 msgid "Settings, hotkeys & colour schemes"
@@ -1796,6 +1829,9 @@ msgid "Your recovery key"
 msgstr ""
 
 msgid "Your setup is restored from your account. Passwords and keys went into this Mac's Keychain, so your saved servers connect without asking again."
+msgstr ""
+
+msgid "ZMODEM session"
 msgstr ""
 
 msgid "Zoom"

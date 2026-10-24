@@ -10,6 +10,9 @@ public final class ProcessedSession: TerminalSession {
     public let processor: StreamProcessor
 
     public var onOutput: ((Data) -> Void)?
+    /// When set, the session's raw bytes go here instead of the processor (ZMODEM watches
+    /// them first and hands the rest back with `processRaw`).
+    public var onRawOutput: ((Data) -> Void)?
     public var onClosed: ((Int32?) -> Void)?
     public var onStatus: ((SessionStatus) -> Void)?
 
@@ -27,7 +30,7 @@ public final class ProcessedSession: TerminalSession {
     public func start(cols: Int, rows: Int) throws {
         inner.onOutput = { [weak self] data in
             guard let self else { return }
-            self.show(self.processor.fromSession(data))
+            if let raw = self.onRawOutput { raw(data) } else { self.show(self.processor.fromSession(data)) }
         }
         inner.onClosed = { [weak self] code in
             self?.settleWork?.cancel()
@@ -51,6 +54,12 @@ public final class ProcessedSession: TerminalSession {
     }
 
     public func resize(cols: Int, rows: Int) { inner.resize(cols: cols, rows: rows) }
+
+    /// Raw session bytes that turned out to be the terminal's: processed as usual.
+    public func processRaw(_ data: Data) { show(processor.fromSession(data)) }
+
+    /// Bytes for the session as they are (a ZMODEM transfer).
+    public func writeRaw(_ data: Data) { inner.write(data) }
 
     public func kill() {
         settleWork?.cancel()

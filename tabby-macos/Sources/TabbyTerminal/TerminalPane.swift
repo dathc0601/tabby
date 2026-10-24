@@ -105,6 +105,9 @@ public final class TerminalPane: TerminalEngineDelegate {
     @ObservationIgnored public var onRequestPasteConfirmation: ((TerminalPane, String) -> Void)?
     @ObservationIgnored public var onBell: ((TerminalPane) -> Void)?
     @ObservationIgnored public var onFocus: ((TerminalPane) -> Void)?
+    /// Asks about, saves and picks files for ZMODEM sessions (the window).
+    @ObservationIgnored public weak var zmodemHost: ZModemHost?
+    @ObservationIgnored public private(set) lazy var zmodem: ZModemBridge = makeZModemBridge()
     /// A link the user clicked.
     @ObservationIgnored public var onOpenLink: ((TerminalPane, String) -> Void)?
     /// A left click in the terminal.
@@ -175,6 +178,11 @@ public final class TerminalPane: TerminalEngineDelegate {
         do {
             let s = try factory.makeSession(profile: profile, context: context)
             s.onOutput = { [weak self] data in self?.handleOutput(data) }
+            if let processed = s as? ProcessedSession {
+                // ZMODEM sees the bytes before Tabby's stream processing (zmodem.ts sits next to
+                // the session) and hands the rest back.
+                processed.onRawOutput = { [weak self] data in self?.zmodem.fromRemote(Array(data)) }
+            }
             s.onClosed = { [weak self] code in self?.handleClosed(code) }
             s.onStatus = { [weak self] st in
                 self?.status = st
@@ -239,6 +247,7 @@ public final class TerminalPane: TerminalEngineDelegate {
         progressClearWork?.cancel()
         session?.onClosed = nil
         session?.onOutput = nil
+        zmodem.abandon()
         session?.kill()
         session = nil
     }
@@ -310,6 +319,38 @@ public final class TerminalPane: TerminalEngineDelegate {
     // MARK: Output
 
     private func handleOutput(_ data: Data) {
+        // A processed session's raw bytes went through the bridge already.
+        if session is ProcessedSession { return terminalOutput(data) }
+        zmodem.fromRemote(Array(data))
+    }
+
+    private func makeZModemBridge() -> ZModemBridge {
+        let bridge = ZModemBridge()
+        bridge.toRemote = { [weak self] bytes in
+            guard let session = self?.session else { return }
+            if let processed = session as? ProcessedSession { processed.writeRaw(Data(bytes)) } else { session.write(Data(bytes)) }
+        }
+        bridge.toTerminal = { [weak self] bytes in
+            guard let self else { return }
+            if let processed = self.session as? ProcessedSession { processed.processRaw(Data(bytes)) } else { self.terminalOutput(Data(bytes)) }
+        }
+        bridge.showLine = { [weak self] line in self?.engine?.feed(Data(line.utf8)) }
+        bridge.ask = { [weak self] direction, answer in
+            guard let self, let host = self.zmodemHost else { return answer(false) }
+            host.zmodemAsk(direction, in: self, answer: answer)
+        }
+        bridge.save = { [weak self] info, answer in
+            guard let self, let host = self.zmodemHost else { return answer(nil) }
+            host.zmodemSave(info, in: self, answer: answer)
+        }
+        bridge.chooseFiles = { [weak self] answer in
+            guard let self, let host = self.zmodemHost else { return answer([]) }
+            host.zmodemChooseFiles(in: self, answer: answer)
+        }
+        return bridge
+    }
+
+    private func terminalOutput(_ data: Data) {
         engine?.feed(data)
         if notifyOnActivity {
             notifyOnActivity = false
@@ -338,6 +379,7 @@ public final class TerminalPane: TerminalEngineDelegate {
 
     private func handleClosed(_ code: Int32?) {
         progress = nil
+        zmodem.abandon()
         let explicit = isExplicitlyTerminated(code: code)
         let behaviour = profile.behaviorOnSessionEnd
         let isLocal = profile.type == "local"
@@ -527,6 +569,7 @@ public final class TerminalPane: TerminalEngineDelegate {
     public func engine(_ engine: TerminalEngine, send data: Data) {
         onUserInput?(self, data)
         send(data)
+        if zmodem.isActive { zmodem.userInput(Array(data)) }
     }
 
     public func engine(_ engine: TerminalEngine, resized cols: Int, rows: Int) {

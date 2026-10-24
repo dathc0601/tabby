@@ -124,6 +124,7 @@ public final class WindowModel {
                 for other in self?.broadcastTargets(from: p) ?? [] { other.sendPaste(text) }
             }
         }
+        pane.zmodemHost = ui as? ZModemHost
         pane.onOpenLink = { [weak self] p, link in
             MainActor.assumeIsolated { self?.ui?.openLink(link, from: p) }
         }
