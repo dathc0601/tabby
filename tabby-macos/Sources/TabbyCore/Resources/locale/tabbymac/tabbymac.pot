@@ -409,6 +409,9 @@ msgstr ""
 msgid "Custom scheme · “{name} (edited)”"
 msgstr ""
 
+msgid "Custom: {icon}"
+msgstr ""
+
 msgid "Cyan"
 msgstr ""
 
@@ -443,6 +446,9 @@ msgid "Delete account"
 msgstr ""
 
 msgid "Delete account…"
+msgstr ""
+
+msgid "Delete group"
 msgstr ""
 
 msgid "Delete profile"
@@ -518,6 +524,9 @@ msgid "Drop to upload to {path}"
 msgstr ""
 
 msgid "Dynamic"
+msgstr ""
+
+msgid "Edit group"
 msgstr ""
 
 msgid "Edit this appearance"
@@ -853,9 +862,6 @@ msgstr ""
 msgid "No app opens them yet"
 msgstr ""
 
-msgid "No colour"
-msgstr ""
-
 msgid "No files match the filter “{text}”"
 msgstr ""
 
@@ -973,6 +979,9 @@ msgstr ""
 msgid "Option key acts as Meta"
 msgstr ""
 
+msgid "Other color"
+msgstr ""
+
 msgid "Out of memory"
 msgstr ""
 
@@ -983,6 +992,9 @@ msgid "Overrides the colour scheme for this profile's tabs."
 msgstr ""
 
 msgid "Pane {index} of {total} maximised"
+msgstr ""
+
+msgid "Parent group"
 msgstr ""
 
 msgid "Passphrase for key"
@@ -1192,6 +1204,9 @@ msgstr ""
 msgid "Restore defaults"
 msgstr ""
 
+msgid "Restore settings to defaults"
+msgstr ""
+
 msgid "Restore tabs on startup"
 msgstr ""
 
@@ -1274,6 +1289,9 @@ msgid "Scroll up one line"
 msgstr ""
 
 msgid "Scroll up one page"
+msgstr ""
+
+msgid "Search icons"
 msgstr ""
 
 msgid "Search profiles or user@host:port"
@@ -1655,9 +1673,6 @@ msgid "Unanswered keep-alives before the connection counts as lost"
 msgstr ""
 
 msgid "Underline"
-msgstr ""
-
-msgid "Unhide"
 msgstr ""
 
 msgid "Unlock"

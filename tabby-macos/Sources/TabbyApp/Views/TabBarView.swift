@@ -432,31 +432,6 @@ struct TabColors: Identifiable {
 }
 
 /// Maps Tabby's Font Awesome icon names to SF Symbols, falling back to a terminal glyph.
-enum ProfileIcons {
-    static func symbol(for icon: String) -> String {
-        let name = icon.replacingOccurrences(of: "fas fa-", with: "").replacingOccurrences(of: "fab fa-", with: "") // l10n-ignore: Font Awesome icon names
-        let map = ["terminal": "terminal", "network": "network", "server": "server.rack", "desktop": "desktopcomputer",
-                   "laptop": "laptopcomputer", "globe": "globe", "bolt": "bolt", "cloud": "cloud", "database": "cylinder",
-                   "linux": "terminal", "apple": "apple.logo", "docker": "shippingbox", "code": "chevron.left.forwardslash.chevron.right",
-                   "microchip": "cable.connector", "network-wired": "network"]
-        return map[name] ?? "terminal"
-    }
-
-    /// The icon of a profile that has none (Tabby's providers set these on their builtins).
-    static func defaultIcon(forType type: String) -> String {
-        switch type {
-        case "ssh": return "server"
-        case "serial": return "fas fa-microchip" // l10n-ignore: Font Awesome icon names
-        case "telnet": return "fas fa-network-wired" // l10n-ignore: Font Awesome icon names
-        default: return "terminal"
-        }
-    }
-
-    /// Icons the profile editor offers (Tabby's Font Awesome names, shown as SF Symbols).
-    static let choices = ["terminal", "server", "desktop", "laptop", "globe", "cloud", "database", "bolt", "code", "docker", "apple", "linux", "network",
-                          "microchip", "network-wired"]
-}
-
 /// Empty space in the tab bar that drags the window (and zooms on double click).
 struct WindowDragArea: NSViewRepresentable {
     final class DragView: NSView {
