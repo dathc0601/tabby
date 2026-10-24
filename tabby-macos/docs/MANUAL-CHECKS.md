@@ -555,6 +555,41 @@ or another app are left to the owner.
 M11 was walked in part on 2026-10-24 (the owner was using the Mac) and finished on
 2026-10-25 with the Mac to ourselves; two findings were fixed (Findings table).
 
+## M12 Settings and profile editors (phase 7)
+
+Run the app built by Xcode with its own config folder (as in M11).
+
+- [ ] Profiles page: New ▸ New profile group; the group editor sets name, parent group, icon
+      (search) and colour; the group shows nested under its parent with its icon and colour;
+      collapsing a group survives a relaunch.
+- [ ] A group's defaults: Edit… on SSH in the group editor, set a port; a new SSH profile in
+      the group connects on that port; Save keeps it, the reset button removes it.
+- [ ] Default profile settings: Edit… on Local terminal, add an environment variable; a new
+      local tab sees it (`echo $FOO`); the reset button asks "Restore settings to defaults ?".
+- [ ] Deleting a group asks "Delete "{name}"?" and, with profiles, "Delete the group's
+      profiles?" (Move to "Ungrouped" / Delete); both answers do what they say.
+- [ ] Hide a built-in profile: it leaves the selector; "Show hidden" lists it with an eye;
+      Show brings it back. config.yaml has it in `profileBlacklist`.
+- [ ] Advanced: "Show recent profiles in selector" at 0 hides the recent entries; "Show
+      built-in profiles in selector" off leaves only custom profiles in ⌘E.
+- [ ] Profile editor: any icon from the search grid; a custom colour; "Reconnect" is not
+      offered for a local profile; a split-layout profile shows only the common fields.
+- [ ] Local editor: the one-line command field fills Command and Arguments; the folder button
+      sets the working directory; Environment rows, "extend PATH".
+- [ ] SSH editor: Connection ▸ SOCKS proxy shows host and port fields; switching to Direct
+      clears them in config.yaml; a port forward keeps its description.
+- [ ] Appearance: Line padding spaces the lines; weight 100–900; the preview follows; a
+      non-monospaced font can be picked; Terminal background "From color scheme".
+- [ ] Color scheme: "Generate 256-color palette" changes `curl -s https://…/256colors` style
+      output (or a `for i in {16..255}` loop); "Harmonious palette" shows only when generating;
+      Cursor text and Selection text wells take effect; a custom scheme shows "Custom", can
+      be renamed and deleted.
+- [ ] Window: Dock "Display on" lists the displays; "Show tab options button" off hides the
+      "…" on hover; "Show profile sidebar" shows the sidebar (filter, double-click and play
+      open tabs, drag its edge); Application › "Enable animations".
+- [ ] Hotkeys: rows "New tab: {profile}", "Show SSH connection profile selector", "Show profile
+      selector for group {name}", "Open settings tab: Terminal"; bind one of each and use it.
+
 ## Findings
 
 | Date | Milestone | Finding | Fix |

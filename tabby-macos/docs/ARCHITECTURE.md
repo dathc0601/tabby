@@ -193,8 +193,11 @@ in-app toast shows as well, because macOS refuses banners to ad-hoc signed build
    separators, pane labels and rearranging panes, focus follows mouse, broadcast to every
    tab, OSC 1337 folders, dropped files, New terminal / New with profile, Save as profile,
    Tabby's link options, ZMODEM, the Sixel switch. On-screen checks in M11.
-7. **Next.** The settings and profile editors Tabby has and TabbyMac lacks (group editing,
-   per-group and per-type defaults, the environment editor), macOS integration (Dock menu,
-   Finder services, menu bar icon, updates), Tabby's vault; native versions of popular
-   plugins; TabbyMac's own strings in Tabby's other languages; SwiftTerm 2.0 once it is
-   released (1.99 previews need Swift 6.2).
+7. **Settings and profile editors (phase 7).** The profile group tree and group editor,
+   per-type and per-group defaults, Tabby's blacklist for hiding, the editor's defaults
+   mode, icons and colours, the environment editor, SSH connection modes, line padding and
+   the 256-colour palette, custom scheme rename/delete, Display on, the profile sidebar,
+   hotkeys per profile, type, group and settings page. On-screen checks in M12.
+8. **Next.** macOS integration (Dock menu, Finder services, menu bar icon, updates),
+   Tabby's vault; native versions of popular plugins; TabbyMac's own strings in Tabby's
+   other languages; SwiftTerm 2.0 once it is released (1.99 previews need Swift 6.2).
