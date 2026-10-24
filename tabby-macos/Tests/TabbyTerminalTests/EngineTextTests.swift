@@ -125,6 +125,32 @@ final class EngineTextTests: XCTestCase {
         XCTAssertEqual(shiftSpy.links, ["https://example.com/x"])
     }
 
+    final class ReplySpy: TerminalEngineDelegate {
+        var sent = Data()
+        func engine(_ engine: TerminalEngine, send data: Data) { sent.append(data) }
+        func engine(_ engine: TerminalEngine, resized cols: Int, rows: Int) {}
+        func engine(_ engine: TerminalEngine, titleChanged title: String) {}
+        func engine(_ engine: TerminalEngine, directoryChanged directory: String?) {}
+        func engineBell(_ engine: TerminalEngine) {}
+        func engineDidFocus(_ engine: TerminalEngine) {}
+        func engine(_ engine: TerminalEngine, paste text: String) {}
+        func engineSelectionChanged(_ engine: TerminalEngine) {}
+    }
+
+    /// Tabby's `terminal.sixel`: SwiftTerm 1.20 always draws sixel images, so the switch decides
+    /// whether the terminal tells programs it can (the ";4" of its device attributes).
+    func testTheSixelSettingDecidesWhatTheTerminalAdvertises() throws {
+        for (setting, advertised) in [(true, true), (false, false)] {
+            let (engine, _) = try engine(["sixel": .bool(setting)])
+            let spy = ReplySpy()
+            engine.engineDelegate = spy
+            engine.feed(Data("\u{1b}[c".utf8))
+            let reply = String(decoding: spy.sent, as: UTF8.self)
+            XCTAssertTrue(reply.hasPrefix("\u{1b}[?"), reply.debugDescription)
+            XCTAssertEqual(reply.contains(";4"), advertised, "sixel \(setting): \(reply.debugDescription)")
+        }
+    }
+
     func testTheBufferTextIncludesTheScrollback() throws {
         let (engine, _) = try engine()
         engine.feed(Data((1...60).map { "line \($0)" }.joined(separator: "\r\n").utf8))

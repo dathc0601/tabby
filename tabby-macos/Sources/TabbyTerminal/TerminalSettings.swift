@@ -21,6 +21,8 @@ public struct TerminalSettings: Equatable {
     public var copyOnSelect: Bool
     /// Tabby's `clickableLinks.modifier`: the key a click on a link needs.
     public var linkModifier: LinkModifier
+    /// Tabby's `terminal.sixel`: whether programs are told the terminal shows Sixel images.
+    public var sixel: Bool
     /// Tabby's `terminal.focusFollowsMouse`.
     public var focusFollowsMouse: Bool
     /// Tabby's `terminal.copyAsHTML` ("Copy with formatting"): copies carry HTML too.
@@ -53,6 +55,7 @@ public struct TerminalSettings: Equatable {
         bellFlashFrame = c.bool("terminal.bellFlashFrame")
         copyOnSelect = c.bool("terminal.copyOnSelect")
         focusFollowsMouse = c.bool("terminal.focusFollowsMouse")
+        sixel = c.value("terminal.sixel")?.boolValue ?? true
         linkModifier = LinkModifier(config: c.string("clickableLinks.modifier"))
         copyAsHTML = c.value("terminal.copyAsHTML")?.boolValue ?? true
         wordSeparator = c.string("terminal.wordSeparator") ?? TerminalTextDefaults.wordSeparator

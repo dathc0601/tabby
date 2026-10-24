@@ -581,6 +581,8 @@ struct TerminalSettingsView: View {
                 }
                 SettingsRow(L("Detect progress in output"), subtitle: L("Shows a percentage in the tab when a command prints one"),
                             isOn: ConfigBinding.bool("terminal.detectProgress"))
+                SettingsRow(L("Sixel graphics support (experimental)"), subtitle: L("Tells programs that the terminal can show Sixel images"),
+                            isOn: ConfigBinding.bool("terminal.sixel"))
             }
             SettingsGroup(L("New tabs")) {
                 SettingsRow(L("Default profile")) {

@@ -1495,6 +1495,9 @@ msgstr ""
 msgid "Tabs stretch to fill the tab bar instead of using a fixed width"
 msgstr ""
 
+msgid "Tells programs that the terminal can show Sixel images"
+msgstr ""
+
 msgid "Telnet"
 msgstr ""
 

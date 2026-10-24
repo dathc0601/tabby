@@ -102,6 +102,9 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
             changeScrollback(settings.scrollbackLines)
             appliedScrollback = settings.scrollbackLines
         }
+        // ★ SwiftTerm 1.20 always draws Sixel images; the setting decides whether the device
+        // attributes advertise them, so programs only send them when it is on.
+        getTerminal().options.enableSixelReported = settings.sixel
         rightClickAction = settings.rightClick
         copyOnSelect = settings.copyOnSelect
         copyAsHTML = settings.copyAsHTML

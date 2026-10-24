@@ -2039,6 +2039,9 @@ msgstr "Đăng xuất…"
 msgid "Signed out"
 msgstr "Đã đăng xuất"
 
+msgid "Sixel graphics support (experimental)"
+msgstr "Hỗ trợ đồ họa Sixel (thử nghiệm)"
+
 msgid "Size"
 msgstr "Cỡ chữ"
 
@@ -2188,6 +2191,9 @@ msgstr "Các tab khuất khỏi tầm nhìn"
 
 msgid "Tabs stretch to fill the tab bar instead of using a fixed width"
 msgstr "Tab giãn ra lấp đầy thanh tab thay vì dùng độ rộng cố định"
+
+msgid "Tells programs that the terminal can show Sixel images"
+msgstr "Báo cho chương trình biết terminal hiển thị được ảnh Sixel"
 
 msgid "Telnet"
 msgstr "Telnet"
