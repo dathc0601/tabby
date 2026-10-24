@@ -107,6 +107,28 @@ struct ContextMenuArea: NSViewRepresentable {
     }
 }
 
+/// A button area that drops a menu built at that moment below itself (the tab's "…").
+struct MenuButtonArea: NSViewRepresentable {
+    let makeMenu: () -> NSMenu
+
+    func makeNSView(context: Context) -> MenuButtonView {
+        let view = MenuButtonView()
+        view.makeMenu = makeMenu
+        return view
+    }
+
+    func updateNSView(_ view: MenuButtonView, context: Context) { view.makeMenu = makeMenu }
+}
+
+final class MenuButtonView: NSView {
+    var makeMenu: (() -> NSMenu)?
+
+    override func mouseDown(with event: NSEvent) {
+        guard let menu = makeMenu?() else { return }
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: isFlipped ? bounds.maxY + 4 : -4), in: self)
+    }
+}
+
 final class ContextMenuView: NSView {
     var tabID: UUID?
     var makeMenu: (() -> NSMenu)?

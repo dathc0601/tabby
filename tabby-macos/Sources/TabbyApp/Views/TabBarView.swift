@@ -331,15 +331,10 @@ struct TabHeaderView: View {
                     .help(L("Pinned"))
             } else {
                 if hovering && !compact {
-                    Button {
-                        TabMenu.build(for: tab, actions: actions).popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
-                    } label: {
-                        Image(systemName: "ellipsis").font(.system(size: 11, weight: .semibold))
-                            .frame(width: 18, height: 18)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .help(L("Tab options"))
+                    Image(systemName: "ellipsis").font(.system(size: 11, weight: .semibold))
+                        .frame(width: 18, height: 18)
+                        .overlay { MenuButtonArea { TabMenu.build(for: tab, actions: actions) } }
+                        .help(L("Tab options"))
                 }
                 if !hideClose {
                     Button { actions.close(tab) } label: {
