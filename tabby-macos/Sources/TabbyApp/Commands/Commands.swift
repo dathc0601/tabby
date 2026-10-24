@@ -128,6 +128,12 @@ extension MainWindowController {
         case "scroll-page-down": pane?.engine?.scroll(.pageDown)
         case "scroll-to-bottom": pane?.engine?.scroll(.bottom)
         case "export-buffer": exportBuffer()
+        case "new-terminal":
+            guard let pane else { return false }
+            openNewTerminal(from: pane)
+        case "save-as-profile":
+            guard let pane else { return false }
+            saveAsProfileAsking(pane)
         case "copy-current-path":
             guard let cwd = pane?.currentDirectory() else { return true }
             NSPasteboard.general.clearContents()
@@ -147,6 +153,11 @@ extension MainWindowController {
                 }
             } else if id.hasPrefix("pane-nav-"), let n = Int(id.dropFirst(9)) {
                 model.navigatePane(index: n - 1)
+            } else if id.hasPrefix(NewTabMenu.commandPrefix) {
+                let wanted = String(id.dropFirst(NewTabMenu.commandPrefix.count))
+                guard let pane, let profile = AppServices.shared.profiles.allProfiles(includeHidden: true).first(where: { $0.id == wanted })
+                else { return false }
+                openProfile(profile, from: pane)
             } else if id.hasPrefix("profile.") {
                 let wanted = String(id.dropFirst("profile.".count))
                 guard let p = AppServices.shared.profiles.allProfiles(includeHidden: true)
@@ -285,6 +296,56 @@ extension MainWindowController {
         tab.isRearranging = down
     }
 
+    // MARK: New terminal, new with profile, save as profile
+
+    /// Tabby's "New terminal": a tab with this pane's profile when it is a local shell, else
+    /// the default profile; it opens in this pane's folder unless the profile names one.
+    func openNewTerminal(from pane: TerminalPane) {
+        model.focus(paneID: pane.id)
+        model.openTab(profile: pane.profile.type == "local" ? pane.profile : AppServices.shared.defaultProfile())
+    }
+
+    /// Tabby's "New with profile": in the profile's folder, else this local pane's; a folder
+    /// that doesn't exist is dropped.
+    func openProfile(_ profile: Profile, from pane: TerminalPane) {
+        var cwd = LocalOptions(profile.options).cwd.flatMap { $0.isEmpty ? nil : $0 }
+            ?? (pane.profile.type == "local" ? pane.currentDirectory() : nil)
+        var isDirectory: ObjCBool = false
+        if let path = cwd, !(FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) && isDirectory.boolValue) { cwd = nil }
+        model.focus(paneID: pane.id)
+        model.openTab(profile: profile, cwd: cwd)
+    }
+
+    func saveAsProfileAsking(_ pane: TerminalPane) {
+        Prompts.text(in: window, title: L("Save as profile"), message: L("New profile name"), value: pane.profile.name,
+                     confirm: L("Save")) { [weak self] name, _ in
+            guard let name, !name.isEmpty else { return }
+            self?.saveAsProfile(pane, name: name)
+        }
+    }
+
+    /// Tabby's "Save as profile": the pane's profile with its current folder, as a new profile.
+    @discardableResult
+    func saveAsProfile(_ pane: TerminalPane, name: String) -> Profile? {
+        let source = pane.profile
+        var options = source.options
+        if let cwd = pane.currentDirectory() ?? LocalOptions(source.options).cwd { options["cwd"] = .string(cwd) }
+        let saved = AppServices.shared.profiles.save(Profile(
+            type: source.type, name: name, group: source.group, options: options, icon: source.icon, color: source.color,
+            disableDynamicTitle: source.disableDynamicTitle, behaviorOnSessionEnd: source.behaviorOnSessionEnd))
+        toasts.show(ToastCenter.Toast(symbol: "checkmark.circle", tint: .success, title: L("Saved"), detail: ""))
+        return saved
+    }
+
+    // MARK: Dropping files
+
+    /// Tabby's path drop: the pane takes focus and gets each path quoted, as if typed.
+    func dropFiles(_ urls: [URL], on pane: TerminalPane) {
+        model.focus(paneID: pane.id)
+        let bracketed = pane.settings.bracketedPaste && pane.engine?.isBracketedPasteMode == true
+        for chunk in PathDrop.text(for: urls.map(\.path), bracketed: bracketed) { pane.send(text: chunk) }
+    }
+
     // MARK: Export to file
 
     typealias ExportChooser = (_ window: NSWindow?, _ suggestedName: String, _ directory: URL?, _ done: @escaping (URL?) -> Void) -> Void
@@ -375,7 +436,15 @@ extension MainWindowController {
             }
         }
         menu.addItem(.separator())
+        item(L("Save as profile"), "save-as-profile")
         item(L("Switch Profile…"), "switch-profile")
+        item(L("New terminal"), "new-terminal")
+        let profiles = NSMenu()
+        profiles.autoenablesItems = false
+        for p in NewTabMenu.localProfiles() { item(p.name, NewTabMenu.commandPrefix + p.id, in: profiles) }
+        let profilesItem = NSMenuItem(title: L("New with profile"), action: nil, keyEquivalent: "")
+        profilesItem.submenu = profiles
+        menu.addItem(profilesItem)
         if pane.connectionState != nil {
             if SFTPPanels.canOpen(pane) { item(L("Open SFTP Panel"), "open-sftp") }
             item(pane.isRunning ? L("Disconnect") : L("Reconnect"), pane.isRunning ? "disconnect-tab" : "reconnect-tab")

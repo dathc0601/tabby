@@ -100,4 +100,20 @@ final class TerminalTextTests: XCTestCase {
         let chars: [Character?] = ["a", "日", nil, "b", " ", "c"]
         XCTAssertEqual(WordSelection.range(in: chars, at: 2, separators: " "), 0...3)
     }
+
+    // MARK: OSC 1337 and dropped files
+
+    func testTheCurrentDirectoryOfOSC1337() {
+        XCTAssertEqual(TerminalOSC.iTermCurrentDirectory("CurrentDir=/tmp/a=b"), "/tmp/a=b", "the whole value (Tabby cuts at a second =)")
+        XCTAssertEqual(TerminalOSC.iTermCurrentDirectory("CurrentDir=~/src"), "~/src")
+        XCTAssertNil(TerminalOSC.iTermCurrentDirectory("SetUserVar=x=eQ=="))
+        XCTAssertNil(TerminalOSC.iTermCurrentDirectory("CurrentDir="))
+        XCTAssertNil(TerminalOSC.iTermCurrentDirectory("ShellIntegrationVersion"))
+    }
+
+    func testDroppedPathsAreQuotedOneByOne() {
+        XCTAssertEqual(PathDrop.text(for: ["/tmp/a b", "/x/it's"], bracketed: false), ["'/tmp/a b' ", "'/x/it'\\''s' "])
+        XCTAssertEqual(PathDrop.text(for: ["/a\u{1b}[31m\nb"], bracketed: false), ["'/a[31mb' "], "control characters go")
+        XCTAssertEqual(PathDrop.text(for: ["/a"], bracketed: true), ["\u{1b}[200~'/a' \u{1b}[201~"])
+    }
 }

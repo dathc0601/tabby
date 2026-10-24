@@ -22,6 +22,16 @@ final class ClosureMenuItem: NSMenuItem {
     @objc private func run() { handler() }
 }
 
+/// "New with profile": the local profiles, custom ones first by group and name, then the
+/// built-in ones (Tabby's `NewTabContextMenu`).
+@MainActor
+enum NewTabMenu {
+    static let commandPrefix = "new-with-profile:" // l10n-ignore: a command id
+    static func localProfiles() -> [Profile] {
+        AppServices.shared.profiles.allProfiles().filter { $0.type == "local" && !$0.isTemplate }
+    }
+}
+
 /// The tab header's menu (right-click and the "…" button), Tabby's tab-header context menu.
 /// Built each time it opens, so it shows the tab as it is then.
 @MainActor
@@ -77,8 +87,14 @@ enum TabMenu {
             command(L("Split Left"), "split-left", to: split)
             submenu(L("Split"), split, in: menu)
             command(L("Save Layout as Profile…"), "save-layout-as-profile")
+            command(L("Save as profile"), "save-as-profile")
             command(L("Export to file"), "export-buffer")
             command(L("Switch Profile…"), "switch-profile")
+            command(L("New terminal"), "new-terminal")
+            let profiles = NSMenu()
+            profiles.autoenablesItems = false
+            for p in NewTabMenu.localProfiles() { command(p.name, NewTabMenu.commandPrefix + p.id, to: profiles) }
+            submenu(L("New with profile"), profiles, in: menu)
         }
         return menu
     }

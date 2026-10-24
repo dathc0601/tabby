@@ -27,7 +27,7 @@ final class SplitTreeView: NSView {
         addSubview(dropOverlay)
         // Tab headers drag their id as text (SwiftUI `.draggable`); dropping one on a pane
         // splits it.
-        registerForDraggedTypes([.string])
+        registerForDraggedTypes([.string, .fileURL])
         loop = ObservationLoop(track: { [weak self] in
             guard let self else { return }
             // Read what the layout depends on so changes trigger a relayout.
@@ -166,7 +166,30 @@ final class SplitTreeView: NSView {
         return (id, view.frame, SplitDirection.dropSide(at: point, in: view.frame))
     }
 
+    /// Files from Finder: the pane under the pointer types their paths.
+    private func droppedFiles(_ info: NSDraggingInfo) -> [URL]? {
+        guard draggedPane(info) == nil, draggedTab(info) == nil,
+              let urls = info.draggingPasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL],
+              !urls.isEmpty else { return nil }
+        return urls
+    }
+
+    private func pane(at info: NSDraggingInfo) -> (UUID, CGRect)? {
+        let point = convert(info.draggingLocation, from: nil)
+        return paneViews.first { !$0.value.isHidden && $0.value.frame.contains(point) }.map { ($0.key, $0.value.frame) }
+    }
+
     private func updateDrop(_ info: NSDraggingInfo) -> NSDragOperation {
+        if droppedFiles(info) != nil {
+            guard let (_, frame) = pane(at: info) else {
+                dropOverlay.isHidden = true
+                return []
+            }
+            dropOverlay.frame = frame
+            dropOverlay.side = nil
+            dropOverlay.isHidden = false
+            return .copy
+        }
         if draggedPane(info) != nil {
             guard let zone = paneZone(info) else {
                 dropOverlay.isHidden = true
@@ -194,6 +217,11 @@ final class SplitTreeView: NSView {
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
         dropOverlay.isHidden = true
+        if let urls = droppedFiles(sender) {
+            guard let (id, _) = pane(at: sender), let pane = tab.panes[id] else { return false }
+            controller?.dropFiles(urls, on: pane)
+            return true
+        }
         if let id = draggedPane(sender) {
             guard let zone = paneZone(sender) else { return false }
             return controller?.model.movePane(id, relativeTo: zone.relativeTo, side: zone.side) ?? false

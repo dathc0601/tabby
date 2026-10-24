@@ -409,5 +409,12 @@ public final class SwiftTermEngine: TerminalView, TerminalEngine, TerminalViewDe
     }
 
     public func rangeChanged(source: TerminalView, startY: Int, endY: Int) {}
+
+    /// `OSC 1337` payloads SwiftTerm doesn't handle itself; TabbyMac reads `CurrentDir=`
+    /// (Tabby's `OSCProcessor`).
+    public func iTermContent(source: TerminalView, content: ArraySlice<UInt8>) {
+        guard let directory = TerminalOSC.iTermCurrentDirectory(String(decoding: content, as: UTF8.self)) else { return }
+        engineDelegate?.engine(self, directoryChanged: directory)
+    }
 }
 #endif

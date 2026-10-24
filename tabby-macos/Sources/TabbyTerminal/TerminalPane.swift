@@ -539,9 +539,12 @@ public final class TerminalPane: TerminalEngineDelegate {
 
     public func engine(_ engine: TerminalEngine, directoryChanged directory: String?) {
         guard let directory else { return }
-        // OSC 7 sends file://host/path
+        // OSC 7 sends file://host/path; OSC 1337 CurrentDir a plain path, maybe "~/…", which
+        // is this Mac's home only in a local pane.
         if let url = URL(string: directory), url.isFileURL {
             workingDirectory = url.path
+        } else if directory.hasPrefix("~"), profile.type == "local" {
+            workingDirectory = (directory as NSString).expandingTildeInPath
         } else {
             workingDirectory = directory
         }

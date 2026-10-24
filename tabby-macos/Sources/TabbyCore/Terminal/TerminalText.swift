@@ -136,3 +136,27 @@ public enum WordSelection {
         return start...end
     }
 }
+
+/// Terminal control strings TabbyMac reads itself.
+public enum TerminalOSC {
+    /// `OSC 1337 ; CurrentDir=<path>` (iTerm2's shell integration, which Tabby's docs
+    /// recommend for current-directory detection): the path, kept whole. Other keys: nil.
+    public static func iTermCurrentDirectory(_ payload: String) -> String? {
+        guard let eq = payload.firstIndex(of: "="), payload[..<eq] == "CurrentDir" else { return nil }
+        let value = String(payload[payload.index(after: eq)...])
+        return value.isEmpty ? nil : value
+    }
+}
+
+/// Files dropped on a terminal (Tabby's `PathDropDecorator`): each path in single quotes,
+/// control characters removed, followed by a space, and wrapped in bracketed paste when the
+/// terminal uses it. One chunk per file.
+public enum PathDrop {
+    public static func text(for paths: [String], bracketed: Bool) -> [String] {
+        paths.map { path in
+            let clean = String(String.UnicodeScalarView(path.unicodeScalars.filter { $0.value >= 0x20 && $0.value != 0x7f }))
+            let quoted = "'" + clean.replacingOccurrences(of: "'", with: "'\\''") + "' "
+            return bracketed ? "\u{1b}[200~" + quoted + "\u{1b}[201~" : quoted
+        }
+    }
+}

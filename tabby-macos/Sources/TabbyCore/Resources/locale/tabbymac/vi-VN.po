@@ -1202,6 +1202,9 @@ msgstr "Mật khẩu mới"
 msgid "New profile"
 msgstr "Hồ sơ mới"
 
+msgid "New profile name"
+msgstr "Tên hồ sơ mới"
+
 msgid "New tab"
 msgstr "Tab mới"
 
@@ -1216,6 +1219,9 @@ msgstr "Mới dùng TabbyMac? Tạo tài khoản"
 
 msgid "New window"
 msgstr "Cửa sổ mới"
+
+msgid "New with profile"
+msgstr "Mở mới với hồ sơ"
 
 msgid "Next Pane"
 msgstr "Khung kế tiếp"
@@ -1769,6 +1775,9 @@ msgstr "Lưu bố cục thành hồ sơ…"
 msgid "Save as file…"
 msgstr "Lưu thành tệp…"
 
+msgid "Save as profile"
+msgstr "Lưu thành hồ sơ"
+
 msgid "Save as…"
 msgstr "Lưu thành…"
 
@@ -1780,6 +1789,9 @@ msgstr "Lưu bố cục thành hồ sơ"
 
 msgid "Save your recovery key"
 msgstr "Lưu khoá khôi phục của bạn"
+
+msgid "Saved"
+msgstr "Đã lưu"
 
 msgid "Saved in Keychain"
 msgstr "Đã lưu trong Keychain"

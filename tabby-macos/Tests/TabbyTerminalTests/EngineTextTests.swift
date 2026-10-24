@@ -52,6 +52,36 @@ final class EngineTextTests: XCTestCase {
         XCTAssertEqual(other.selectedText(), "usr")
     }
 
+    final class DirectorySpy: TerminalEngineDelegate {
+        var directories: [String] = []
+        func engine(_ engine: TerminalEngine, send data: Data) {}
+        func engine(_ engine: TerminalEngine, resized cols: Int, rows: Int) {}
+        func engine(_ engine: TerminalEngine, titleChanged title: String) {}
+        func engine(_ engine: TerminalEngine, directoryChanged directory: String?) { directory.map { directories.append($0) } }
+        func engineBell(_ engine: TerminalEngine) {}
+        func engineDidFocus(_ engine: TerminalEngine) {}
+        func engine(_ engine: TerminalEngine, paste text: String) {}
+        func engineSelectionChanged(_ engine: TerminalEngine) {}
+    }
+
+    func testOSC1337CurrentDirReportsTheDirectory() throws {
+        let (engine, _) = try engine()
+        let spy = DirectorySpy()
+        engine.engineDelegate = spy
+        engine.feed(Data("\u{1b}]1337;CurrentDir=/tmp/a=b\u{07}".utf8))
+        engine.feed(Data("\u{1b}]1337;SetUserVar=x=eQ==\u{07}".utf8))
+        XCTAssertEqual(spy.directories, ["/tmp/a=b"])
+    }
+
+    func testAHomeRelativeDirectoryIsExpandedForLocalPanesOnly() throws {
+        let (local, localEngine, _) = try makeFakePane(type: "local")
+        local.engine(localEngine, directoryChanged: "~/src")
+        XCTAssertEqual(local.currentDirectory(), NSHomeDirectory() + "/src")
+        let (ssh, sshEngine, _) = try makeFakePane(type: "ssh")
+        ssh.engine(sshEngine, directoryChanged: "~/src")
+        XCTAssertEqual(ssh.currentDirectory(), "~/src", "the remote home is unknown here")
+    }
+
     func testTheBufferTextIncludesTheScrollback() throws {
         let (engine, _) = try engine()
         engine.feed(Data((1...60).map { "line \($0)" }.joined(separator: "\r\n").utf8))
